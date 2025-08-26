@@ -19,13 +19,14 @@ namespace EVMS
     /// <summary>
     /// Interaction logic for ProbeSetup.xaml
     /// </summary>
-    public partial class ProbeSetup : UserControl
+    public partial class ProbeSetupPage : UserControl
     {
         private DispatcherTimer _timer;
         private Random _random = new Random();
-        public ProbeSetup()
+
+        public ProbeSetupPage()
         {
-            InitializeComponent();
+           InitializeComponent();
 
             // Load measurement rows (simulate data for now)
             var rows = new List<Row>

@@ -24,7 +24,7 @@ namespace EVMS
             MainContentGrid.Children.Clear();
 
             // Create instance of RunPage UserControl
-            ProbeSetup runPage = new ProbeSetup();
+            ProbeSetupPage runPage = new ProbeSetupPage();
 
             // Make sure it fills the MainContentGrid
             runPage.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -50,7 +50,23 @@ namespace EVMS
             MainContentGrid.Children.Add(resultPage);
         }
 
+        private void ProbeInstall_Click(object sender, RoutedEventArgs e)
+        {
+            // Clear existing content
+            MainContentGrid.Children.Clear();
 
+            // Create instance of RunPage UserControl
+            ProbeInstallPage resultPage = new ProbeInstallPage();
+
+            // Make sure it fills the MainContentGrid
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            // Add RunPage to the container Grid
+            MainContentGrid.Children.Add(resultPage);
+        }
+
+        
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();

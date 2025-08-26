@@ -163,7 +163,7 @@
             <MenuItem Header="_Settings">
                 <MenuItem Header="Parameter"/>
                 <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
-                <MenuItem Header="Probe Installation"/>
+                <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
                 <MenuItem Header="Reset Probe"/>
                 <MenuItem Header="Part Config"/>
                 <MenuItem Header="Password Setup"/>
