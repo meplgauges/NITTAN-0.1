@@ -1,0 +1,66 @@
+﻿<UserControl x:Class="EVMS.ProgresBarControl"
+                         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:EVMS"
+             Background="Transparent"
+             MinHeight="150" MinWidth="60">
+
+    <!-- Everything scales proportionally -->
+    <Viewbox Stretch="Uniform">
+        <Border CornerRadius="20" BorderBrush="Aqua" BorderThickness="1" Padding="15" Background="Black">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+
+                <!-- Grid for ProgressBar with Markers -->
+                <Grid>
+                    <!-- Vertical Progress Bar -->
+                    <Border Width="20" Height="250" CornerRadius="5" Background="#2C2C2C" BorderThickness="0">
+                        <ProgressBar x:Name="Bar" Minimum="0" Maximum="100" Value="50" Orientation="Vertical"
+                                     Background="Transparent" BorderThickness="0">
+                            <ProgressBar.Foreground>
+                                <LinearGradientBrush StartPoint="0,1" EndPoint="0,0">
+                                    <GradientStop Color="#4CAF50" Offset="0"/>
+                                    <GradientStop Color="#2196F3" Offset="1"/>
+                                </LinearGradientBrush>
+                            </ProgressBar.Foreground>
+                        </ProgressBar>
+                    </Border>
+
+                    <!-- Marker Lines -->
+                    <Canvas Margin="0,0,0,-6">
+                        <!-- Low -->
+                        <Line X1="0" X2="30" Y1="250" Y2="250" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
+                        <TextBlock Text="Low" Foreground="#F5F6FA" FontSize="11" Canvas.Left="0" Canvas.Top="230"/>
+
+                        <!-- Min -->
+                        <Line X1="0" X2="30" Y1="125" Y2="125" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
+                        <TextBlock Text="Min" Foreground="#F5F6FA" FontSize="11" Canvas.Left="0" Canvas.Top="130"/>
+
+                        <!-- High -->
+                        <Line X1="0" X2="32" Y1="0.6" Y2="0.5" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
+                        <TextBlock Text="High" Foreground="#F5F6FA" FontSize="11" Canvas.Left="0" Canvas.Top="0"/>
+                    </Canvas>
+                </Grid>
+
+                <!-- Value Display -->
+                <TextBlock x:Name="BarValue"
+                           Text="{Binding ElementName=Bar3, Path=Value, StringFormat={}{0}}"
+                           HorizontalAlignment="Center"
+                           Foreground="#F5F6FA"
+                           FontSize="15"
+                           FontWeight="Bold"/>
+
+                <TextBox x:Name="Tital"
+                         Height="25" Width="80"
+                         Background="#2C2C2C"
+                         Foreground="#F5F6FA"
+                         BorderBrush="#555"
+                         BorderThickness="2"
+                         Padding="2"
+                         Text="{Binding Title, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+    </Viewbox>
+</UserControl>

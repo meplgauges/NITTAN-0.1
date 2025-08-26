@@ -1,0 +1,110 @@
+﻿
+<-----------------Data Table for Run Page to updatet he DataGrid with measurements-------------------------------->
+ <!-- DataGrid area
+<DataGrid x:Name="MeasurementTable"
+   Grid.Row="2" Margin="10"
+   AutoGenerateColumns="False"
+   HeadersVisibility="Column"
+   CanUserAddRows="False"
+   IsReadOnly="True"
+   RowHeaderWidth="0"
+   SelectionMode="Single"
+   SelectionUnit="FullRow"
+   HorizontalScrollBarVisibility="Auto"
+   VerticalScrollBarVisibility="Auto"
+   FontSize="14"
+   FontFamily="Segoe UI"
+   BorderThickness="0"
+   Background="#1E1E1E"
+   Foreground="White"
+   GridLinesVisibility="None">
+
+    <!-- Column headers -->
+    <DataGrid.ColumnHeaderStyle>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="8"/>
+                <Setter Property="BorderThickness" Value="0"/> 
+            </Style>
+    </DataGrid.ColumnHeaderStyle>
+
+    <!-- Row style -->
+    <DataGrid.RowStyle>
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Style.Triggers>
+                <!-- Hover effect -->
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#333333"/>
+                </Trigger>
+                <!-- Selected row -->
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#007ACC"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </DataGrid.RowStyle>
+
+    <!-- Cell style -->
+    <DataGrid.CellStyle>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding" Value="8,4"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="TextBlock.TextAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Style.Triggers>
+                <!-- Selected cell -->
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Foreground" Value="White"/>
+                </Trigger>
+
+                <!-- RED highlight if value > 80 -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content.Text}" Value="81">
+                    <Setter Property="Background" Value="Red"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </DataGrid.CellStyle>
+        </DataGrid>
+        
+
+
+
+
+             <local:GaugeControl Margin="5" />
+                <local:GaugeControl Margin="5" />
+                <local:GaugeControl Margin="5" />
+                <local:GaugeControl Margin="5" />
+                <local:GaugeControl Margin="5" />
+
+
+
+
+                  <local:Bar_Progrerss x:Name="PB1"  Title="Probe 1"  Value="14" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB2"  Title="Probe 2"  Value="34" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB3"  Title="Probe 3"  Value="56" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB4"  Title="Probe 4"  Value="78" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB5"  Title="Probe 5"  Value="43" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB6"  Title="Probe 6"  Value="65" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB7"  Title="Probe 7"  Value="22" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB8"  Title="Probe 8"  Value="88" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB9"  Title="Probe 9"  Value="15" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB10" Title="Probe 10" Value="50" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB11"  Title="Probe 7"  Value="22" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB12"  Title="Probe 8"  Value="88" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB13"  Title="Probe 9"  Value="15" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB14" Title="Probe 10" Value="50" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB15"  Title="Probe 7"  Value="22" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB16"  Title="Probe 8"  Value="88" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB17"  Title="Probe 9"  Value="15" Margin="5"/>
+                    <local:Bar_Progrerss x:Name="PB18" Title="Probe 10" Value="50" Margin="5"/>
