@@ -3,163 +3,90 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="#121212">
 
-    <UserControl.Resources>
-        <!-- Card style for modern elevated look -->
-        <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="12"/>
-            <Setter Property="Margin" Value="8"/>
-            <Setter Property="Padding" Value="16"/>
-            <Setter Property="Background" Value="#1E1E1E"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="Black" BlurRadius="12" Opacity="0.35"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <!-- Modern primary button -->
-        <Style TargetType="Button" x:Key="PrimaryButton">
-            <Setter Property="MinWidth" Value="100"/>
-            <Setter Property="MinHeight" Value="32"/>
-            <Setter Property="Margin" Value="6,4"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Background" Value="#3A8DFF"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border CornerRadius="8"
-                                Background="{TemplateBinding Background}">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <!-- Themed, stretchable input box -->
-        <Style TargetType="TextBox">
-            <Setter Property="Background" Value="#2A2A2A"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#444"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="6,2"/>
-            <Setter Property="Margin" Value="4"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="HorizontalAlignment" Value="Stretch"/>
-        </Style>
-        <!-- Optional: Default border style for backgrounds -->
-        <Style x:Key="DefaultBorderStyle" TargetType="Border">
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="Margin" Value="8"/>
-            <Setter Property="Padding" Value="16"/>
-        </Style>
-    </UserControl.Resources>
-
     <Grid Margin="20">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-
-        <!-- Top: Responsive ComboBox selector -->
-        <ComboBox
-                  Grid.Row="0"
-                  Height="36"
-                  Margin="0,0,0,16"
-                  MinWidth="220" MaxWidth="480"
-                  Background="#1E1E1E"
-                  Foreground="White"
-                  BorderBrush="#444"/>
-
-        <!-- Main responsive area -->
-        <Grid Grid.Row="1" >
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="3*"/>
-                <ColumnDefinition Width="5*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Left: Probe list (vertical, always scrollable) -->
-            <Border Style="{StaticResource CardStyle}" Grid.Column="0" VerticalAlignment="Stretch">
-                <Border.Background>
-                    <!-- Responsive, semi-transparent background image -->
-                    <ImageBrush ImageSource="/Resource/4321.jpg"
-                 Stretch="UniformToFill"
-                 Opacity="0.7"/>
-                </Border.Background>
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel  Orientation="Vertical" Margin="0,8">
-                        <!-- Example rows -->
-                        <StackPanel Orientation="Horizontal" Margin="0,6" VerticalAlignment="Center">
-                            <TextBlock Text="Probe 1 - OverLength"
-                                       Foreground="White"
-                                       FontSize="14"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
-                            <Button Content="Set" Style="{StaticResource PrimaryButton}"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,6" VerticalAlignment="Center">
-                            <TextBlock Text="Probe 2 - HeadDia"
-                                       Foreground="White"
-                                       FontSize="14"
-                                       VerticalAlignment="Center"
-                                       Margin="0,0,8,0"/>
-                            <Button Content="Set" Style="{StaticResource PrimaryButton}"/>
-                        </StackPanel>
-                        <!-- More rows can be dynamically added here -->
-                    </StackPanel>
-                </ScrollViewer>
-            </Border>
-
-            <!-- Right: Status card with background image and content -->
-            <Border Grid.Column="1" Style="{StaticResource DefaultBorderStyle}">
-                <Border.Background>
-                    <!-- Responsive, semi-transparent background image -->
-                    <ImageBrush ImageSource="/Resource/1234.jpg"
-                                Stretch="UniformToFill"
-                                Opacity="0.7"/>
-                </Border.Background>
-                <StackPanel VerticalAlignment="Top" Orientation="Vertical">
-                    <Border Style="{StaticResource CardStyle}" Margin="0,0,0,12" VerticalAlignment="Top">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <StackPanel Orientation="Horizontal" Margin="0,4" Grid.Row="0">
-                                <TextBlock Text="Current Value:" Width="130" Foreground="#AAA" VerticalAlignment="Center"/>
-                                <TextBox MinWidth="500" Height="28"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,4" Grid.Row="1">
-                                <TextBlock Text="Probe Pressure:" Width="130" Foreground="#AAA" VerticalAlignment="Center"/>
-                                <TextBox MinWidth="500" Height="28"/>
-                            </StackPanel>
-                            <StackPanel Orientation="Horizontal" Margin="0,4" Grid.Row="2">
-                                <TextBlock Text="Status:" Width="130" Foreground="#AAA" VerticalAlignment="Center"/>
-                                <TextBox MinWidth="500" Height="28"/>
-                            </StackPanel>
-                            <Button Grid.Row="3"
-                                    Content="Install Probe"
-                                    Style="{StaticResource PrimaryButton}"
-                                    Margin="0,16,0,0"
-                                    HorizontalAlignment="Right"
-                                    Background="#4CAF50"
-                                    MinWidth="120"
-                                    Height="38"/>
-                        </Grid>
-                    </Border>
-                    <Border Style="{StaticResource CardStyle}" MinHeight="80" VerticalAlignment="Top">
-                        <TextBlock Text="Follow the steps here to properly install the probe."
-                                   Foreground="#CCC"
-                                   FontSize="14"
-                                   TextWrapping="Wrap"/>
-                    </Border>
+        <Border CornerRadius="12" Background="#1E1E1E" Padding="12" Margin="16">
+            <StackPanel>
+                <!-- Model Selection -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,12" VerticalAlignment="Center">
+                    <TextBlock Text="Select Model:" VerticalAlignment="Center" Foreground="White" FontWeight="Bold" Margin="0,0,8,0"/>
+                    <ComboBox x:Name="ModelComboBox"
+                              Width="150"
+                              ItemsSource="{Binding Models}"
+                              SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                              Background="#2D2D2D"
+                              Foreground="White"
+                              BorderBrush="#555"/>
                 </StackPanel>
-            </Border>
-        </Grid>
+
+                <!-- Table Header -->
+                <Grid Background="#2D2D2D" Height="40">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="80"/>
+                        <ColumnDefinition Width="2*" MinWidth="140"/>
+                        <ColumnDefinition Width="2*" MinWidth="140"/>
+                        <ColumnDefinition Width="2*" MinWidth="140"/>
+                        <ColumnDefinition Width="*" MinWidth="100"/>
+                        <ColumnDefinition Width="2*" MinWidth="120"/>
+                        <ColumnDefinition Width="2*" MinWidth="180"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="No." Grid.Column="0" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Name" Grid.Column="1" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Probe Name" Grid.Column="2" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Probe ID" Grid.Column="3" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Stroke" Grid.Column="4" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Status" Grid.Column="5" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Actions" Grid.Column="6" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Dynamic Rows -->
+                <ItemsControl ItemsSource="{Binding Probes}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Background="#252525" Margin="0,2,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MinWidth="80"/>
+                                    <ColumnDefinition Width="2*" MinWidth="140"/>
+                                    <ColumnDefinition Width="2*" MinWidth="140"/>
+                                    <ColumnDefinition Width="2*" MinWidth="140"/>
+                                    <ColumnDefinition Width="*" MinWidth="100"/>
+                                    <ColumnDefinition Width="2*" MinWidth="120"/>
+                                    <ColumnDefinition Width="2*" MinWidth="180"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="{Binding No}" Grid.Column="0" Foreground="White"/>
+                                <TextBlock Text="{Binding Name}" Grid.Column="1" Foreground="White"/>
+                                <TextBlock Text="{Binding ProbeName}" Grid.Column="2" Foreground="White"/>
+                                <TextBlock Text="{Binding ProbeId}" Grid.Column="3" Foreground="White"/>
+                                <TextBlock Text="{Binding Stroke}" Grid.Column="4" Foreground="White"/>
+
+                                <!-- Status with dynamic color -->
+                                <TextBlock Text="{Binding Status}" Grid.Column="5">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="White"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status}" Value="Pending">
+                                                    <Setter Property="Foreground" Value="Orange"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Status}" Value="Installed">
+                                                    <Setter Property="Foreground" Value="LightGreen"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <StackPanel Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <Button Content="✔ Check" Width="60" Height="28" Margin="2"/>
+                                    <Button Content="🔧 Install" Width="60" Height="28" Margin="2"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+            </StackPanel>
+        </Border>
     </Grid>
 </UserControl>
