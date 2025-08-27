@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace EVMS
@@ -53,6 +54,30 @@ namespace EVMS
             {
                 Probes.Add(new Probe { No = 1, Name = "Sensor X", ProbeName = "LengthChk", ProbeId = "PR-201", Stroke = "28 mm", Status = "Pending" });
                 Probes.Add(new Probe { No = 2, Name = "Sensor Y", ProbeName = "WidthChk", ProbeId = "PR-202", Stroke = "33 mm", Status = "Pending" });
+            }
+        }
+
+        private void CheckButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is Probe probe)
+            {
+                MessageBox.Show($"Checking probe: {probe.ProbeId} on model {SelectedModel}");
+                // Add logic to re-validate or test the probe if needed
+            }
+        }
+
+        private void InstallButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.DataContext is Probe probe)
+            {
+                // Optional: Confirm or auto-update status
+                probe.Status = "Installed";
+                OnPropertyChanged(nameof(Probes));
+
+                // Optional: Update status in DB
+                //UpdateProbeStatusInDatabase(probe.ProbeId, "Installed");
+
+                MessageBox.Show($"Probe {probe.ProbeId} marked as Installed.");
             }
         }
 
