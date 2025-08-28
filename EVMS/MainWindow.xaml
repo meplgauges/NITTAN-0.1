@@ -141,36 +141,38 @@
 
             </Menu.Resources>
 
-            <MenuItem Header="_Run Part">
-                <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
-                <MenuItem Header="Open..." />
-                <Separator />
-                <MenuItem Header="Exit" Click="Exit_Click"/>
-            </MenuItem>
-            <MenuItem Header="_Mastring">
-                <MenuItem Header="Mastring"/>
-                <MenuItem Header="Master Expiration"/>
-            </MenuItem>
-            <MenuItem Header="Repeatibility">
-                <MenuItem Header="Reports" Click="OpenReports_Click"/>
-                <MenuItem Header="Settings" Click="OpenSettings_Click"/>
-            </MenuItem>
-            <MenuItem Header="_Report">
-                <MenuItem Header="SPC Graph"/>
-                <MenuItem Header="Report"/>
-                <MenuItem Header="File open"/>
-            </MenuItem>
-            <MenuItem Header="_Settings">
-                <MenuItem Header="Parameter"/>
-                <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
-                <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
-                <MenuItem Header="Reset Probe"/>
-                <MenuItem Header="Part Config"/>
-                <MenuItem Header="Password Setup"/>
-                <Separator/>
-                <MenuItem Header="Exit"/>
-            </MenuItem>
-        </Menu>
+             <MenuItem Header="_Run Part">
+        <MenuItem Header="Home..." />
+        <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
+        <Separator />
+        <MenuItem Header="Exit" Click="Exit_Click"/>
+    </MenuItem>
+
+    <MenuItem Header="_Mastring">
+        <MenuItem Header="Mastring"/>
+        <MenuItem Header="Master Expiration"/>
+    </MenuItem>
+
+    <MenuItem Header="Repeatibility">
+        <MenuItem Header="Reports" Click="OpenReports_Click"/>
+        <MenuItem Header="Settings" Click="OpenSettings_Click"/>
+    </MenuItem>
+
+    <MenuItem Header="_Report">
+        <MenuItem Header="SPC Graph"/>
+        <MenuItem Header="Report"/>
+        <MenuItem Header="File open"/>
+    </MenuItem>
+
+    <MenuItem Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
+        <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
+        <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
+        <MenuItem Header="Part Config" Click="PartConfig_Click"/>
+        <MenuItem Header="Password Setup" />
+        <Separator/>
+        <MenuItem Header="Exit"/>
+    </MenuItem>
+</Menu>
 
 
         <!-- Optional ScrollViewer for very small window sizes -->

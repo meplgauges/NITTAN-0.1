@@ -12,10 +12,10 @@ namespace EVMS
     /// </summary>
     public partial class MainWindow : Window
     {
+        private bool isSettingsAuthenticated = false; // global flag
         public MainWindow()
         {
             InitializeComponent();
-
 
         }
         private void RunMenuItem_Click(object sender, RoutedEventArgs e)
@@ -66,7 +66,57 @@ namespace EVMS
             MainContentGrid.Children.Add(resultPage);
         }
 
-        
+
+
+            private void PartConfig_Click(object sender, RoutedEventArgs e)
+        {
+            // Clear existing content
+            MainContentGrid.Children.Clear();
+
+            // Create instance of RunPage UserControl
+            PartConfig resultPage = new PartConfig();
+
+            // Make sure it fills the MainContentGrid
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            // Add RunPage to the container Grid
+            MainContentGrid.Children.Add(resultPage);
+        }
+
+        private void SettingsMenu_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (!isSettingsAuthenticated)
+            {
+                e.Handled = true; // stop default behavior until login succeeds
+
+                Login_Page login = new Login_Page();
+                login.Owner = this;
+                bool? result = login.ShowDialog();
+
+                if (result == true && login.IsAuthenticated)
+                {
+                    isSettingsAuthenticated = true; // unlock for this session
+                    MessageBox.Show("✅ Settings unlocked!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // Open Settings menu manually
+                    if (sender is MenuItem menu)
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            menu.IsSubmenuOpen = true;
+                        }));
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("❌ Access Denied! Wrong Username or Password.", "Restricted", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+        }
+
+
+
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();

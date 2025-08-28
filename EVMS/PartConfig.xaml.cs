@@ -16,13 +16,15 @@ using System.Windows.Shapes;
 namespace EVMS
 {
     /// <summary>
-    /// Interaction logic for PartSelectionPage.xaml
+    /// Interaction logic for PartConfig.xaml
     /// </summary>
-    public partial class PartSelectionPage : UserControl
+    public partial class PartConfig : UserControl
     {
-        public PartSelectionPage()
+        public PartConfig()
         {
-           // InitializeComponent();
+            InitializeComponent();
         }
+
+       
     }
 }
