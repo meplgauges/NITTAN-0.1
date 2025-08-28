@@ -14,7 +14,7 @@
                               ItemsSource="{Binding Models}"
                               SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
                               Background="#2D2D2D"
-                              Foreground="White"
+                              Foreground="#2D2D2D"
                               BorderBrush="#555"/>
                 </StackPanel>
 
@@ -30,13 +30,13 @@
                         <ColumnDefinition Width="2*" MinWidth="180"/>
                     </Grid.ColumnDefinitions>
 
-                    <TextBlock Text="No." Grid.Column="0" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="No." Grid.Column="0" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                     <TextBlock Text="Name" Grid.Column="1" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
                     <TextBlock Text="Probe Name" Grid.Column="2" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
                     <TextBlock Text="Probe ID" Grid.Column="3" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
                     <TextBlock Text="Stroke" Grid.Column="4" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
                     <TextBlock Text="Status" Grid.Column="5" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
-                    <TextBlock Text="Actions" Grid.Column="6" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Actions" Grid.Column="6" Foreground="#CCCCCC" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                 </Grid>
 
                 <!-- Dynamic Rows -->
@@ -54,7 +54,7 @@
                                     <ColumnDefinition Width="2*" MinWidth="180"/>
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Text="{Binding No}" Grid.Column="0" Foreground="White"/>
+                                <TextBlock Text="{Binding No}" Grid.Column="0" Foreground="White" HorizontalAlignment="Center"/>
                                 <TextBlock Text="{Binding Name}" Grid.Column="1" Foreground="White"/>
                                 <TextBlock Text="{Binding ProbeName}" Grid.Column="2" Foreground="White"/>
                                 <TextBlock Text="{Binding ProbeId}" Grid.Column="3" Foreground="White"/>
