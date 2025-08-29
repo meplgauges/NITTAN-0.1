@@ -1,5 +1,5 @@
 ﻿<Window x:Class="EVMS.MainWindow"
-                xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -166,6 +166,7 @@
 
     <MenuItem Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
         <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
+        <MenuItem Header="Part Entry" Click="PartManager_Click"/>
         <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
         <MenuItem Header="Part Config" Click="PartConfig_Click"/>
         <MenuItem Header="Password Setup" />

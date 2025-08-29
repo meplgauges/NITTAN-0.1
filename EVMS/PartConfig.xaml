@@ -77,6 +77,59 @@
     </Setter>
 </Style>
 
+        <!-- Pill Style CheckBox -->
+        <Style x:Key="PillCheckBox" TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#222"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Margin" Value="20,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="CheckBox">
+                        <Border x:Name="OuterBorder"
+                        Background="#F9FAFB"
+                        CornerRadius="20"
+                        Padding="12,8"
+                        SnapsToDevicePixels="True">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" >
+                                <!-- Circle with checkmark -->
+                                <Grid Width="24" Height="24" Margin="0,0,10,0">
+                                    <Ellipse x:Name="Circle"
+                                     Fill="#E5E7EB"
+                                     StrokeThickness="0"/>
+                                    <Path x:Name="CheckMark"
+                                  Data="M4,12 L9,17 L20,6"
+                                  Stroke="White"
+                                  StrokeThickness="2.5"
+                                  StrokeEndLineCap="Round"
+                                  StrokeStartLineCap="Round"
+                                  Visibility="Collapsed"/>
+                                </Grid>
+
+                                <!-- Label -->
+                                <ContentPresenter VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Triggers -->
+                        <ControlTemplate.Triggers>
+                            <!-- Hover -->
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="OuterBorder" Property="Background" Value="#F3F4F6"/>
+                            </Trigger>
+
+                            <!-- Checked -->
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Circle" Property="Fill" Value="#2ECC71"/>
+                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
 
         <!-- Optional: DropShadow Effect for Left Panel -->
         <DropShadowEffect x:Key="DropShadowEffectLight" BlurRadius="8" ShadowDepth="1" Direction="270" Color="#24000000"/>
@@ -97,7 +150,7 @@
             <Border.Background>
                 <ImageBrush ImageSource="/Resource/bg3.jpg"
                     Stretch="UniformToFill"
-                    Opacity="0.90"/>
+                    Opacity="0.9"/>
             </Border.Background>
             <Grid>
                
@@ -128,7 +181,14 @@
                     <TextBox x:Name="txtYTolPlus" Style="{StaticResource ModernFilledTextBox}"/>
                     <TextBlock Text="Y_Tol(-):" Style="{StaticResource FormLabelStyle}"/>
                     <TextBox x:Name="txtYTolMinus" Style="{StaticResource ModernFilledTextBox}"/>
+
+                    <CheckBox x:Name="chkProbe"
+              Content="Probe Enabled"
+              Style="{StaticResource PillCheckBox}"
+              />
+
                 </StackPanel>
+
 
                 <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top"  >
                     <Button x:Name="btnAdd" Content="Add" Width="90" Height="36" Background="#2ECC71" Foreground="White" FontWeight="SemiBold" Margin="0,22,12,0" Style="{StaticResource ModernButtonStyle}"/>
@@ -141,10 +201,9 @@
         <Border Grid.Column="1" Margin="12,20,20,20"
         BorderBrush="#D9D9D9"
         BorderThickness="0.90"
-        CornerRadius="14"
-      >
+        CornerRadius="14">
 
-            <!-- Subtle background image -->
+            <!-- Background image -->
             <Border.Background>
                 <ImageBrush ImageSource="/Resource/bg3.jpg"
                     Stretch="UniformToFill"
@@ -152,8 +211,13 @@
             </Border.Background>
 
             <!-- DataGrid -->
-            <DataGrid x:Name="dgPartConfig" 
+            <DataGrid x:Name="dataGrid"
               AutoGenerateColumns="False"
+              SelectionChanged="dataGrid_SelectionChanged"
+              IsReadOnly="True"
+              Margin="10"
+              SelectionMode="Single"
+              SelectionUnit="FullRow"
               HeadersVisibility="Column"
               CanUserAddRows="False" 
               CanUserDeleteRows="False" 
@@ -161,17 +225,14 @@
               AlternatingRowBackground="#F4F6F8" 
               GridLinesVisibility="None" 
               RowHeaderWidth="0"
-              Margin="10" 
               FontSize="14" 
               Background="Transparent"   
-                BorderBrush="Transparent"
+              BorderBrush="Transparent"
               HorizontalAlignment="Stretch" 
               VerticalAlignment="Stretch"
               Padding="4"
               RowHeight="38"
-              EnableRowVirtualization="True" 
-              >
-                <!-- ✅ Fixed event name -->
+              EnableRowVirtualization="True">
 
                 <!-- Column Header Style -->
                 <DataGrid.ColumnHeaderStyle>
@@ -190,7 +251,7 @@
                 <!-- Row Style -->
                 <DataGrid.RowStyle>
                     <Style TargetType="DataGridRow">
-                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Background" Value="White"/>
                         <Setter Property="BorderBrush" Value="Transparent"/>
                         <Setter Property="Foreground" Value="#222"/>
                         <Setter Property="FontSize" Value="13"/>
@@ -207,17 +268,45 @@
                     </Style>
                 </DataGrid.RowStyle>
 
-                <!-- Modernized Columns -->
+                <!-- Define cell alignment style -->
+                <DataGrid.Resources>
+                    <Style x:Key="CenterCellStyle" TargetType="TextBlock">
+                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="TextAlignment" Value="Center"/>
+                    </Style>
+                </DataGrid.Resources>
+
+                <!-- Columns with centered content -->
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Sr No" Binding="{Binding SrNo}" Width="60"/>
-                    <DataGridTextColumn Header="Parameter" Binding="{Binding Parameter}" Width="2*"/>
-                    <DataGridTextColumn Header="Nominal" Binding="{Binding Nominal}" Width="*"/>
-                    <DataGridTextColumn Header="R_Tol(+)" Binding="{Binding RTolPlus}" Width="*"/>
-                    <DataGridTextColumn Header="R_Tol(-)" Binding="{Binding RTolMinus}" Width="*"/>
-                    <DataGridTextColumn Header="Y_Tol(+)" Binding="{Binding YTolPlus}" Width="*"/>
-                    <DataGridTextColumn Header="Y_Tol(-)" Binding="{Binding YTolMinus}" Width="*"/>
+                    <DataGridTextColumn Header="Sr No" Binding="{Binding SrNo}" Width="60" 
+                                ElementStyle="{StaticResource CenterCellStyle}" 
+                                EditingElementStyle="{StaticResource CenterCellStyle}" />
+                    <DataGridTextColumn Header="Parameter" Binding="{Binding Parameter}" Width="2*" 
+                                ElementStyle="{StaticResource CenterCellStyle}" 
+                                EditingElementStyle="{StaticResource CenterCellStyle}" />
+                    <DataGridTextColumn Header="Nominal" Binding="{Binding Nominal}" Width="*" 
+                                ElementStyle="{StaticResource CenterCellStyle}" 
+                                EditingElementStyle="{StaticResource CenterCellStyle}" />
+                    <DataGridTextColumn Header="R_Tol(+)" Binding="{Binding RTolPlus}" Width="*" 
+                                ElementStyle="{StaticResource CenterCellStyle}" 
+                                EditingElementStyle="{StaticResource CenterCellStyle}" />
+                    <DataGridTextColumn Header="R_Tol(-)" Binding="{Binding RTolMinus}" Width="*" 
+                                ElementStyle="{StaticResource CenterCellStyle}" 
+                                EditingElementStyle="{StaticResource CenterCellStyle}" />
+                    <DataGridTextColumn Header="Y_Tol(+)" Binding="{Binding YTolPlus}" Width="*" 
+                                ElementStyle="{StaticResource CenterCellStyle}" 
+                                EditingElementStyle="{StaticResource CenterCellStyle}" />
+                    <DataGridTextColumn Header="Y_Tol(-)" Binding="{Binding YTolMinus}" Width="*" 
+                                ElementStyle="{StaticResource CenterCellStyle}" 
+                                EditingElementStyle="{StaticResource CenterCellStyle}" />
+                    <DataGridTextColumn Header="Type" Binding="{Binding ProbeStatus}" Width="*" 
+                                ElementStyle="{StaticResource CenterCellStyle}" 
+                                EditingElementStyle="{StaticResource CenterCellStyle}" />
                 </DataGrid.Columns>
             </DataGrid>
+       
+
         </Border>
 
     </Grid>

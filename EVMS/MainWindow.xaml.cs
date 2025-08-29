@@ -68,7 +68,7 @@ namespace EVMS
 
 
 
-            private void PartConfig_Click(object sender, RoutedEventArgs e)
+         private void PartConfig_Click(object sender, RoutedEventArgs e)
         {
             // Clear existing content
             MainContentGrid.Children.Clear();
@@ -84,6 +84,23 @@ namespace EVMS
             MainContentGrid.Children.Add(resultPage);
         }
 
+        private void PartManager_Click(object sender, RoutedEventArgs e)
+        {
+            // Clear existing content
+            MainContentGrid.Children.Clear();
+
+            // Create instance of RunPage UserControl
+            Part_Manager resultPage = new Part_Manager();
+
+            // Make sure it fills the MainContentGrid
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            // Add RunPage to the container Grid
+            MainContentGrid.Children.Add(resultPage);
+        }
+
+        
         private void SettingsMenu_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             if (!isSettingsAuthenticated)
