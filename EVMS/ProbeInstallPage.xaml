@@ -3,39 +3,36 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="Black"
              FontFamily="Segoe UI" FontSize="14">
-
     <Grid Margin="20">
-        <Border CornerRadius="12"  Padding="16">
+        <Border CornerRadius="12" Padding="16">
             <Border.Background>
                 <ImageBrush ImageSource="/Resource/bg3.jpg"
-                 Stretch="UniformToFill"
-                  Opacity="0.90"/>
+                            Stretch="UniformToFill"
+                            Opacity="0.90"/>
             </Border.Background>
             <StackPanel>
-
-                <!-- Model Selection -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,20" VerticalAlignment="Center">
-                    <TextBlock Text="Select Model:"
+                <!-- Model Selection with Connect Button -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,20" VerticalAlignment="Center" HorizontalAlignment="Left">
+                    <TextBlock Text="Select Part:"
                                VerticalAlignment="Center"
                                Foreground="White"
                                FontWeight="SemiBold"
                                Margin="0,0,10,0"/>
-
-                    <ComboBox x:Name="ModelComboBox"
+                    <ComboBox x:Name="PartNoComboBox"
                               Width="180"
                               Height="32"
                               Padding="4,2"
-                              ItemsSource="{Binding Models}"
-                              SelectedItem="{Binding SelectedModel, Mode=TwoWay}"
+                              ItemsSource="{Binding PartNumbers}"
+                              SelectedItem="{Binding SelectedPartNumber, Mode=TwoWay}"
                               Background="#2D2D2D"
                               Foreground="#2D2D2D"
                               BorderBrush="#555"
-                              BorderThickness="1"
-                              />
+                              BorderThickness="1" />
+                    
                 </StackPanel>
 
                 <!-- Table Header -->
-                <Grid Background="#2D2D2D" Height="42" >
+                <Grid Background="#2D2D2D" Height="42">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="1*" />
                         <ColumnDefinition Width="2*" />
@@ -45,14 +42,13 @@
                         <ColumnDefinition Width="2*" />
                         <ColumnDefinition Width="2*" />
                     </Grid.ColumnDefinitions>
-
                     <TextBlock Text="No." Grid.Column="0" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                    <TextBlock Text="Name" Grid.Column="1" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <TextBlock Text="Probe Name" Grid.Column="2" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <TextBlock Text="Probe ID" Grid.Column="3" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <TextBlock Text="Stroke" Grid.Column="4" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <TextBlock Text="Status" Grid.Column="5" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <TextBlock Text="Actions" Grid.Column="6" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBlock Text="Name" Grid.Column="1" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Probe Name" Grid.Column="2" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Probe ID" Grid.Column="3" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Stroke" Grid.Column="4" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Status" Grid.Column="5" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Actions" Grid.Column="6" Foreground="#BBBBBB" FontWeight="SemiBold" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                 </Grid>
 
                 <!-- Dynamic Probe Rows -->
@@ -70,15 +66,13 @@
                                         <ColumnDefinition Width="2*" />
                                         <ColumnDefinition Width="2*" />
                                     </Grid.ColumnDefinitions>
-
                                     <TextBlock Text="{Binding No}" Grid.Column="0" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
-                                    <TextBlock Text="{Binding Name}" Grid.Column="1" Foreground="White" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding ProbeName}" Grid.Column="2" Foreground="White" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding ProbeId}" Grid.Column="3" Foreground="White" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{Binding Stroke}" Grid.Column="4" Foreground="White" VerticalAlignment="Center"/>
-
+                                    <TextBlock Text="{Binding Name}" Grid.Column="1" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ProbeName}" Grid.Column="2" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ProbeId}" Grid.Column="3" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Stroke}" Grid.Column="4" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     <!-- Status with color -->
-                                    <TextBlock Text="{Binding Status}" Grid.Column="5" VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding Status}" Grid.Column="5" VerticalAlignment="Center" HorizontalAlignment="Center">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="White"/>
@@ -93,79 +87,26 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
-
                                     <!-- Action Buttons -->
-                                    <StackPanel Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Left" >
-                                        <Button Content="✔ Check"
+                                    <StackPanel Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                        <Button Content="🔧 Install"
                                                 Width="90"
                                                 Height="30"
                                                 Margin="4,0"
                                                 Padding="4"
-                                                Background="#6FED9F"
+                                                Background="#58A8E8"
                                                 Foreground="White"
                                                 BorderBrush="#555"
                                                 BorderThickness="1"
                                                 Cursor="Hand"
-                                                Click="CheckButton_Click">
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                    <Setter Property="Cursor" Value="Hand"/>
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate TargetType="Button">
-                                                                <Border Background="{TemplateBinding Background}"
-                                                                        CornerRadius="6"
-                                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                                        BorderThickness="{TemplateBinding BorderThickness}">
-                                                                    <ContentPresenter HorizontalAlignment="Center"
-                                                                                      VerticalAlignment="Center"
-                                                                                      Margin="{TemplateBinding Padding}" />
-                                                                </Border>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
-
-                                        <Button Content="🔧 Install"
-                                                        Width="90"
-                                                        Height="30"
-                                                        Margin="4,0"
-                                                        Padding="4"
-                                                        Background="#58A8E8"
-                                                        Foreground="White"
-                                                        BorderBrush="#555"
-                                                        BorderThickness="1"
-                                                        Cursor="Hand"
-                                                        Click="InstallButton_Click">
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                    <Setter Property="Cursor" Value="Hand"/>
-                                                    <Setter Property="Template">
-                                                        <Setter.Value>
-                                                            <ControlTemplate TargetType="Button">
-                                                                <Border Background="{TemplateBinding Background}"
-                                                                        CornerRadius="6"
-                                                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                                                        BorderThickness="{TemplateBinding BorderThickness}">
-                                                                    <ContentPresenter HorizontalAlignment="Center"
-                                                                                      VerticalAlignment="Center"
-                                                                                      Margin="{TemplateBinding Padding}" />
-                                                                </Border>
-                                                            </ControlTemplate>
-                                                        </Setter.Value>
-                                                    </Setter>
-                                                </Style>
-                                            </Button.Style>
-                                        </Button>
+                                                 Click="CheckButton_Click"
+                                                CommandParameter="{Binding}"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
-
             </StackPanel>
         </Border>
     </Grid>

@@ -6,22 +6,17 @@
              xmlns:local="clr-namespace:EVMS"
              mc:Ignorable="d" 
              MinWidth="80" MinHeight="80">
-
-    <!-- Viewbox keeps it responsive -->
     <Viewbox Stretch="Uniform">
         <Grid Width="140" Height="140">
-
-            <!-- Inner Background Circle (light gray track) -->
+            <!-- Circle and Arc -->
             <Ellipse Stroke="#E5E9F2" StrokeThickness="12"/>
-
-            <!-- Progress Arc -->
             <Path x:Name="ValueArc" Stroke="#4A90E2" StrokeThickness="12"
                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                   SnapsToDevicePixels="True">
                 <Path.Data>
                     <PathGeometry>
-                        <PathFigure x:Name="ArcStart" StartPoint="20,70">
-                            <ArcSegment x:Name="ArcSegment" Size="50,50"
+                        <PathFigure StartPoint="20,70">
+                            <ArcSegment Size="50,50"
                                         SweepDirection="Clockwise" 
                                         IsLargeArc="False" 
                                         Point="120,70"/>
@@ -30,15 +25,32 @@
                 </Path.Data>
             </Path>
 
+            <!-- Top Center Value -->
+            <TextBlock Text="0.40" Foreground="Black" FontWeight="Bold"
+                       FontSize="8"
+                       HorizontalAlignment="Center" VerticalAlignment="Top"
+                       Margin="0,26,0,0"/>
+
+            <!-- Left Value (Start of Arc) -->
+            <TextBlock Text="4.03" Foreground="Black" FontWeight="Bold"
+                       FontSize="8"
+                       HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                       Margin="22,0,0,53"/>
+
+            <!-- Right Value (End of Arc) -->
+            <TextBlock x:Name="mid" Text="4.04" Foreground="Black" FontWeight="Bold"
+                       FontSize="8"
+                       HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                       Margin="0,0,22,53"/>
+
             <!-- Center Value Box -->
             <Border Background="#1E1E1E" CornerRadius="8"
                     Padding="8,4"
-                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                    >
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
                 <TextBlock x:Name="ValueText"
                            Text="0.00"
                            Foreground="White"
-                           FontSize="14"
+                           FontSize="10"
                            FontWeight="SemiBold"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"/>
@@ -59,7 +71,6 @@
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"/>
             </Border>
-
         </Grid>
     </Viewbox>
 </UserControl>

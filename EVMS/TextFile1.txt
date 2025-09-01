@@ -1,110 +1,264 @@
-﻿
-<-----------------Data Table for Run Page to updatet he DataGrid with measurements-------------------------------->
- <!-- DataGrid area
-<DataGrid x:Name="MeasurementTable"
-   Grid.Row="2" Margin="10"
-   AutoGenerateColumns="False"
-   HeadersVisibility="Column"
-   CanUserAddRows="False"
-   IsReadOnly="True"
-   RowHeaderWidth="0"
-   SelectionMode="Single"
-   SelectionUnit="FullRow"
-   HorizontalScrollBarVisibility="Auto"
-   VerticalScrollBarVisibility="Auto"
-   FontSize="14"
-   FontFamily="Segoe UI"
-   BorderThickness="0"
-   Background="#1E1E1E"
-   Foreground="White"
-   GridLinesVisibility="None">
+﻿using System;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+using System.Configuration;
+using System.Windows;
+using System.Windows.Controls;
+using Microsoft.Data.SqlClient;
+using OrbitCOM;
 
-    <!-- Column headers -->
-    <DataGrid.ColumnHeaderStyle>
-        <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Setter Property="Padding" Value="8"/>
-                <Setter Property="BorderThickness" Value="0"/> 
-            </Style>
-    </DataGrid.ColumnHeaderStyle>
+namespace EVMS
+{
+    public partial class ProbeInstallPage : UserControl
+    {
+        private OrbitServerClass _orbServer;
+        private OrbitNetworks _orbNets;
+        private OrbitNetwork _orbNet;
+        private OrbitModules _orbModules;
 
-    <!-- Row style -->
-    <DataGrid.RowStyle>
-        <Style TargetType="DataGridRow">
-            <Setter Property="Background" Value="#1E1E1E"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontFamily" Value="Segoe UI"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Style.Triggers>
-                <!-- Hover effect -->
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#333333"/>
-                </Trigger>
-                <!-- Selected row -->
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#007ACC"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-    </DataGrid.RowStyle>
+        private readonly string connectionString;
 
-    <!-- Cell style -->
-    <DataGrid.CellStyle>
-        <Style TargetType="DataGridCell">
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="TextBlock.TextAlignment" Value="Center"/>
-            <Setter Property="HorizontalContentAlignment" Value="Center"/>
-            <Style.Triggers>
-                <!-- Selected cell -->
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Foreground" Value="White"/>
-                </Trigger>
+        public ObservableCollection<ProbeViewModel> Probes { get; set; }
 
-                <!-- RED highlight if value > 80 -->
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Content.Text}" Value="81">
-                    <Setter Property="Background" Value="Red"/>
-                    <Setter Property="Foreground" Value="White"/>
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-    </DataGrid.CellStyle>
-        </DataGrid>
-        
+        public ProbeInstallPage()
+        {
+            connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
+
+            InitializeComponent();
+            Probes = new ObservableCollection<ProbeViewModel>();
+            this.DataContext = this;
+
+            Loaded += ProbeInstallPage_Loaded;
+        }
+
+        private void ProbeInstallPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            ConnectToOrbit();
+            LoadProbesFromDb();
+        }
+
+        /// <summary>
+        /// Connect to Orbit COM Server
+        /// </summary>
+        private void ConnectToOrbit()
+        {
+            try
+            {
+                _orbServer = new OrbitServerClass();
+
+                if (!_orbServer.Connected)
+                {
+                    _orbServer.Connect();
+                }
+
+                if (_orbServer.Connected)
+                {
+                    _orbNets = _orbServer.Networks;
+
+                    if (_orbNets != null && _orbNets.Count > 0)
+                    {
+                        _orbNet = _orbNets[0]; // or [0] if first
+                        _orbModules = _orbNet.Modules;
+
+                        MessageBox.Show($"{_orbNets.Count} Networks Found. Connected to Orbit.",
+                            "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("No networks found in Orbit.", "Warning",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Failed to connect to Orbit.", "Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error while connecting to Orbit: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Load probe names from DB (PartConfig table)
+        /// </summary>
+        private void LoadProbesFromDb()
+        {
+            Probes.Clear();
+            try
+            {
+                using (SqlConnection con = new SqlConnection(connectionString))
+                {
+                    con.Open();
+
+                    string query = @"
+                        SELECT SrNo, Parameter
+                        FROM PartConfig
+                        WHERE ProbeStatus = 'Probe'
+                        ORDER BY SrNo";
+
+                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        int counter = 1;
+
+                        while (reader.Read())
+                        {
+                            string parameter = reader.GetString(1);
+
+                            Probes.Add(new ProbeViewModel
+                            {
+                                No = counter,
+                                Name = parameter,
+                                ProbeName = $"Probe {counter}",
+                                ProbeId = "--",
+                                Stroke = "--",
+                                Status = "Pending"
+                            });
+
+                            counter++;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading probes: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        /// <summary>
+        /// Called when user clicks "✔ Check"
+        /// </summary>
+        private void CheckButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_orbModules == null)
+            {
+                MessageBox.Show("Orbit modules are not initialized. Please connect first.",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            if (sender is Button btn && btn.CommandParameter is ProbeViewModel probe)
+            {
+                try
+                {
+                    int count = _orbModules.Count;
+
+                    MessageBox.Show("Notifying Module (move probe now). Press ESC to cancel.",
+                        "Notification", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // Generate probe name
+                    string name = $"Module {_orbModules.Count + 1}";
+
+                    // This blocks until Orbit detects or cancels
+                    _orbModules.NotifyAndAdd(name);
+
+                    if (_orbModules.Count == count)
+                    {
+                        MessageBox.Show("No modules were added. Probe not detected or cancelled.",
+                            "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                        return;
+                    }
+
+                    // Get the newly added module
+                    var module = _orbModules[_orbModules.Count - 1];
+
+                    // Update bound probe row
+                    probe.ProbeId = module.ModuleID;
+                    probe.Stroke = module.Stroke.ToString();
+                    probe.Status = "Installed";
+                    probe.ProbeName = $"Probe {probe.No}";
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error while notifying/adding module: {ex.Message}",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+public class ProbeViewModel : INotifyPropertyChanged
+    {
+        private int _no;
+        private string _name;
+        private string _probeName;
+        private string _probeId;
+        private string _stroke;
+        private string _status;
+
+        public int No
+        {
+            get => _no;
+            set { _no = value; OnPropertyChanged(); }
+        }
+
+        public string Name
+        {
+            get => _name;
+            set { _name = value; OnPropertyChanged(); }
+        }
+
+        public string ProbeName
+        {
+            get => _probeName;
+            set { _probeName = value; OnPropertyChanged(); }
+        }
+
+        public string ProbeId
+        {
+            get => _probeId;
+            set { _probeId = value; OnPropertyChanged(); }
+        }
+
+        public string Stroke
+        {
+            get => _stroke;
+            set { _stroke = value; OnPropertyChanged(); }
+        }
+
+        public string Status{
+            get => _status;
+            set { _status = value; OnPropertyChanged(); }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+}
+}
 
 
 
 
-             <local:GaugeControl Margin="5" />
-                <local:GaugeControl Margin="5" />
-                <local:GaugeControl Margin="5" />
-                <local:GaugeControl Margin="5" />
-                <local:GaugeControl Margin="5" />
+                    CREATE TABLE PartConfig (
+    SrNo INT IDENTITY(1,1) PRIMARY KEY,
+    Parameter VARCHAR(100) NOT NULL,
+    Nominal DECIMAL(18,2) NULL,
+    RTolPlus DECIMAL(18,2) NULL,
+    RTolMinus DECIMAL(18,2) NULL,
+    YTolPlus DECIMAL(18,2) NULL,
+    YTolMinus DECIMAL(18,2) NULL,
+    ProbeStatus VARCHAR(10) NULL  -- 'Probe' or 'Para'
+);
 
 
 
+CREATE TABLE Part_Entry (
+	Id INT IDENTITY(1,1) PRIMARY KEY,
+    Para_No VARCHAR(255) NOT NULL,
+    Para_Name VARCHAR(255) NOT NULL
+);
 
-                  <local:Bar_Progrerss x:Name="PB1"  Title="Probe 1"  Value="14" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB2"  Title="Probe 2"  Value="34" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB3"  Title="Probe 3"  Value="56" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB4"  Title="Probe 4"  Value="78" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB5"  Title="Probe 5"  Value="43" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB6"  Title="Probe 6"  Value="65" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB7"  Title="Probe 7"  Value="22" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB8"  Title="Probe 8"  Value="88" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB9"  Title="Probe 9"  Value="15" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB10" Title="Probe 10" Value="50" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB11"  Title="Probe 7"  Value="22" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB12"  Title="Probe 8"  Value="88" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB13"  Title="Probe 9"  Value="15" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB14" Title="Probe 10" Value="50" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB15"  Title="Probe 7"  Value="22" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB16"  Title="Probe 8"  Value="88" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB17"  Title="Probe 9"  Value="15" Margin="5"/>
-                    <local:Bar_Progrerss x:Name="PB18" Title="Probe 10" Value="50" Margin="5"/>
+select * from Part_Entry;
+
+select * from PartConfig;

@@ -159,7 +159,7 @@
     </MenuItem>
 
     <MenuItem Header="_Report">
-        <MenuItem Header="SPC Graph"/>
+                <MenuItem Header="SPC Graph" Click="ProgressBar_Click"/>
         <MenuItem Header="Report"/>
         <MenuItem Header="File open"/>
     </MenuItem>

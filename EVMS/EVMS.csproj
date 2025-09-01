@@ -7,6 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>MEPL Icon.ico</ApplicationIcon>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,8 +28,15 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+    <PackageReference Include="System.IO.Ports" Version="9.0.8" />
     <PackageReference Include="WPF-UI" Version="4.0.3" />
     <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Interop.OrbitCOM">
+      <HintPath>..\..\..\VS_Practice\OrbitTest\Interop.OrbitCOM.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

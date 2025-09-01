@@ -20,83 +20,57 @@ namespace EVMS
         }
         private void RunMenuItem_Click(object sender, RoutedEventArgs e)
         {
-            // Clear existing content
             MainContentGrid.Children.Clear();
-
-            // Create instance of RunPage UserControl
             ProbeSetupPage runPage = new ProbeSetupPage();
-
-            // Make sure it fills the MainContentGrid
             runPage.HorizontalAlignment = HorizontalAlignment.Stretch;
             runPage.VerticalAlignment = VerticalAlignment.Stretch;
+            MainContentGrid.Children.Add(runPage);
+        }
 
-            // Add RunPage to the container Grid
+        private void ProgressBar_Click(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            ResultProgressBar runPage = new ResultProgressBar();
+            runPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            runPage.VerticalAlignment = VerticalAlignment.Stretch;
             MainContentGrid.Children.Add(runPage);
         }
 
         private void Mesurment_Click(object sender, RoutedEventArgs e)
         {
-            // Clear existing content
             MainContentGrid.Children.Clear();
-
-            // Create instance of RunPage UserControl
             ResultPage resultPage = new ResultPage();
 
-            // Make sure it fills the MainContentGrid
             resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
             resultPage.VerticalAlignment = VerticalAlignment.Stretch;
 
-            // Add RunPage to the container Grid
             MainContentGrid.Children.Add(resultPage);
         }
 
         private void ProbeInstall_Click(object sender, RoutedEventArgs e)
         {
-            // Clear existing content
             MainContentGrid.Children.Clear();
-
-            // Create instance of RunPage UserControl
             ProbeInstallPage resultPage = new ProbeInstallPage();
-
-            // Make sure it fills the MainContentGrid
             resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
             resultPage.VerticalAlignment = VerticalAlignment.Stretch;
-
-            // Add RunPage to the container Grid
             MainContentGrid.Children.Add(resultPage);
         }
 
-
-
          private void PartConfig_Click(object sender, RoutedEventArgs e)
         {
-            // Clear existing content
             MainContentGrid.Children.Clear();
-
-            // Create instance of RunPage UserControl
             PartConfig resultPage = new PartConfig();
-
-            // Make sure it fills the MainContentGrid
             resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
             resultPage.VerticalAlignment = VerticalAlignment.Stretch;
-
-            // Add RunPage to the container Grid
             MainContentGrid.Children.Add(resultPage);
         }
 
         private void PartManager_Click(object sender, RoutedEventArgs e)
         {
-            // Clear existing content
             MainContentGrid.Children.Clear();
-
-            // Create instance of RunPage UserControl
             Part_Manager resultPage = new Part_Manager();
-
-            // Make sure it fills the MainContentGrid
             resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
             resultPage.VerticalAlignment = VerticalAlignment.Stretch;
-
-            // Add RunPage to the container Grid
             MainContentGrid.Children.Add(resultPage);
         }
 
