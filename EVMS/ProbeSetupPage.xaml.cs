@@ -41,6 +41,9 @@ namespace EVMS
                 new Row{ Title = "Probe 8",  Value = 4.06, Timestamp = DateTime.Now },
                 new Row{ Title = "Probe 9",  Value = 4.09, Timestamp = DateTime.Now },
                 new Row{ Title = "Probe 10", Value = 4.02, Timestamp = DateTime.Now },
+                 new Row{ Title = "Probe 11",  Value = 4.09, Timestamp = DateTime.Now },
+                new Row{ Title = "Probe 10", Value = 4.02, Timestamp = DateTime.Now },
+
             };
 
 

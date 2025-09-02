@@ -43,7 +43,7 @@
 
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
-                <WrapPanel Orientation="Horizontal" ItemWidth="250" ItemHeight="300">
+                <WrapPanel Orientation="Horizontal" ItemWidth="180" ItemHeight="300">
                     <local:ProgresBarControl x:Name="PB1"  Title="Probe 1"  Value="14" Margin="5"/>
                     <local:ProgresBarControl x:Name="PB2"  Title="Probe 2"  Value="34" Margin="5"/>
                     <local:ProgresBarControl x:Name="PB3"  Title="Probe 3"  Value="56" Margin="5"/>
@@ -54,6 +54,8 @@
                     <local:ProgresBarControl x:Name="PB8"  Title="Probe 8"  Value="88" Margin="5"/>
                     <local:ProgresBarControl x:Name="PB9"  Title="Probe 9"  Value="15" Margin="5"/>
                     <local:ProgresBarControl x:Name="PB10" Title="Probe 10" Value="50" Margin="5"/>
+                    <local:ProgresBarControl x:Name="PB11" Title="Probe 10" Value="50" Margin="5"/>
+
                 </WrapPanel>
             </ScrollViewer>
         </Border>

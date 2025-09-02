@@ -18,17 +18,18 @@
                                Foreground="White"
                                FontWeight="SemiBold"
                                Margin="0,0,10,0"/>
-                    <ComboBox x:Name="PartNoComboBox"
-                              Width="180"
-                              Height="32"
-                              Padding="4,2"
-                              ItemsSource="{Binding PartNumbers}"
-                              SelectedItem="{Binding SelectedPartNumber, Mode=TwoWay}"
-                              Background="#2D2D2D"
-                              Foreground="#2D2D2D"
-                              BorderBrush="#555"
-                              BorderThickness="1" />
-                    
+                            <ComboBox
+                                Width="180"
+                                Height="32"
+                                Padding="4,2"
+                                ItemsSource="{Binding PartNumbers}" 
+                                SelectedItem="{Binding SelectedPartNo, Mode=TwoWay}"
+                                Background="#2D2D2D"
+                                Foreground="#2D2D2D"
+                                BorderBrush="#555"
+                                BorderThickness="1" />      
+
+
                 </StackPanel>
 
                 <!-- Table Header -->
