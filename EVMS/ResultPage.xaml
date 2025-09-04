@@ -95,13 +95,13 @@
             <!-- Row 0: Top info panel -->
             <RowDefinition Height="*"/>
             <!-- Row 1: Left and Right panels -->
-            <RowDefinition Height="300"/>
+            <RowDefinition Height="270"/>
             <!-- Row 2: DataGrid -->
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
             <!-- Left panel -->
-            <ColumnDefinition Width="2.5*"/>
+            <ColumnDefinition Width="2.8*"/>
             <!-- Right panel -->
         </Grid.ColumnDefinitions>
 
@@ -155,7 +155,7 @@
 
         <!-- Row 1 Left Panel: Valve Image and Dimensions -->
         <Viewbox Grid.Row="1" Grid.Column="0" Stretch="Uniform" >
-            <Canvas Width="780" Height="500" Background="#F7FAFC">
+            <Canvas Width="820" Height="400" Background="#F7FAFC">
 
                 <!-- Valve Image -->
                 <Image Source="/Resource/valve.png"
@@ -233,7 +233,7 @@
               HorizontalScrollBarVisibility="Disabled"
               HorizontalAlignment="Center"
               VerticalAlignment="Top"
-              Height="600">
+              Height="700">
             <StackPanel>
                 <!-- Button to switch progress bar design -->
                 <Button x:Name="SwitchProgressBarBtn"
@@ -275,7 +275,7 @@
                 <WrapPanel x:Name="ProgressBarContainer"
                    Orientation="Horizontal"
                    ItemWidth="150"
-                   ItemHeight="180"
+                   ItemHeight="195"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Top"/>
             </StackPanel>

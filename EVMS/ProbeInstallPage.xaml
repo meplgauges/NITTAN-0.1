@@ -3,6 +3,57 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="Black"
              FontFamily="Segoe UI" FontSize="14">
+
+    <UserControl.Resources>
+        <!-- Common Rounded Button Base Style -->
+        <Style x:Key="RoundedButtonBase" TargetType="Button">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="8"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Tag}" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Foreground" Value="Gray" />
+                                <Setter TargetName="border" Property="Background" Value="#333333" />
+                                <Setter TargetName="border" Property="BorderBrush" Value="#555555" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="6,2" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+
+        <!-- Style for Reset Button (Red) -->
+        <Style x:Key="ResetButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonBase}">
+            <Setter Property="Background" Value="#E53935"/>
+            <Setter Property="BorderBrush" Value="#B71C1C" />
+            <Setter Property="Tag" Value="#B71C1C" />
+            <!-- Button pressed background -->
+        </Style>
+
+        <!-- Style for Install Button (Blue) -->
+        <Style x:Key="InstallButtonStyle" TargetType="Button" BasedOn="{StaticResource RoundedButtonBase}">
+            <Setter Property="Background" Value="#58A8E8"/>
+            <Setter Property="BorderBrush" Value="#2E7BD8"/>
+            <Setter Property="Tag" Value="#2E7BD8" />
+            <!-- Button pressed background -->
+        </Style>
+    </UserControl.Resources>
+
     <Grid Margin="20">
         <Border CornerRadius="12" Padding="16">
             <Border.Background>
@@ -11,26 +62,40 @@
                             Opacity="0.90"/>
             </Border.Background>
             <StackPanel>
-                <!-- Model Selection with Connect Button -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,20" VerticalAlignment="Center" HorizontalAlignment="Left">
-                    <TextBlock Text="Select Part:"
-                               VerticalAlignment="Center"
-                               Foreground="White"
-                               FontWeight="SemiBold"
-                               Margin="0,0,10,0"/>
-                            <ComboBox
-                                Width="180"
-                                Height="32"
-                                Padding="4,2"
-                                ItemsSource="{Binding PartNumbers}" 
-                                SelectedItem="{Binding SelectedPartNo, Mode=TwoWay}"
-                                Background="#2D2D2D"
-                                Foreground="#2D2D2D"
-                                BorderBrush="#555"
-                                BorderThickness="1" />      
+                <!-- Top area with Grid for left controls and right button -->
+                <Grid Margin="0,0,0,20" VerticalAlignment="Center" HorizontalAlignment="Stretch">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <!-- Label + ComboBox -->
+                        <ColumnDefinition Width="*" />
+                        <!-- Spacer -->
+                        <ColumnDefinition Width="Auto" />
+                        <!-- Reset Button -->
+                    </Grid.ColumnDefinitions>
 
+                    <!-- Label and ComboBox grouped on left -->
+                    <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="Select Part:" VerticalAlignment="Center" Foreground="White" FontWeight="SemiBold" Margin="0,0,10,0"/>
+                        <ComboBox Width="180" Height="32" Padding="4,2"
+                                  ItemsSource="{Binding PartNumbers}"
+                                  SelectedItem="{Binding SelectedPartNo, Mode=TwoWay}"
+                                  Background="#2D2D2D"
+                                  Foreground="#2D2D2D"
+                                  BorderBrush="#555"
+                                  BorderThickness="1"
+                                  VerticalAlignment="Center"/>
+                    </StackPanel>
 
-                </StackPanel>
+                    <!-- Spacer auto expands Column 1 -->
+
+                    <!-- Reset button aligned right corner with style -->
+                    <Button Grid.Column="2" Content="Reset All Probes"
+                            Width="140"
+                            VerticalAlignment="Center"
+                            Style="{StaticResource ResetButtonStyle}"
+                            ToolTip="Reset all probes data"
+                            Click="ResetAllProbes_Click" />
+                </Grid>
 
                 <!-- Table Header -->
                 <Grid Background="#2D2D2D" Height="42">
@@ -95,13 +160,10 @@
                                                 Height="30"
                                                 Margin="4,0"
                                                 Padding="4"
-                                                Background="#58A8E8"
-                                                Foreground="White"
-                                                BorderBrush="#555"
-                                                BorderThickness="1"
+                                                Style="{StaticResource InstallButtonStyle}"
+                                                CommandParameter="{Binding}"
                                                 Cursor="Hand"
-                                                 Click="CheckButton_Click"
-                                                CommandParameter="{Binding}"/>
+                                                Click="CheckButton_Click"/>
                                     </StackPanel>
                                 </Grid>
                             </Border>

@@ -37,6 +37,9 @@
     <Reference Include="Interop.OrbitCOM">
       <HintPath>..\..\..\VS_Practice\OrbitTest\Interop.OrbitCOM.dll</HintPath>
     </Reference>
+    <Reference Include="OrbitLibrary">
+      <HintPath>..\..\..\VS_Practice\Orbit3 CSharp Example\Orbit3CSharpExample\bin\Debug\OrbitLibrary.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

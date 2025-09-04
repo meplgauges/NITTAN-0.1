@@ -13,6 +13,7 @@
         Background="#F9FAFB">
 
     <Window.Resources>
+        
         <DropShadowEffect x:Key="DropShadow"
                           Color="#000000"
                           Direction="270"
@@ -162,7 +163,7 @@
                 <MenuItem Header="SPC Graph" Click="ProgressBar_Click"/>
         <MenuItem Header="Report"/>
         <MenuItem Header="File open"/>
-    </MenuItem>
+            </MenuItem>
 
     <MenuItem Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
         <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
@@ -189,7 +190,8 @@
                    
            Opacity="0.60"
            Panel.ZIndex="0" />
-
+            
+            
             <!-- Your existing content comes here, for example: -->
             <Border Panel.ZIndex="1"  Padding="30"  BorderThickness="2"  Effect="{DynamicResource DropShadow}">
 
@@ -201,7 +203,18 @@
                         <ColumnDefinition Width="1.6*" MinWidth="150"/>
                     </Grid.ColumnDefinitions>
 
+
+                    <Border Background="#AA000000"  
+                        Visibility="Collapsed" x:Name="LoadingMessageBorder"
+                            HorizontalAlignment="Stretch" VerticalAlignment="Stretch" >
+                        <TextBlock Text="Please wait, initializing..."
+                   Foreground="White"
+                   FontSize="24"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"/>
+                    </Border>
                     <!-- Company Info (Left) -->
+                  
                     <StackPanel x:Name="CompanyInfoPanel"
             Grid.Column="0"
             Margin="100,0,0,0"

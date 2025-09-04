@@ -3,99 +3,78 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:EVMS"
              Background="Black">
+
     <UserControl.Resources>
-        <!-- Reusable Border Style -->
+        <!-- Border Style -->
         <Style x:Key="DefaultBorderStyle" TargetType="Border">
             <Setter Property="CornerRadius" Value="10"/>
             <Setter Property="Margin" Value="4"/>
             <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="#D9D9D9"/>
             <Setter Property="Background" Value="#222"/>
         </Style>
-        <DropShadowEffect x:Key="DropShadowEffect" BlurRadius="8" ShadowDepth="2" Direction="270" Color="#33000000"/>
-
     </UserControl.Resources>
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="3*" />
-            <!-- Top section -->
-            <RowDefinition Height="1*" />
-            <!-- Bottom section -->
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="4*"/>
+            <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
 
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*" />
-            <!-- Left column -->
-            <ColumnDefinition Width="*" />
-            <!-- Right column -->
-        </Grid.ColumnDefinitions>
+        <!-- Dropdown to Select Part -->
+        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="Select Part: " Foreground="White" FontSize="14" VerticalAlignment="Center"/>
+            <ComboBox x:Name="PartSelector"
+                      Width="200"
+                      Margin="10,0,0,0"
+                      ItemsSource="{Binding PartNumbers}"
+                      SelectedItem="{Binding SelectedPartNo, Mode=TwoWay}"
+                      Foreground="Black"/>
+        </StackPanel>
 
-        <!-- ================= Left Top: Probes ================= -->
-        <Border Grid.Column="0" BorderBrush="#D9D9D9"
-       BorderThickness="1"
-     CornerRadius="14"
-       >
-            <Border.Background>
-                <ImageBrush ImageSource="/Resource/bg3.jpg"
-                    Stretch="UniformToFill"
-                    Opacity="0.90"/>
-            </Border.Background>
-
+        <!-- Probe Cards -->
+        <Border Grid.Row="1">
             <ScrollViewer VerticalScrollBarVisibility="Auto"
                   HorizontalScrollBarVisibility="Disabled">
-                <WrapPanel Orientation="Horizontal" ItemWidth="180" ItemHeight="300">
-                    <local:ProgresBarControl x:Name="PB1"  Title="Probe 1"  Value="14" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB2"  Title="Probe 2"  Value="34" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB3"  Title="Probe 3"  Value="56" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB4"  Title="Probe 4"  Value="78" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB5"  Title="Probe 5"  Value="43" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB6"  Title="Probe 6"  Value="65" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB7"  Title="Probe 7"  Value="22" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB8"  Title="Probe 8"  Value="88" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB9"  Title="Probe 9"  Value="15" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB10" Title="Probe 10" Value="50" Margin="5"/>
-                    <local:ProgresBarControl x:Name="PB11" Title="Probe 10" Value="50" Margin="5"/>
-
-                </WrapPanel>
+                <ListBox ItemsSource="{Binding Probes}"
+                 SelectedItem="{Binding SelectedProbe, Mode=TwoWay}"
+                 Background="Transparent"
+                 BorderThickness="0"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" ItemWidth="188" ItemHeight="500"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <local:ProbeSetupProgressBar 
+                        Value="{Binding Value}" 
+                        Title="{Binding Title}" 
+                        ID="{Binding ID}" 
+                        Stroke="{Binding Stroke}" 
+                                Margin="5"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
             </ScrollViewer>
         </Border>
 
-
-        <!-- ================= Right Top: Config ================= -->
-        <Border Grid.Column="1" Grid.Row="0" BorderBrush="#D9D9D9" Margin="10,0,0,0"
-       BorderThickness="1"
-     CornerRadius="12">
-            <Border.Background>
-                <VisualBrush Stretch="UniformToFill" Opacity="0.85">
-                    <VisualBrush.Visual>
-                        <Image Source="/Resource/bg3.jpg"/>
-                    </VisualBrush.Visual>
-                </VisualBrush>
-            </Border.Background>
-
-            <StackPanel VerticalAlignment="Top" Orientation="Vertical">
-
+        <!-- Buttons -->
+        <Border Grid.Row="2" Style="{StaticResource DefaultBorderStyle}">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="10">
+                <Button x:Name="StartBtn"
+                        Content="Start Reading"
+                        Width="120"
+                        Margin="5"
+                        Click="StartBtn_Click"/>
+                <Button x:Name="StopBtn"
+                        Content="Stop Reading"
+                        Width="120"
+                        Margin="5"
+                        Click="StopBtn_Click"/>
             </StackPanel>
         </Border>
-
-        <!-- ================= Left Bottom: Extra =================
-        <Border Grid.Column="0" Grid.Row="1" Style="{StaticResource DefaultBorderStyle}">
-            <Border.Background>
-                <ImageBrush ImageSource="/Resource/8765.jpg"
-                    Stretch="UniformToFill"
-                    Opacity="0.7"/>
-            </Border.Background>
-        </Border> -->
-
-        <!-- ================= Right Bottom: Extra ================= 
-        <Border Grid.Column="1" Grid.Row="1" Style="{StaticResource DefaultBorderStyle}">
-            <Border.Background>
-                <VisualBrush Stretch="UniformToFill" Opacity="0.7">
-                    <VisualBrush.Visual>
-                        <Image Source="/Resource/8765.jpg"/>
-                    </VisualBrush.Visual>
-                </VisualBrush>
-            </Border.Background>
-        </Border> -->
     </Grid>
 </UserControl>

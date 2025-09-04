@@ -47,16 +47,28 @@ namespace EVMS
             MainContentGrid.Children.Add(resultPage);
         }
 
-        private void ProbeInstall_Click(object sender, RoutedEventArgs e)
+        private async void ProbeInstall_Click(object sender, RoutedEventArgs e)
         {
+            // Show message box
+            MessageBox.Show("Please wait, initializing...", "Loading", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            // Simulate delay (e.g., 2 seconds)
+            await Task.Delay(2000);
+
+            // Then load your page
             MainContentGrid.Children.Clear();
-            ProbeInstallPage resultPage = new ProbeInstallPage();
-            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
-            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+            var resultPage = new ProbeInstallPage()
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
             MainContentGrid.Children.Add(resultPage);
         }
 
-         private void PartConfig_Click(object sender, RoutedEventArgs e)
+
+
+
+        private void PartConfig_Click(object sender, RoutedEventArgs e)
         {
             MainContentGrid.Children.Clear();
             PartConfig resultPage = new PartConfig();

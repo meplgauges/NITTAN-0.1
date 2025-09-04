@@ -324,6 +324,50 @@ namespace EVMS
             }
         }
 
+        private async void ResetAllProbes_Click(object sender, RoutedEventArgs e)
+        {
+            var result = MessageBox.Show("Are you sure you want to reset all saved probe?",
+                                         "Confirm Reset", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (result != MessageBoxResult.Yes)
+                return;
+            try
+            {
+                // 1. Clear saved probe data from DB
+                using (var con = new SqlConnection(connectionString))
+                {
+                    await con.OpenAsync();
+                    using (var cmd = new SqlCommand("DELETE FROM ProbeInstallationData", con))
+                    {
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+
+                // 2. Reset Orbit modules collection in memory
+                _orbModules?.ResetTCons();
+
+                // 3. Clear the UI probes collection
+                Probes?.Clear();
+
+                // 4. Reset the network controller
+                if (_orbNets != null)
+                {
+                    _orbNet.Reset();
+                    // Optionally, re-initialize or reconnect network here
+                }
+
+                MessageBox.Show("All probes have been reset.", "Reset Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // Optionally, trigger refresh or reload of probes and network status
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error resetting probes, Orbit modules, or network: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+
+
         private async void CheckButton_Click(object sender, RoutedEventArgs e)
         {
             if (_orbModules == null)

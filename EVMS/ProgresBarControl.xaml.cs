@@ -26,7 +26,7 @@ namespace EVMS
         }
 
         public static readonly DependencyProperty TitleProperty =
-    DependencyProperty.Register("Title", typeof(string), typeof(ProgresBarControl),
+    DependencyProperty.Register("Titl", typeof(string), typeof(ProgresBarControl),
         new PropertyMetadata("Probe"));
 
         public string Title
@@ -75,4 +75,3 @@ namespace EVMS
         }
     }
 }
-
