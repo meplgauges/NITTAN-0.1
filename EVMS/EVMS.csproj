@@ -13,10 +13,12 @@
   <ItemGroup>
     <None Remove="Resource\1234.jpg" />
     <None Remove="Resource\4321.jpg" />
+    <None Remove="Resource\7.jpg" />
     <None Remove="Resource\8765.jpg" />
     <None Remove="Resource\bg1.jpg" />
     <None Remove="Resource\bg2.jpg" />
     <None Remove="Resource\bg3.jpg" />
+    <None Remove="Resource\bg55.jpg" />
     <None Remove="Resource\generated-image.png" />
     <None Remove="Resource\Logo_ME.png" />
     <None Remove="Resource\valve.png" />
@@ -49,6 +51,9 @@
     <Resource Include="Resource\4321.jpg">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Resource\7.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Resource\8765.jpg">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
@@ -59,6 +64,9 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resource\bg3.jpg">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Resource\bg55.jpg">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Resource\generated-image.png">

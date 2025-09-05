@@ -274,8 +274,8 @@
                 <!-- Container for dynamically loaded progress bars -->
                 <WrapPanel x:Name="ProgressBarContainer"
                    Orientation="Horizontal"
-                   ItemWidth="150"
-                   ItemHeight="195"
+                   ItemWidth="200"
+                   ItemHeight="250"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Top"/>
             </StackPanel>

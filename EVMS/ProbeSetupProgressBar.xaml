@@ -27,7 +27,7 @@
 
 
                     <!-- Scale markers -->
-                    <Canvas Margin="0,0,0,-6" Width="30" Height="250" IsHitTestVisible="False">
+                    <Canvas Margin="0,0,50,-6" Width="30" Height="258" IsHitTestVisible="False" >
                         <Line X1="0" X2="30" Y1="250" Y2="250" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
                         <TextBlock Text="Low" Foreground="#F5F6FA" FontSize="11" Canvas.Left="0" Canvas.Top="230"/>
                         <Line X1="0" X2="30" Y1="125" Y2="125" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>

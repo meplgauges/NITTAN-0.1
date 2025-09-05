@@ -75,22 +75,25 @@ namespace EVMS
             {
                 double newValue = (double)e.NewValue;
 
-                // Animate bar value
+                // Animate the ProgressBar value smoothly
                 var animation = new DoubleAnimation
                 {
                     From = control.Bar.Value,
                     To = newValue,
-                    Duration = TimeSpan.FromMilliseconds(10)
+                    Duration = TimeSpan.FromMilliseconds(10), // Increased duration for visible animation
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } // Smooth easing
                 };
                 control.Bar.BeginAnimation(ProgressBar.ValueProperty, animation);
 
-                // Color logic
+                // Color logic based on the new value thresholds
                 if (newValue < 20 || newValue > 90)
                 {
+                    // Red color for out-of-range values
                     control.Bar.Foreground = new SolidColorBrush(Colors.Red);
                 }
                 else
                 {
+                    // Gradient from green to blue for normal range
                     var gradientBrush = new LinearGradientBrush
                     {
                         StartPoint = new Point(0, 1),
