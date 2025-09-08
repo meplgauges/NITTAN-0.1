@@ -47,7 +47,7 @@ namespace EVMS
             LoadingText.Text = "Starting...";
         }
 
-        private async void OnStepTimerTick(object sender, EventArgs e)
+        private async void OnStepTimerTick(object? sender, EventArgs? e)
         {
             if (_currentStepIndex < _loadingSteps.Length)
             {

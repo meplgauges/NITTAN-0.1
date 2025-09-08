@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Controls;   // 👈 this is required
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 
@@ -12,6 +13,9 @@ namespace EVMS
     /// </summary>
     public partial class MainWindow : Window
     {
+
+        // Field to keep track of the current selected MenuItem
+        private MenuItem? _currentlySelectedMenuItem;
         private bool isSettingsAuthenticated = false; // global flag
         public MainWindow()
         {
@@ -47,6 +51,17 @@ namespace EVMS
             MainContentGrid.Children.Add(resultPage);
         }
 
+        private void MasterPage_Click(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            MasterReadingPage resultPage = new MasterReadingPage();
+
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            MainContentGrid.Children.Add(resultPage);
+        }
+
         private async void ProbeInstall_Click(object sender, RoutedEventArgs e)
         {
             // Show message box
@@ -66,6 +81,24 @@ namespace EVMS
         }
 
 
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem clickedMenuItem)
+                return;
+
+            // Reset foreground color of previously selected MenuItem
+            if (_currentlySelectedMenuItem != null)
+            {
+                _currentlySelectedMenuItem.Foreground = (Brush)FindResource("MenuItemForegroundBrush") ?? Brushes.White;
+            }
+
+            // Set foreground color of currently clicked MenuItem to red
+            clickedMenuItem.Foreground = Brushes.Red;
+
+            // Update reference
+            _currentlySelectedMenuItem = clickedMenuItem;
+        }
 
 
         private void PartConfig_Click(object sender, RoutedEventArgs e)

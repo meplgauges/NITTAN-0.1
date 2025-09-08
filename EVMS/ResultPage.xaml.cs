@@ -25,16 +25,17 @@ namespace EVMS
             // Prepare dummy data for DataGrid
             valveDataRows = new List<ValveReadingRow>
     {
-        new ValveReadingRow { SerialNumber = 1, GrooveDia = "12.5", STNG = "1", STNU = "2", GroovePositon = "1", SeatRo = "1", HeadDia = "34.2", SeatHeight = "32", DatumToEnd = "64", DatuToGroove = "50", OverLeght = "102" },
-        new ValveReadingRow { SerialNumber = 2, GrooveDia = "13", STNG = "3", STNU = "4", GroovePositon = "2", SeatRo = "2", HeadDia = "35", SeatHeight = "33", DatumToEnd = "66", DatuToGroove = "52", OverLeght = "104" },
-        new ValveReadingRow { SerialNumber = 3, GrooveDia = "12.5", STNG = "1", STNU = "2", GroovePositon = "1", SeatRo = "1", HeadDia = "34.2", SeatHeight = "32", DatumToEnd = "64", DatuToGroove = "50", OverLeght = "102" },
-        new ValveReadingRow { SerialNumber = 4, GrooveDia = "13", STNG = "3", STNU = "4", GroovePositon = "2", SeatRo = "2", HeadDia = "35", SeatHeight = "33", DatumToEnd = "66", DatuToGroove = "52", OverLeght = "104" },
-        new ValveReadingRow { SerialNumber = 5, GrooveDia = "12.5", STNG = "1", STNU = "2", GroovePositon = "1", SeatRo = "1", HeadDia = "34.2", SeatHeight = "32", DatumToEnd = "64", DatuToGroove = "50", OverLeght = "102" },
-        new ValveReadingRow { SerialNumber = 6, GrooveDia = "13", STNG = "3", STNU = "4", GroovePositon = "2", SeatRo = "2", HeadDia = "35", SeatHeight = "33", DatumToEnd = "66", DatuToGroove = "52", OverLeght = "104" },
-         new ValveReadingRow { SerialNumber = 7, GrooveDia = "12.5", STNG = "1", STNU = "2", GroovePositon = "1", SeatRo = "1", HeadDia = "34.2", SeatHeight = "32", DatumToEnd = "64", DatuToGroove = "50", OverLeght = "102" },
-        new ValveReadingRow { SerialNumber =8, GrooveDia = "13", STNG = "3", STNU = "4", GroovePositon = "2", SeatRo = "2", HeadDia = "35", SeatHeight = "33", DatumToEnd = "66", DatuToGroove = "52", OverLeght = "104" },
-        new ValveReadingRow { SerialNumber = 9, GrooveDia = "12.5", STNG = "1", STNU = "2", GroovePositon = "1", SeatRo = "1", HeadDia = "34.2", SeatHeight = "32", DatumToEnd = "64", DatuToGroove = "50", OverLeght = "102" },
-       new ValveReadingRow { SerialNumber = 10, GrooveDia = "12.5", STNG = "1", STNU = "2", GroovePositon = "1", SeatRo = "1", HeadDia = "34.2", SeatHeight = "32", DatumToEnd = "64", DatuToGroove = "50", OverLeght = "102" },
+        new ValveReadingRow { SerialNumber = 1, GrooveDia = 12.5, STNG = 1, STNU = 2, GroovePositon = 1, SeatRo = 1, HeadDia = 34.2, SeatHeight = 32, DatumToEnd = 64, DatuToGroove = 50, OverLeght = 102 },
+        new ValveReadingRow { SerialNumber = 2, GrooveDia = 13, STNG = 3, STNU = 4, GroovePositon = 2, SeatRo = 2, HeadDia = 35, SeatHeight = 33, DatumToEnd = 66, DatuToGroove = 52, OverLeght = 104 },
+        new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.5, STNG = 1, STNU = 2, GroovePositon = 1, SeatRo = 1, HeadDia = 34.2, SeatHeight = 32, DatumToEnd = 64, DatuToGroove = 50, OverLeght = 102 },
+        new ValveReadingRow { SerialNumber = 4, GrooveDia = 13, STNG = 3, STNU = 4, GroovePositon = 2, SeatRo = 2, HeadDia = 35, SeatHeight = 33, DatumToEnd = 66, DatuToGroove = 52, OverLeght = 104 },
+        new ValveReadingRow { SerialNumber = 5, GrooveDia = 12.5, STNG = 1, STNU = 2, GroovePositon = 1, SeatRo = 1, HeadDia = 34.2, SeatHeight = 32, DatumToEnd = 64, DatuToGroove = 50, OverLeght = 102 },
+        new ValveReadingRow { SerialNumber = 6, GrooveDia = 13, STNG = 3, STNU = 4, GroovePositon = 2, SeatRo = 2, HeadDia = 35, SeatHeight = 33, DatumToEnd = 66, DatuToGroove = 52, OverLeght = 104 },
+        new ValveReadingRow { SerialNumber = 7, GrooveDia = 12.5, STNG = 1, STNU = 2, GroovePositon = 1, SeatRo = 1, HeadDia = 34.2, SeatHeight = 32, DatumToEnd = 64, DatuToGroove = 50, OverLeght = 102 },
+        new ValveReadingRow { SerialNumber = 8, GrooveDia = 13, STNG = 3, STNU = 4, GroovePositon = 2, SeatRo = 2, HeadDia = 35, SeatHeight = 33, DatumToEnd = 66, DatuToGroove = 52, OverLeght = 104 },
+        new ValveReadingRow { SerialNumber = 9, GrooveDia = 12.5, STNG = 1, STNU = 2, GroovePositon = 1, SeatRo = 1, HeadDia = 34.2, SeatHeight = 32, DatumToEnd = 64, DatuToGroove = 50, OverLeght = 102 },
+        new ValveReadingRow { SerialNumber = 10, GrooveDia = 12.5, STNG = 1, STNU = 2, GroovePositon = 1, SeatRo = 1, HeadDia = 34.2, SeatHeight = 32, DatumToEnd = 64, DatuToGroove = 50, OverLeght = 102 }
+
 
         // ... add more rows
 
@@ -88,15 +89,15 @@ namespace EVMS
     public class ValveReadingRow
         {
             public int SerialNumber { get; set; }  // Serial number column
-            public string OverLeght { get; set; }
-            public string DatumToEnd { get; set; }
-            public string HeadDia { get; set; }
-            public string SeatHeight { get; set; }
-            public string GroovePositon { get; set; }
-            public string STNG { get; set; }
-            public string STNU { get; set; }
-            public string GrooveDia { get; set; }
-            public string SeatRo { get; set; }
-            public string DatuToGroove { get; set; }
+            public double OverLeght { get; set; }
+            public double DatumToEnd { get; set; }
+            public double HeadDia { get; set; }
+            public double SeatHeight { get; set; }
+            public double GroovePositon { get; set; }
+            public double STNG { get; set; }
+            public double STNU { get; set; }
+            public double GrooveDia { get; set; }
+            public double SeatRo { get; set; }
+            public double DatuToGroove { get; set; }
         }
     }

@@ -18,16 +18,16 @@ namespace EVMS
 {
     public partial class ProbeInstallPage : UserControl, INotifyPropertyChanged
     {
-        private OrbitServerClass _orbServer;
-        private OrbitNetworks _orbNets;
-        private OrbitNetwork _orbNet;
-        private OrbitModules _orbModules;
+        private OrbitServerClass? _orbServer;
+        private OrbitNetworks? _orbNets;
+        private OrbitNetwork? _orbNet;
+        private OrbitModules? _orbModules;
         private readonly string connectionString;
 
         public ObservableCollection<ProbeViewModel> Probes { get; set; }
         public ObservableCollection<string> PartNumbers { get; set; }
 
-        private string _selectedPartNo;
+        private string _selectedPartNo = string.Empty;
         public string SelectedPartNo
         {
             get => _selectedPartNo;
@@ -160,7 +160,7 @@ namespace EVMS
 
             try
             {
-                using (var con = new SqlConnection(connectionString))
+                using var con = new SqlConnection(connectionString);
                 {
                     await con.OpenAsync();
 
@@ -351,7 +351,7 @@ namespace EVMS
                 // 4. Reset the network controller
                 if (_orbNets != null)
                 {
-                    _orbNet.Reset();
+                    _orbNet?.Reset();
                     // Optionally, re-initialize or reconnect network here
                 }
 
@@ -446,8 +446,8 @@ namespace EVMS
         }
 
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
         private void ProbeInstallPage_Unloaded(object sender, RoutedEventArgs e)
@@ -470,11 +470,11 @@ namespace EVMS
     public class ProbeViewModel : INotifyPropertyChanged
     {
         private int _no;
-        private string _name;
-        private string _probeName;
-        private string _probeId;
-        private string _stroke;
-        private string _status;
+        private string _name = string.Empty;
+        private string _probeName = string.Empty;
+        private string _probeId = string.Empty;
+        private string _stroke = string.Empty;
+        private string _status = string.Empty;
 
         public int No { get => _no; set { _no = value; OnPropertyChanged(); } }
         public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
@@ -484,8 +484,8 @@ namespace EVMS
         public string Status { get => _status; set { _status = value; OnPropertyChanged(); } }
         public bool IsInstalled => Status == "Installed";
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 

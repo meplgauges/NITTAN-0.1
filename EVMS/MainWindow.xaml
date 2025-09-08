@@ -65,6 +65,9 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+
+        <SolidColorBrush x:Key="MenuItemForegroundBrush" Color="#F9FAFB" />
+
     </Window.Resources>
 
     <DockPanel LastChildFill="True">
@@ -107,17 +110,17 @@
                                     </Border>
                                     <!-- Popup for submenu -->
                                     <Popup x:Name="PART_Popup"
-                           Placement="Bottom"
-                           PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
-                           AllowsTransparency="True"
-                           Focusable="False"
-                           PopupAnimation="Fade"
-                           StaysOpen="False">
+                                           Placement="Bottom"
+                                           PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                           AllowsTransparency="True"
+                                           Focusable="False"
+                                           PopupAnimation="Fade"
+                                           StaysOpen="False">
                                         <Border Background="#1F2937"
-                                BorderBrush="#2563EB"
-                                BorderThickness="1"
-                                CornerRadius="4"
-                                SnapsToDevicePixels="True">
+                                                BorderBrush="#2563EB"
+                                                BorderThickness="1"
+                                                CornerRadius="4"
+                                                SnapsToDevicePixels="True"> 
                                             <StackPanel IsItemsHost="True"
                                         KeyboardNavigation.DirectionalNavigation="Cycle"/>
                                         </Border>
@@ -142,30 +145,30 @@
 
             </Menu.Resources>
 
-             <MenuItem Header="_Run Part">
+        <MenuItem Header="_Run Part" Click="MenuItem_Click">
         <MenuItem Header="Home..." />
         <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
         <Separator />
         <MenuItem Header="Exit" Click="Exit_Click"/>
     </MenuItem>
 
-    <MenuItem Header="_Mastring">
-        <MenuItem Header="Mastring"/>
+        <MenuItem Header="_Mastring" Click="MenuItem_Click">
+        <MenuItem Header="Mastring" Click="MasterPage_Click"/>
         <MenuItem Header="Master Expiration"/>
     </MenuItem>
 
-    <MenuItem Header="Repeatibility">
+        <MenuItem Header="Repeatibility" Click="MenuItem_Click">
         <MenuItem Header="Reports" Click="OpenReports_Click"/>
         <MenuItem Header="Settings" Click="OpenSettings_Click"/>
     </MenuItem>
 
-    <MenuItem Header="_Report">
-                <MenuItem Header="SPC Graph" Click="ProgressBar_Click"/>
+        <MenuItem Header="_Report" Click="MenuItem_Click">
+        <MenuItem Header="SPC Graph" />
         <MenuItem Header="Report"/>
         <MenuItem Header="File open"/>
-            </MenuItem>
+    </MenuItem>
 
-    <MenuItem Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
+            <MenuItem Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
         <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
         <MenuItem Header="Part Entry" Click="PartManager_Click"/>
         <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>

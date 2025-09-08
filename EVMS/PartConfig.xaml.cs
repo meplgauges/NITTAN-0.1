@@ -104,7 +104,7 @@ namespace EVMS
         }
 
         // Load data filtered by PartNo
-        private void LoadDataByPartNo(string Para_No)
+        private void LoadDataByPartNo(string? Para_No)
         {
             try
             {
@@ -152,25 +152,24 @@ namespace EVMS
         {
             try
             {
-                using (SqlConnection con = new SqlConnection(connectionString))
-                {
-                    con.Open();
-                    string checkQuery = "SELECT COUNT(*) FROM PartConfig WHERE Parameter = @Parameter";
-                    using (SqlCommand cmd = new SqlCommand(checkQuery, con))
-                    {
-                        cmd.Parameters.AddWithValue("@Parameter", parameter);
-                        int count = (int)cmd.ExecuteScalar();
-                        return count > 0;
-                    }
-                }
+                using var con = new SqlConnection(connectionString);
+                con.Open();
+
+                string checkQuery = "SELECT COUNT(*) FROM PartConfig WHERE Parameter = @Parameter";
+                using var cmd = new SqlCommand(checkQuery, con);
+                cmd.Parameters.AddWithValue("@Parameter", parameter);
+
+                int count = (int)cmd.ExecuteScalar();
+                return count > 0;
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error checking parameter existence: {ex.Message}", "Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
-                return true; // Treat error as exist to avoid inserts during DB issues
+                return true; // Treat error as existing to prevent inserts during DB issues
             }
         }
+
 
         private void BtnAdd_Click(object sender, RoutedEventArgs e)
         {
@@ -178,8 +177,8 @@ namespace EVMS
             {
                 if (!ValidateInputs()) return;
 
-                string Para_No = cmbPartNo.SelectedItem?.ToString() ?? "";
-                string parameter = txtParameter.Text.Trim();
+                string? Para_No = cmbPartNo.SelectedItem?.ToString() ?? "";
+                string? parameter = txtParameter.Text.Trim();
 
                 if (IsParameterExists(parameter))
                 {
@@ -307,13 +306,13 @@ namespace EVMS
                 }
 
                 int srNo = Convert.ToInt32(row["SrNo"]);
-                string parameter = row["Parameter"].ToString();
+                string? parameter = row["Parameter"].ToString();
 
                 if (MessageBox.Show($"Are you sure you want to delete '{parameter}'?",
                     "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.No)
                     return;
 
-                using (SqlConnection con = new SqlConnection(connectionString))
+                using var con = new SqlConnection(connectionString);
                 {
                     con.Open();
                     string query = "DELETE FROM PartConfig WHERE SrNo=@SrNo";
@@ -380,7 +379,7 @@ namespace EVMS
             if (dataGrid.SelectedItem is DataRowView row)
             {
                 // Set PartNo ComboBox selection if possible
-                string Para_No = row["Para_No"].ToString();
+                string? Para_No = row["Para_No"].ToString();
                 if (!string.IsNullOrEmpty(Para_No) && cmbPartNo.Items.Contains(Para_No))
                 {
                     cmbPartNo.SelectedItem = Para_No;

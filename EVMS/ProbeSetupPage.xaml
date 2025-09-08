@@ -78,6 +78,11 @@
 
         <!-- Row 0: Select Part inside border -->
         <Border Grid.Row="0" Style="{StaticResource SectionBorder}" >
+            <Border.Background>
+                <ImageBrush ImageSource="/Resource/1234.jpg"
+                             Stretch="UniformToFill"
+                             Opacity="0.9"/>    
+            </Border.Background>
             <Grid HorizontalAlignment="Center">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -85,7 +90,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Text="Select Part:" 
                            VerticalAlignment="Center" 
-                           Foreground="White" 
+                           Foreground="Black" 
                            FontSize="16" 
                            FontWeight="SemiBold" 
                            Margin="0,0,12,0" 
@@ -106,12 +111,16 @@
 
         <!-- Row 1: Progress Bars -->
         <Border Grid.Row="1" Style="{StaticResource SectionBorder}" >
-            
+            <Border.Background>
+                <ImageBrush ImageSource="/Resource/1234.jpg"
+                 Stretch="UniformToFill"
+                 Opacity="0.9"/>
+            </Border.Background>
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
                 <ItemsControl ItemsSource="{Binding Probes}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal" ItemWidth="188" ItemHeight="500" />
+                            <WrapPanel Orientation="Horizontal" ItemWidth="206" ItemHeight="500" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
@@ -137,14 +146,22 @@
 
             <!-- Info border -->
             <Border Grid.Column="0" Style="{StaticResource SectionBorder}" Margin="0,0,5,0" Padding="10">
-                
+                <Border.Background>
+                    <ImageBrush ImageSource="/Resource/1234.jpg"
+                 Stretch="UniformToFill"
+                 Opacity="0.9"/>
+                </Border.Background>
                 <!-- Replace with your info UI here, example TextBlock -->
                 <TextBlock Text="Status: Ready" Foreground="#ccc" FontSize="14" VerticalAlignment="Center" />
             </Border>
 
             <!-- Buttons border -->
             <Border Grid.Column="1" Style="{StaticResource SectionBorder}">
-                
+                <Border.Background>
+                    <ImageBrush ImageSource="/Resource/1234.jpg"
+                 Stretch="UniformToFill"
+                 Opacity="0.9"/>
+                </Border.Background>
                 <Grid >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

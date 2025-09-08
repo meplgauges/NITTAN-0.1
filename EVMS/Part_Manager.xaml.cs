@@ -181,7 +181,7 @@ namespace EVMS
                 }
 
                 int id = Convert.ToInt32(row["ID"]);
-                string paraNo = row["Para_No"].ToString();
+                string? paraNo = row["Para_No"].ToString();
 
                 if (MessageBox.Show($"Are you sure you want to delete '{paraNo}'?", "Confirm Delete",
                     MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.No)
