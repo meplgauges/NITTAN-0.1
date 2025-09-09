@@ -146,7 +146,7 @@
             </Menu.Resources>
 
         <MenuItem Header="_Run Part" Click="MenuItem_Click">
-        <MenuItem Header="Home..." />
+        <MenuItem Header="Home..." Click="HomePage_Click" />
         <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
         <Separator />
         <MenuItem Header="Exit" Click="Exit_Click"/>
@@ -163,7 +163,7 @@
     </MenuItem>
 
         <MenuItem Header="_Report" Click="MenuItem_Click">
-        <MenuItem Header="SPC Graph" />
+        <MenuItem Header="SPC Graph" Click="RoundBar_Click"/>
         <MenuItem Header="Report"/>
         <MenuItem Header="File open"/>
     </MenuItem>
@@ -173,7 +173,7 @@
         <MenuItem Header="Part Entry" Click="PartManager_Click"/>
         <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
         <MenuItem Header="Part Config" Click="PartConfig_Click"/>
-        <MenuItem Header="Password Setup" />
+                <MenuItem Header="Login Setup" Click="LoginSetup_Click"/>
         <Separator/>
         <MenuItem Header="Exit"/>
     </MenuItem>

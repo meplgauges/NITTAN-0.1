@@ -24,7 +24,7 @@
     <None Remove="Resource\valve.png" />
   </ItemGroup>
 
-  <ItemGroup>
+	<ItemGroup>
     <Content Include="MEPL Icon.ico" />
   </ItemGroup>
 

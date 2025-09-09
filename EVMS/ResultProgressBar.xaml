@@ -9,7 +9,7 @@
     <Viewbox Stretch="Uniform">
         <Grid Width="140" Height="140">
             <!-- Circle and Arc -->
-            <Ellipse Stroke="#E5E9F2" StrokeThickness="12"/>
+            <Ellipse x:Name="OuterRing" Stroke="#E5E9F2" StrokeThickness="12" Opacity="0.2"/>
             <Path x:Name="ValueArc" Stroke="#4A90E2" StrokeThickness="12"
                   StrokeStartLineCap="Round" StrokeEndLineCap="Round"
                   SnapsToDevicePixels="True">

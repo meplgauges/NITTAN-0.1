@@ -22,6 +22,15 @@ namespace EVMS
             InitializeComponent();
 
         }
+
+        private void HomePage_Click(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            HomePage runPage = new HomePage();
+            runPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            runPage.VerticalAlignment = VerticalAlignment.Stretch;
+            MainContentGrid.Children.Add(runPage);
+        }
         private void RunMenuItem_Click(object sender, RoutedEventArgs e)
         {
             MainContentGrid.Children.Clear();
@@ -55,6 +64,28 @@ namespace EVMS
         {
             MainContentGrid.Children.Clear();
             MasterReadingPage resultPage = new MasterReadingPage();
+
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            MainContentGrid.Children.Add(resultPage);
+        }
+
+        private void LoginSetup_Click(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            AdminControlePage resultPage = new AdminControlePage();
+
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            MainContentGrid.Children.Add(resultPage);
+        }
+
+        private void RoundBar_Click(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            ResultProgressBar resultPage = new ResultProgressBar();
 
             resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
             resultPage.VerticalAlignment = VerticalAlignment.Stretch;

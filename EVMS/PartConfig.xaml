@@ -253,6 +253,9 @@
                     <Button x:Name="btnUpdate" Content="Update" Width="90" Height="36" Background="#F39C12" Foreground="White" FontWeight="SemiBold" Margin="0,22,12,0" Style="{StaticResource ModernButtonStyle}"/>
                     <Button x:Name="btnDelete" Content="Delete" Width="90" Height="36" Background="#E74C3C" Foreground="White" FontWeight="SemiBold" Margin="0,22,12,0" Style="{StaticResource ModernButtonStyle}"/>
                 </StackPanel>
+
+              
+
             </Grid>
         </Border>
         <!-- RIGHT PANEL -->
@@ -330,6 +333,7 @@
                         <Setter Property="TextAlignment" Value="Center"/>
                     </Style>
                 </DataGrid.Resources>
+
                 <!-- Columns with centered content -->
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Sr No" Binding="{Binding RowNo}" IsReadOnly="True"  Width="60" 

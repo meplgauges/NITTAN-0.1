@@ -207,6 +207,8 @@ namespace EVMS
                 if (_orbModules == null || _orbModules.Count == 0)
                 {
                     _orbModules?.FindHotswapped();
+                    await Task.Delay(1000); // 200 ms delay - adjust as needed
+
                     if (_orbModules?.Count == 0)
                     {
                         MessageBox.Show("No Orbit modules found in the selected network.", "Module Error", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -282,6 +284,7 @@ namespace EVMS
                 if (_orbServer != null && _orbServer.Connected)
                 {
                     _orbServer.Disconnect();
+
                 }
                 else
                 {
