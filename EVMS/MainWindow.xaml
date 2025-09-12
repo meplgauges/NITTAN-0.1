@@ -153,29 +153,25 @@
     </MenuItem>
 
         <MenuItem Header="_Mastring" Click="MenuItem_Click">
-        <MenuItem Header="Mastring" Click="MasterPage_Click"/>
-        <MenuItem Header="Master Expiration"/>
+                <MenuItem Header="Master Configuration" Click="MasterPage_Click"/>
     </MenuItem>
 
         <MenuItem Header="Repeatibility" Click="MenuItem_Click">
         <MenuItem Header="Reports" Click="OpenReports_Click"/>
-        <MenuItem Header="Settings" Click="OpenSettings_Click"/>
     </MenuItem>
 
         <MenuItem Header="_Report" Click="MenuItem_Click">
         <MenuItem Header="SPC Graph" Click="RoundBar_Click"/>
         <MenuItem Header="Report"/>
-        <MenuItem Header="File open"/>
     </MenuItem>
 
             <MenuItem Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
         <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
-        <MenuItem Header="Part Entry" Click="PartManager_Click"/>
+                <MenuItem Header="Part Manager" Click="PartManager_Click"/>
         <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
-        <MenuItem Header="Part Config" Click="PartConfig_Click"/>
-                <MenuItem Header="Login Setup" Click="LoginSetup_Click"/>
-        <Separator/>
-        <MenuItem Header="Exit"/>
+                <MenuItem Header="Part Configuration" Click="PartConfig_Click"/>
+                <MenuItem Header="I/O Configuration" Click="IO_Click"/>
+        <MenuItem Header="Login Setup" Click="LoginSetup_Click"/>
     </MenuItem>
 </Menu>
 

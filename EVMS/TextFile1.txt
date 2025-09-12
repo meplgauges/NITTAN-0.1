@@ -261,4 +261,163 @@ CREATE TABLE Part_Entry (
 
 select * from Part_Entry;
 
-select * from PartConfig;
+select * from PartConfig;\
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+using System;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Threading;
+using ActUtlTypeLib;
+
+namespace EVMS
+{
+    public partial class IO_Controle_page : UserControl
+    {
+        private ActUtlType plc = new ActUtlType();
+        private bool isConnected = false;
+        private DispatcherTimer x4Timer = new DispatcherTimer();
+
+        public IO_Controle_page()
+        {
+            InitializeComponent(); // Connects XAML controls
+            PowerToggle.Checked += PowerToggle_Checked;
+            PowerToggle.Unchecked += PowerToggle_Unchecked;
+
+            // Add Y5 toggle event handlers
+            Y5Toggle.Checked += Y5Toggle_Checked;
+            Y5Toggle.Unchecked += Y5Toggle_Unchecked;
+
+            // Setup X4 monitoring timer
+            x4Timer.Interval = TimeSpan.FromMilliseconds(500); // Check every 500ms
+            x4Timer.Tick += X4Timer_Tick;
+        }
+
+        private void PowerToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            plc.ActLogicalStationNumber = 1; // Set your PLC station number here
+            int result = plc.Open();
+            if (result == 0)
+            {
+                isConnected = true;
+                MessageBox.Show("✅ Connected to PLC", "PLC Connection", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                PlcStatusText.Text = "PLC Connected ✅";
+
+                // Start monitoring X4 when connected
+                x4Timer.Start();
+            }
+            else
+            {
+                isConnected = false;
+                MessageBox.Show($"❌ Failed to connect to PLC. Error code: {result}", "PLC Connection Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                PlcStatusText.Text = "Connection Failed ❌";
+                PowerToggle.IsChecked = false;
+            }
+        }
+
+        private void PowerToggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (isConnected)
+            {
+                plc.Close();
+                isConnected = false;
+                MessageBox.Show("PLC Disconnected", "PLC Connection", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                PlcStatusText.Text = "PLC Disconnected ❌";
+
+                // Stop monitoring X4 when disconnected
+                x4Timer.Stop();
+                // Reset button color to default
+                X4Button.Background = Brushes.Gray;
+            }
+            else
+            {
+                MessageBox.Show("PLC already disconnected.", "PLC Connection", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            }
+        }
+
+        // Y5 Toggle Button Event Handlers
+        private void Y5Toggle_Checked(object sender, RoutedEventArgs e)
+        {
+            if (isConnected)
+            {
+                int result = plc.SetDevice("Y5", 1);
+                if (result == 0)
+                {
+                    MessageBox.Show("Y5 turned ON", "Y5 Output", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"Failed to turn Y5 ON. Error code: {result}", "Y5 Output Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    Y5Toggle.IsChecked = false;
+                }
+            }
+            else
+            {
+                MessageBox.Show("PLC not connected. Connect first.", "Y5 Output Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                Y5Toggle.IsChecked = false;
+            }
+        }
+
+        private void Y5Toggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (isConnected)
+            {
+                int result = plc.SetDevice("Y5", 0);
+                if (result == 0)
+                {
+                    MessageBox.Show("Y5 turned OFF", "Y5 Output", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"Failed to turn Y5 OFF. Error code: {result}", "Y5 Output Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                    Y5Toggle.IsChecked = true;
+                }
+            }
+            else
+            {
+                MessageBox.Show("PLC not connected. Connect first.", "Y5 Output Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            }
+        }
+
+        // X4 Input Monitoring Timer
+        private void X4Timer_Tick(object sender, EventArgs e)
+        {
+            if (isConnected)
+            {
+                int x4Value;
+                int result = plc.GetDevice("X4", out x4Value);
+                if (result == 0)
+                {
+                    if (x4Value == 1)
+                    {
+                        X4Button.Background = Brushes.Green; // Change to green when X4 = 1
+                    }
+                    else
+                    {
+                        X4Button.Background = Brushes.Red; // Change to red when X4 = 0
+                    }
+                }
+                else
+                {
+                    X4Button.Background = Brushes.Gray; // Gray for error/no communication
+                }
+            }
+        }
+    }
+}

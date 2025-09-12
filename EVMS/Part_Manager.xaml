@@ -5,92 +5,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="550" d:DesignWidth="950">
-
-    <!-- Button Styles -->
     <UserControl.Resources>
-        <Style x:Key="ModernFilledTextBox" TargetType="TextBox">
-            <Setter Property="Background" Value="#F0F3FA"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#80A0B9C9"/>
-            <!-- Semi-transparent border -->
-            <Setter Property="Foreground" Value="#222"/>
-            <Setter Property="Padding" Value="10,6"/>
-            <Setter Property="Margin" Value="20,6"/>
-            <Setter Property="MinHeight" Value="36"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <Border Background="{TemplateBinding Background}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        BorderBrush="{TemplateBinding BorderBrush}"
-                        CornerRadius="6"
-                        SnapsToDevicePixels="True">
-                            <Border.Effect>
-                                <DropShadowEffect Color="#804A90E2" BlurRadius="6" ShadowDepth="0" Opacity="0.6"/>
-                            </Border.Effect>
-                            <ScrollViewer x:Name="PART_ContentHost"
-                                  VerticalAlignment="Center"
-                                  Margin="0"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <!-- Add Button Style -->
-        <Style x:Key="AddButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#4CAF50"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Margin" Value="5,0"/>
-            <Setter Property="Height" Value="40"/>
-            <Setter Property="Width" Value="80"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="8">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#388E3C"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#2E7D32"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- Update Button Style -->
-        <Style x:Key="UpdateButtonStyle" TargetType="Button" BasedOn="{StaticResource AddButtonStyle}">
-            <Setter Property="Background" Value="#2196F3"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1976D2"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#1565C0"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
-
-        <!-- Delete Button Style -->
-        <Style x:Key="DeleteButtonStyle" TargetType="Button" BasedOn="{StaticResource AddButtonStyle}">
-            <Setter Property="Background" Value="#F44336"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#D32F2F"/>
-                </Trigger>
-                <Trigger Property="IsPressed" Value="True">
-                    <Setter Property="Background" Value="#B71C1C"/>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Style/Design.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid Background="White" >
@@ -131,7 +51,7 @@
                                      BorderThickness="1"
                                      BorderBrush="#CCCCCC"
                                      Background="#F9F9F9"
-                                     Style="{StaticResource ModernFilledTextBox}"/>
+                                     Style="{StaticResource ModernFilledTextBox1}"/>
                         </StackPanel>
                         <!-- Part Name -->
                         <StackPanel Width="300" Margin="1,0">
@@ -143,7 +63,7 @@
                                      BorderThickness="1"
                                      BorderBrush="#CCCCCC"
                                      Background="#F9F9F9"
-                                     Style="{StaticResource ModernFilledTextBox}"/>
+                                     Style="{StaticResource ModernFilledTextBox1}"/>
                         </StackPanel>
                         <!-- Buttons -->
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0">

@@ -93,6 +93,17 @@ namespace EVMS
             MainContentGrid.Children.Add(resultPage);
         }
 
+        private void IO_Click(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            IO_Controle_page resultPage = new IO_Controle_page();
+
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            MainContentGrid.Children.Add(resultPage);
+        }
+
         private async void ProbeInstall_Click(object sender, RoutedEventArgs e)
         {
             // Show message box

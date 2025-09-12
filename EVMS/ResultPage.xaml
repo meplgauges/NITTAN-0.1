@@ -269,25 +269,25 @@
                                         <VisualState x:Name="Unchecked">
                                             <Storyboard>
                                                 <DoubleAnimation
-                                    Storyboard.TargetName="SwitchThumb"
-                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
-                                    To="0" Duration="0:0:0.1"/>
+                                                Storyboard.TargetName="SwitchThumb"
+                                                Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                To="0" Duration="0:0:0.1"/>
                                                 <ColorAnimation
-                                    Storyboard.TargetName="SwitchTrack"
-                                    Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                    To="#2196F3" Duration="0:0:0.1"/>
+                                                Storyboard.TargetName="SwitchTrack"
+                                                Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                To="#2196F3" Duration="0:0:0.1"/>
                                             </Storyboard>
                                         </VisualState>
                                         <VisualState x:Name="Checked">
                                             <Storyboard>
                                                 <DoubleAnimation
-                                    Storyboard.TargetName="SwitchThumb"
-                                    Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
-                                    To="44" Duration="0:0:0.1"/>
+                                                Storyboard.TargetName="SwitchThumb"
+                                                Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                                To="44" Duration="0:0:0.1"/>
                                                 <ColorAnimation
-                                    Storyboard.TargetName="SwitchTrack"
-                                    Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                    To="#4CAF50" Duration="0:0:0.1"/>
+                                                Storyboard.TargetName="SwitchTrack"
+                                                Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                To="#4CAF50" Duration="0:0:0.1"/>
                                             </Storyboard>
                                         </VisualState>
                                     </VisualStateGroup>
@@ -317,23 +317,23 @@
         Margin="20,5,20,10" Padding="3">
 
             <DataGrid x:Name="ValveReadingsGrid"
-              AutoGenerateColumns="False"
-              HeadersVisibility="Column"
-              CanUserAddRows="False"
-              CanUserDeleteRows="False"
-              IsReadOnly="True"
-              GridLinesVisibility="None"
-              Background="#1E1E1E"
-              Foreground="White"
-              BorderBrush="#333"
-              RowBackground="#1E1E1E"
-              AlternatingRowBackground="#2A2A2A"
-              HorizontalGridLinesBrush="#444"
-              VerticalGridLinesBrush="#444"
-              RowHeight="20"
-              ColumnHeaderHeight="30"
-              FontSize="14"
-              FontFamily="Segoe UI">
+                      AutoGenerateColumns="False"
+                      HeadersVisibility="Column"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="None"
+                      Background="#1E1E1E"
+                      Foreground="White"
+                      BorderBrush="#333"
+                      RowBackground="#1E1E1E"
+                      AlternatingRowBackground="#2A2A2A"
+                      HorizontalGridLinesBrush="#444"
+                      VerticalGridLinesBrush="#444"
+                      RowHeight="20"
+                      ColumnHeaderHeight="30"
+                      FontSize="14"
+                      FontFamily="Segoe UI">
 
                 <!-- Modern Styles -->
                 <DataGrid.Resources>

@@ -24,12 +24,25 @@
     <None Remove="Resource\valve.png" />
   </ItemGroup>
 
+  <ItemGroup>
+    <COMReference Include="ActUtlTypeLib">
+      <VersionMinor>0</VersionMinor>
+      <VersionMajor>1</VersionMajor>
+      <Guid>d217e54e-4a26-4a76-b0ab-57166b90f9af</Guid>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>false</Isolated>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+
 	<ItemGroup>
     <Content Include="MEPL Icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+    <PackageReference Include="PMcProtocol" Version="2.2.0" />
     <PackageReference Include="System.IO.Ports" Version="9.0.8" />
     <PackageReference Include="WPF-UI" Version="4.0.3" />
     <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />

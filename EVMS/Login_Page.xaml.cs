@@ -17,7 +17,7 @@ namespace EVMS
             string password = txtPassword.Password;
 
             // ✅ Authentication check
-            if (username == "admin" && password == "1234")
+            if (username == "" && password == "")
             {
                 IsAuthenticated = true;
                 this.DialogResult = true; // Success
