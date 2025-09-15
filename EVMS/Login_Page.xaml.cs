@@ -13,24 +13,35 @@ namespace EVMS
 
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
-            string username = txtUsername.Text;
+            string username = txtUsername.Text.Trim();
             string password = txtPassword.Password;
+            string CurrentUserRole = string.Empty;
 
-            // ✅ Authentication check
-            if (username == "" && password == "")
+            // Example: simple hardcoded users for demo
+            // In production, validate using database or secure source
+            if ((username == "admin" && password == "adminpass"))
             {
                 IsAuthenticated = true;
-                this.DialogResult = true; // Success
+                CurrentUserRole = "admin"; // Store the role as needed
+                this.DialogResult = true;
+                this.Close();
+            }
+            else if ((username == "operator" && password == "operatorpass"))
+            {
+                IsAuthenticated = true;
+                CurrentUserRole = "operator"; // Store the role as needed
+                this.DialogResult = true;
                 this.Close();
             }
             else
             {
                 IsAuthenticated = false;
-                this.DialogResult = false; // ❌ must set false!
+                this.DialogResult = false;
                 MessageBox.Show("Invalid Username or Password!", "Error",
                                 MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {

@@ -14,7 +14,7 @@
 
         <!-- Main Card -->
         <Border CornerRadius="12"
-                Background="#232429"
+                Background="Black"
                 Padding="28"
                 Width="320"
                 Height="400"

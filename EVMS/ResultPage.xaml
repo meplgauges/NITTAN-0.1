@@ -227,88 +227,82 @@
         </Viewbox>
 
         <!-- Row 1 Right Panel: Empty or Buttons -->
-        <!-- Row 1 Right Panel: ScrollViewer with Progress Bars and Switch Button -->
-        <ScrollViewer Grid.Row="1" Grid.Column="1"
-              VerticalScrollBarVisibility="Auto"
-              HorizontalScrollBarVisibility="Disabled"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Top"
-              Height="700">
-            <StackPanel>
-                <!-- Button to switch progress bar design -->
-                <ToggleButton x:Name="SwitchProgressBarBtn"
-              Width="80"
-              Height="36"
-              Margin="10"
-              HorizontalAlignment="Right"
-              VerticalAlignment="Top"
-              Checked="SwitchProgressBar_Click"
-              Unchecked="SwitchProgressBar_Click">
-                    <ToggleButton.Template>
-                        <ControlTemplate TargetType="ToggleButton">
-                            <Grid>
-                                <!-- Switch Track -->
-                                <Border x:Name="SwitchTrack"
-                        Background="#2196F3"
-                        CornerRadius="18"
-                        Height="36"
-                        Width="80"/>
-                                <!-- Switch Thumb -->
-                                <Ellipse x:Name="SwitchThumb"
-                         Width="30"
-                         Height="30"
-                         Fill="#F2F5F6"
-                         Margin="3"
-                         HorizontalAlignment="Left">
-                                    <Ellipse.RenderTransform>
-                                        <TranslateTransform/>
-                                    </Ellipse.RenderTransform>
-                                </Ellipse>
-                                <VisualStateManager.VisualStateGroups>
-                                    <VisualStateGroup x:Name="CheckStates">
-                                        <VisualState x:Name="Unchecked">
-                                            <Storyboard>
-                                                <DoubleAnimation
-                                                Storyboard.TargetName="SwitchThumb"
-                                                Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
-                                                To="0" Duration="0:0:0.1"/>
-                                                <ColorAnimation
-                                                Storyboard.TargetName="SwitchTrack"
-                                                Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                To="#2196F3" Duration="0:0:0.1"/>
-                                            </Storyboard>
-                                        </VisualState>
-                                        <VisualState x:Name="Checked">
-                                            <Storyboard>
-                                                <DoubleAnimation
-                                                Storyboard.TargetName="SwitchThumb"
-                                                Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
-                                                To="44" Duration="0:0:0.1"/>
-                                                <ColorAnimation
-                                                Storyboard.TargetName="SwitchTrack"
-                                                Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                To="#4CAF50" Duration="0:0:0.1"/>
-                                            </Storyboard>
-                                        </VisualState>
-                                    </VisualStateGroup>
-                                </VisualStateManager.VisualStateGroups>
-                            </Grid>
-                        </ControlTemplate>
-                    </ToggleButton.Template>
-                </ToggleButton>
+        <StackPanel Grid.Row="1" Grid.Column="1"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Top">
+            <!-- Button to switch progress bar design -->
+            <ToggleButton x:Name="SwitchProgressBarBtn"
+                  Width="80"
+                  Height="36"
+                  Margin="10"
+                  HorizontalAlignment="Right"
+                  VerticalAlignment="Top"
+                  Checked="SwitchProgressBar_Click"
+                  Unchecked="SwitchProgressBar_Click">
+                <ToggleButton.Template>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Grid>
+                            <Border x:Name="SwitchTrack"
+                            Background="#2196F3"
+                            CornerRadius="18"
+                            Height="36"
+                            Width="80"/>
+                            <Ellipse x:Name="SwitchThumb"
+                             Width="30"
+                             Height="30"
+                             Fill="#F2F5F6"
+                             Margin="3"
+                             HorizontalAlignment="Left">
+                                <Ellipse.RenderTransform>
+                                    <TranslateTransform/>
+                                </Ellipse.RenderTransform>
+                            </Ellipse>
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CheckStates">
+                                    <VisualState x:Name="Unchecked">
+                                        <Storyboard>
+                                            <DoubleAnimation
+                                        Storyboard.TargetName="SwitchThumb"
+                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                        To="0" Duration="0:0:0.1"/>
+                                            <ColorAnimation
+                                        Storyboard.TargetName="SwitchTrack"
+                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                        To="#2196F3" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                    <VisualState x:Name="Checked">
+                                        <Storyboard>
+                                            <DoubleAnimation
+                                        Storyboard.TargetName="SwitchThumb"
+                                        Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                                        To="44" Duration="0:0:0.1"/>
+                                            <ColorAnimation
+                                        Storyboard.TargetName="SwitchTrack"
+                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                        To="#4CAF50" Duration="0:0:0.1"/>
+                                        </Storyboard>
+                                    </VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                        </Grid>
+                    </ControlTemplate>
+                </ToggleButton.Template>
+            </ToggleButton>
+            <!-- UniformGrid for perfectly aligned rows/columns -->
+            <UniformGrid x:Name="ProgressBarContainer"
+                 Columns="5"         
+                HorizontalAlignment="Center"
+                 VerticalAlignment="Top">
+                <!-- Example: add your gauge controls here, no margin -->
+                <!-- <local:ResultProgressBar /> -->
+                <!-- ... -->
+            </UniformGrid>
+        </StackPanel>
 
 
 
 
-                <!-- Container for dynamically loaded progress bars -->
-                <WrapPanel x:Name="ProgressBarContainer"
-                   Orientation="Horizontal"
-                   ItemWidth="200"
-                   ItemHeight="250"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Top"/>
-            </StackPanel>
-        </ScrollViewer>
 
 
         <!-- Row 2: DataGrid spanning both columns -->

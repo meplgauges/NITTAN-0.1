@@ -145,22 +145,22 @@
 
             </Menu.Resources>
 
-        <MenuItem Header="_Run Part" Click="MenuItem_Click">
+            <MenuItem Header="_Run Part" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
         <MenuItem Header="Home..." Click="HomePage_Click" />
         <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
         <Separator />
         <MenuItem Header="Exit" Click="Exit_Click"/>
     </MenuItem>
 
-        <MenuItem Header="_Mastring" Click="MenuItem_Click">
+            <MenuItem Header="_Mastring Configuration" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
                 <MenuItem Header="Master Configuration" Click="MasterPage_Click"/>
     </MenuItem>
 
         <MenuItem Header="Repeatibility" Click="MenuItem_Click">
-        <MenuItem Header="Reports" Click="OpenReports_Click"/>
+        <MenuItem Header=""/>
     </MenuItem>
 
-        <MenuItem Header="_Report" Click="MenuItem_Click">
+            <MenuItem Header="_Report" Click="MenuItem_Click" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
         <MenuItem Header="SPC Graph" Click="RoundBar_Click"/>
         <MenuItem Header="Report"/>
     </MenuItem>

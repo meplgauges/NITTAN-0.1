@@ -175,7 +175,7 @@ namespace EVMS
                 if (result == true && login.IsAuthenticated)
                 {
                     isSettingsAuthenticated = true; // unlock for this session
-                    MessageBox.Show("✅ Settings unlocked!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                   // MessageBox.Show("✅ Settings unlocked!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
                     // Open Settings menu manually
                     if (sender is MenuItem menu)

@@ -82,6 +82,9 @@
     <Resource Include="Resource\bg55.jpg">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="Resource\0987.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Resource\generated-image.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>

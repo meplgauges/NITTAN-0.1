@@ -46,19 +46,19 @@
                 <StackPanel Grid.Row="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
                     <!-- ComboBox added above the Parameter label -->
                     <TextBlock Text="Select User:" Style="{StaticResource FormLabelStyle}"/>
-                    <ComboBox  x:Name="cmbPartNo"
+                    <ComboBox x:Name="cmbPartNo"
                           Style="{StaticResource ModernComboBoxStyle}"
-                          HorizontalAlignment="Stretch" />
+                          HorizontalAlignment="Stretch">
+                        <ComboBoxItem Content="Admin" />
+                        <ComboBoxItem Content="Operator" />
+                    </ComboBox>
 
                     <!-- Using the reusable label style -->
                     <TextBlock Text="ID:" Style="{StaticResource FormLabelStyle}"/>
-                    <ComboBox x:Name="cmbParameter"
-                      Style="{StaticResource ModernComboBoxStyle}"
-                      HorizontalAlignment="Stretch" />
+                    <TextBox x:Name="txtID" Style="{StaticResource ModernFilledTextBox}"/>
+
                     <TextBlock Text="Name:" Style="{StaticResource FormLabelStyle}"/>
-                    <TextBox x:Name="txtNominal" Style="{StaticResource ModernFilledTextBox}"/>
-                    <TextBlock Text="Phone:" Style="{StaticResource FormLabelStyle}"/>
-                    <TextBox x:Name="txtRTolPlus" Style="{StaticResource ModernFilledTextBox}"/>
+                    <TextBox x:Name="txtName" Style="{StaticResource ModernFilledTextBox}"/>
                     <TextBlock Text="Role:" Style="{StaticResource FormLabelStyle}"/>
                     <TextBox x:Name="txtRTolMinus" Style="{StaticResource ModernFilledTextBox}"/>
                 </StackPanel>
@@ -114,9 +114,6 @@ LoadingRow="dataGrid_LoadingRow"-->
                             ElementStyle="{StaticResource CenterCellStyle}"
                             EditingElementStyle="{StaticResource CenterCellStyle}" />
                     <DataGridTextColumn Header="Name" Binding="{Binding Nominal}" Width="*"
-                            ElementStyle="{StaticResource CenterCellStyle}"
-                            EditingElementStyle="{StaticResource CenterCellStyle}" />
-                    <DataGridTextColumn Header="phone" Binding="{Binding RTolPlus}" Width="*"
                             ElementStyle="{StaticResource CenterCellStyle}"
                             EditingElementStyle="{StaticResource CenterCellStyle}" />
                     <DataGridTextColumn Header="Role" Binding="{Binding RTolMinus}" Width="*"

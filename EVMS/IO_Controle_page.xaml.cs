@@ -156,16 +156,15 @@ namespace EVMS
         {
             try
             {
-                //var idTextBox = FindName("IdTextBox") as TextBox;
-                //var descTextBox = FindName("DescTextBox") as TextBox;
-                //var bitTextBox = FindName("BitTextBox") as TextBox;
-                //var inputCheckBox = FindName("InputCheckBox") as CheckBox;
-                //var outputCheckBox = FindName("OutputCheckBox") as CheckBox;
+                var idTextBox = FindName("IdTextBox") as TextBox;
+                // var descTextBox = FindName("DescTextBox") as TextBox;
+                // var bitTextBox = FindName("BitTextBox") as TextBox;
+                // var inputCheckBox = FindName("InputCheckBox") as CheckBox;
+                // var outputCheckBox = FindName("OutputCheckBox") as CheckBox;
                 var addButton = FindName("AddButton") as Button;
                 var updateButton = FindName("UpdateButton") as Button;
                 var deleteButton = FindName("DeleteButton") as Button;
 
-                // Uncomment and implement when XAML controls are named
                 if (addButton != null)
                 {
                     addButton.Click += (s, e) =>
@@ -174,13 +173,33 @@ namespace EVMS
                         string? bit = BitTextBox?.Text;
                         bool isInput = InputCheckBox?.IsChecked == true;
                         bool isOutput = OutputCheckBox?.IsChecked == true;
-
                         AddDevice(description, bit, isInput, isOutput);
                     };
                 }
 
-                // if (updateButton != null) updateButton.Click += (s, e) => UpdateDevice();
-                // if (deleteButton != null) deleteButton.Click += (s, e) => DeleteDevice();
+                if (updateButton != null)
+                {
+                    updateButton.Click += (s, e) =>
+                    {
+                        // Retrieve Id and other parameters for update
+                        string? description = DescTextBox?.Text;
+                        string? bit = BitTextBox?.Text;
+                        bool isInput = InputCheckBox?.IsChecked == true;
+                        bool isOutput = OutputCheckBox?.IsChecked == true;
+
+                      //  UpdateDevice(description, bit, isInput, isOutput);
+                    };
+                }
+
+                if (deleteButton != null)
+                {
+                    deleteButton.Click += (s, e) =>
+                    {
+                        // Delete based on description or Id as required
+                        string? description = DescTextBox?.Text;
+                        DeleteDevice(description);
+                    };
+                }
             }
             catch (Exception ex)
             {
@@ -188,6 +207,7 @@ namespace EVMS
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             }
         }
+
 
         // Load all devices from the database into input and output device lists
         private void LoadDevicesFromDatabase()
@@ -301,6 +321,105 @@ namespace EVMS
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
         }
+
+
+        //private void UpdateDevice( string description, string bit, bool isInput, bool isOutput)
+        //{
+        //    try
+        //    {
+        //        if (string.IsNullOrWhiteSpace(description) || string.IsNullOrWhiteSpace(bit))
+        //        {
+        //            MessageBox.Show("ID, Description, and Bit are required.", "Validation Error",
+        //                MessageBoxButton.OK, MessageBoxImage.Warning);
+        //            return;
+        //        }
+        //        using (SqlConnection conn = new SqlConnection(connectionString))
+        //        {
+        //            conn.Open();
+        //            string query = "UPDATE IODevices SET Description = @desc, Bit = @bit, IsInput = @input, IsOutput = @output";
+        //            using (SqlCommand cmd = new SqlCommand(query, conn))
+        //            {
+        //                cmd.Parameters.AddWithValue("@desc", description);
+        //                cmd.Parameters.AddWithValue("@bit", bit);
+        //                cmd.Parameters.AddWithValue("@input", isInput);
+        //                cmd.Parameters.AddWithValue("@output", isOutput);
+        //                int rows = cmd.ExecuteNonQuery();
+        //                if (rows > 0)
+        //                {
+        //                    MessageBox.Show("Device updated successfully!", "Success",
+        //                        MessageBoxButton.OK, MessageBoxImage.Information);
+        //                }
+        //                else
+        //                {
+        //                    MessageBox.Show("Device not found.", "Error",
+        //                        MessageBoxButton.OK, MessageBoxImage.Warning);
+        //                }
+        //            }
+        //        }
+        //        LoadDevicesFromDatabase();
+        //        GenerateButtons();
+        //    }
+        //    catch (SqlException sqlEx)
+        //    {
+        //        if (sqlEx.Number == 2627) // Unique constraint violation
+        //        {
+        //            MessageBox.Show($"Device with bit '{bit}' already exists.", "Duplicate Error",
+        //                MessageBoxButton.OK, MessageBoxImage.Warning);
+        //        }
+        //        else
+        //        {
+        //            MessageBox.Show($"Database error: {sqlEx.Message}", "Database Error",
+        //                MessageBoxButton.OK, MessageBoxImage.Error);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($"Error updating device: {ex.Message}", "Error",
+        //            MessageBoxButton.OK, MessageBoxImage.Error);
+        //    }
+        //}
+
+        private void DeleteDevice(string description)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(description))
+                {
+                    MessageBox.Show("Description is required.", "Validation Error",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+                using (SqlConnection conn = new SqlConnection(connectionString))
+                {
+                    conn.Open();
+                    string query = "DELETE FROM IODevices WHERE Description = @desc";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@desc", description);
+                        int rows = cmd.ExecuteNonQuery();
+                        if (rows > 0)
+                        {
+                            MessageBox.Show("Device deleted successfully!", "Success",
+                                MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Device not found.", "Error",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
+                    }
+                }
+                LoadDevicesFromDatabase();
+                GenerateButtons();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error deleting device: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
 
         // Generate buttons for input devices dynamically
         private void GenerateButtons()
