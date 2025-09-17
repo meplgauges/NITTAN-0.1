@@ -72,7 +72,7 @@ namespace EVMS
             {
                 using var con = new SqlConnection(_connectionString);
                 await con.OpenAsync();
-                const string query = @"SELECT Parameter FROM PartConfig WHERE Para_No = @Para_No";
+                const string query = @"SELECT Parameter FROM PartConfig WHERE Para_No = @Para_No  AND ProbeStatus = 'Probe'";
                 using var cmd = new SqlCommand(query, con);
                 cmd.Parameters.AddWithValue("@Para_No", partNo);
                 using var reader = await cmd.ExecuteReaderAsync();

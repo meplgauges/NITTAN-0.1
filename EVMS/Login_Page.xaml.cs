@@ -19,14 +19,14 @@ namespace EVMS
 
             // Example: simple hardcoded users for demo
             // In production, validate using database or secure source
-            if ((username == "admin" && password == "adminpass"))
+            if ((username == "" && password == ""))
             {
                 IsAuthenticated = true;
                 CurrentUserRole = "admin"; // Store the role as needed
                 this.DialogResult = true;
                 this.Close();
             }
-            else if ((username == "operator" && password == "operatorpass"))
+            else if ((username == "" && password == ""))
             {
                 IsAuthenticated = true;
                 CurrentUserRole = "operator"; // Store the role as needed

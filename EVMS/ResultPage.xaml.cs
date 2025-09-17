@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using EVMS.Service;
+using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -8,11 +10,55 @@ namespace EVMS
     {
         private bool useFirstDesign = true; // Track current progress bar design
         private List<ValveReadingRow> valveDataRows;
+        private PlcProbeService plcProbeService;
+
 
         public ResultPage()
         {
             InitializeComponent();
+            this.Loaded += ResultPage_Loaded;  // Attach Loaded event handler
+            plcProbeService = new PlcProbeService();
 
+
+            this.Loaded += RunPage_Loaded;
+            this.Unloaded += ResultPage_Unloaded;  // Attach Unloaded event handler
+
+        }
+
+
+        private async void RunPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            bool connected = await plcProbeService.ConnectAsync();
+
+            if (connected)
+            {
+               MessageBox.Show("PLC and Probes Connected ✅");
+                // Enable other UI elements or timers if needed
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Failed to connect to PLC and probes. Please check connections.",
+                    "Connection Failed",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
+        private void ResultPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            plcProbeService.Disconnect();
+           MessageBox.Show("PLC and Probes Disconnected ❌");
+            // Additional cleanup if needed
+        }
+
+        private void ResultPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            InitializeValveDataAndUI();
+        }
+
+        private void InitializeValveDataAndUI()
+        {
             // Set valve dimension text boxes with sample values
             GrooveDiaBox.Text = "12.5";
             StemDiaBox.Text = "5.807";
@@ -29,22 +75,18 @@ namespace EVMS
                 new ValveReadingRow { SerialNumber = 2, GrooveDia = 13,   STNG = 3, STNU = 4, GroovePositon = 2, SeatRo = 2, HeadDia = 35,   SeatHeight = 33, DatumToEnd = 66, DatuToGroove = 52, OverLeght = 104 },
                 new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
                 new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-                 new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
+                new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
                 new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-                 new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
+                new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
                 new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-                 new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
+                new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
                 new ValveReadingRow { SerialNumber = 1, GrooveDia = 12.5, STNG = 1, STNU = 2, GroovePositon = 1, SeatRo = 1, HeadDia = 34.2, SeatHeight = 32, DatumToEnd = 64, DatuToGroove = 50, OverLeght = 102 },
                 new ValveReadingRow { SerialNumber = 2, GrooveDia = 13,   STNG = 3, STNU = 4, GroovePositon = 2, SeatRo = 2, HeadDia = 35,   SeatHeight = 33, DatumToEnd = 66, DatuToGroove = 52, OverLeght = 104 },
                 new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
                 new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-                 new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
+                new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
                 new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-
-
-
             };
-
             ValveReadingsGrid.ItemsSource = valveDataRows;
 
             // Load first design progress bars
@@ -59,33 +101,30 @@ namespace EVMS
         private void LoadProgressBars()
         {
             ProgressBarContainer.Children.Clear();
-
             foreach (var row in valveDataRows)
             {
                 UserControl progressBar;
-
                 if (useFirstDesign)
                 {
                     // First design
                     var pb = new ResultProgressBar { Margin = new Thickness(5) };
-//pb.Value = row.HeadDia; // Set via custom property
+                    // You may want to pass row.HeadDia or similar to pb here if your control supports it
                     progressBar = pb;
                 }
                 else
                 {
                     // Second design
                     var pb = new ProgresBarControl { Margin = new Thickness(5) };
-                    pb.Value = row.SeatHeight; // Set via custom property
+                    pb.Value = row.SeatHeight; // set value for second design
                     progressBar = pb;
                 }
-
                 ProgressBarContainer.Children.Add(progressBar);
             }
         }
 
         private void SwitchProgressBar_Click(object sender, RoutedEventArgs e)
         {
-            useFirstDesign = !useFirstDesign; // Toggle between two designs
+            useFirstDesign = !useFirstDesign; // Toggle designs
             LoadProgressBars();
 
             // Update button text
@@ -95,10 +134,10 @@ namespace EVMS
         }
     }
 
-    // Data model for valve readings
+    // Model data for valve readings
     public class ValveReadingRow
     {
-        public int SerialNumber { get; set; }  // Serial number column
+        public int SerialNumber { get; set; }
         public double OverLeght { get; set; }
         public double DatumToEnd { get; set; }
         public double HeadDia { get; set; }

@@ -78,6 +78,7 @@
                 </Border.Background>
                 <!-- DataGrid -->
             <DataGrid x:Name="dataGrid"
+                        SelectionChanged="dataGrid_SelectionChanged"
                         AutoGenerateColumns="False"
                         IsReadOnly="True"
                         Margin="10"
