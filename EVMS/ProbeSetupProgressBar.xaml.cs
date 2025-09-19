@@ -80,20 +80,18 @@ namespace EVMS
                 {
                     From = control.Bar.Value,
                     To = newValue,
-                    Duration = TimeSpan.FromMilliseconds(10), // Increased duration for visible animation
-                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut } // Smooth easing
+                    Duration = TimeSpan.FromMilliseconds(10),
+                    EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
                 };
                 control.Bar.BeginAnimation(ProgressBar.ValueProperty, animation);
 
                 // Color logic based on the new value thresholds
-                if (newValue < 20 || newValue > 90)
+                if (newValue < 20 || newValue > 80)
                 {
-                    // Red color for out-of-range values
                     control.Bar.Foreground = new SolidColorBrush(Colors.Red);
                 }
                 else
                 {
-                    // Gradient from green to blue for normal range
                     var gradientBrush = new LinearGradientBrush
                     {
                         StartPoint = new Point(0, 1),
@@ -104,6 +102,20 @@ namespace EVMS
                     control.Bar.Foreground = gradientBrush;
                 }
             }
+        }
+
+        // Status DependencyProperty
+        public static readonly DependencyProperty StatusProperty =
+            DependencyProperty.Register(
+                nameof(Status),
+                typeof(string),
+                typeof(ProbeSetupProgressBar),
+                new PropertyMetadata(string.Empty));
+
+        public string Status
+        {
+            get => (string)GetValue(StatusProperty);
+            set => SetValue(StatusProperty, value);
         }
     }
 }

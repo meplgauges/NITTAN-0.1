@@ -129,8 +129,10 @@
                                 Title="{Binding Title}" 
                                 ID="{Binding ID}" 
                                 Stroke="{Binding Stroke}" 
+                                Status="{Binding Status}"    
                                 Margin="8"/>
                         </DataTemplate>
+
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </ScrollViewer>

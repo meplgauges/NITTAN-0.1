@@ -1,6 +1,7 @@
 ﻿using EVMS.Service;
-using System;
+using System.Configuration;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -8,23 +9,34 @@ namespace EVMS
 {
     public partial class ResultPage : UserControl
     {
-        private bool useFirstDesign = true; // Track current progress bar design
-        private List<ValveReadingRow> valveDataRows;
-        private PlcProbeService plcProbeService;
+        private bool useFirstDesign = true;
+        private bool _showLeft = true;
 
+        private List<PartReadingDataModel> parameterData;
+       // private List<ProbeInstallModel> probeData;
+        private PlcProbeService plcProbeService;
+        private DataStorageService dataStorageService;
+        private readonly string _connectionString;
+        // Constants for static tolerance range (+/- 0.10)
+        private const double StaticGreenToleranceMinus = -0.10;
+        private const double StaticGreenTolerancePlus = 0.10;
+
+
+        // ✅ Hardcoded PartNumber
+        private readonly string activePartNumber = "12134"; 
 
         public ResultPage()
         {
             InitializeComponent();
-            this.Loaded += ResultPage_Loaded;  // Attach Loaded event handler
-            plcProbeService = new PlcProbeService();
+            this.Loaded += ResultPage_Loaded;
+            this.Unloaded += ResultPage_Unloaded;
 
+            _connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
+            plcProbeService = new PlcProbeService();
+            dataStorageService = new DataStorageService(_connectionString);
 
             this.Loaded += RunPage_Loaded;
-            this.Unloaded += ResultPage_Unloaded;  // Attach Unloaded event handler
-
         }
-
 
         private async void RunPage_Loaded(object sender, RoutedEventArgs e)
         {
@@ -32,8 +44,7 @@ namespace EVMS
 
             if (connected)
             {
-               MessageBox.Show("PLC and Probes Connected ✅");
-                // Enable other UI elements or timers if needed
+                MessageBox.Show("PLC and Probes Connected ✅");
             }
             else
             {
@@ -48,8 +59,7 @@ namespace EVMS
         private void ResultPage_Unloaded(object sender, RoutedEventArgs e)
         {
             plcProbeService.Disconnect();
-           MessageBox.Show("PLC and Probes Disconnected ❌");
-            // Additional cleanup if needed
+            MessageBox.Show("PLC and Probes Disconnected ❌");
         }
 
         private void ResultPage_Loaded(object sender, RoutedEventArgs e)
@@ -59,94 +69,146 @@ namespace EVMS
 
         private void InitializeValveDataAndUI()
         {
-            // Set valve dimension text boxes with sample values
-            GrooveDiaBox.Text = "12.5";
-            StemDiaBox.Text = "5.807";
-            HeadDiaBox.Text = "34.2";
-            SeatHeightBox.Text = "32";
-            DatumToEndBox.Text = "64";
-            DatumToGrooveBox.Text = "50";
-            OverallLengthBox.Text = "102";
-
-            // Prepare dummy data for DataGrid
-            valveDataRows = new List<ValveReadingRow>
+            try
             {
-                new ValveReadingRow { SerialNumber = 1, GrooveDia = 12.5, STNG = 1, STNU = 2, GroovePositon = 1, SeatRo = 1, HeadDia = 34.2, SeatHeight = 32, DatumToEnd = 64, DatuToGroove = 50, OverLeght = 102 },
-                new ValveReadingRow { SerialNumber = 2, GrooveDia = 13,   STNG = 3, STNU = 4, GroovePositon = 2, SeatRo = 2, HeadDia = 35,   SeatHeight = 33, DatumToEnd = 66, DatuToGroove = 52, OverLeght = 104 },
-                new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
-                new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-                new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
-                new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-                new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
-                new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-                new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-                new ValveReadingRow { SerialNumber = 1, GrooveDia = 12.5, STNG = 1, STNU = 2, GroovePositon = 1, SeatRo = 1, HeadDia = 34.2, SeatHeight = 32, DatumToEnd = 64, DatuToGroove = 50, OverLeght = 102 },
-                new ValveReadingRow { SerialNumber = 2, GrooveDia = 13,   STNG = 3, STNU = 4, GroovePositon = 2, SeatRo = 2, HeadDia = 35,   SeatHeight = 33, DatumToEnd = 66, DatuToGroove = 52, OverLeght = 104 },
-                new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
-                new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-                new ValveReadingRow { SerialNumber = 3, GrooveDia = 12.7, STNG = 2, STNU = 3, GroovePositon = 1, SeatRo = 1.5, HeadDia = 34.5, SeatHeight = 32.5, DatumToEnd = 65, DatuToGroove = 51, OverLeght = 103 },
-                new ValveReadingRow { SerialNumber = 4, GrooveDia = 13.2, STNG = 4, STNU = 5, GroovePositon = 2, SeatRo = 2.5, HeadDia = 35.2, SeatHeight = 33.5, DatumToEnd = 67, DatuToGroove = 53, OverLeght = 105 },
-            };
-            ValveReadingsGrid.ItemsSource = valveDataRows;
+                // Fetch parameters
+                parameterData = dataStorageService.GetParametersByPartNumber(activePartNumber);
 
-            // Load first design progress bars
-            LoadProgressBars();
+                if (parameterData == null || parameterData.Count == 0)
+                {
+                    MessageBox.Show($"No parameters found for part {activePartNumber}");
+                    return;
+                }
 
-            // Set initial button text
-            SwitchProgressBarBtn.Content = useFirstDesign
-                ? "Switch to Design 2"
-                : "Switch to Design 1";
+                // Clear existing columns
+                ValveReadingsGrid.Columns.Clear();
+
+                // Dynamically add a column for each property you want to display
+                foreach (var param in parameterData)
+                {
+                    var column = new DataGridTextColumn
+                    {
+                        Header = param.Parameter,                     // Column name = Parameter
+                        //Binding = new System.Windows.Data.Binding("Value") // Bind to Value property of the model
+                    };
+                    ValveReadingsGrid.Columns.Add(column);
+                }
+
+                // Bind the parameter data to the DataGrid
+                ValveReadingsGrid.ItemsSource = parameterData;
+
+                // Load progress bars
+                LoadProgressBars();
+
+                // Update button text
+                SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading data: {ex.Message}");
+            }
         }
+
+
 
         private void LoadProgressBars()
         {
             ProgressBarContainer.Children.Clear();
-            foreach (var row in valveDataRows)
+
+            foreach (var param in parameterData)
             {
                 UserControl progressBar;
+
+                // Calculate limits
+                double min = param.Nominal - param.RTolMinus;
+                double max = param.Nominal + param.RTolPlus;
+                double mean = param.Nominal;
+                double greenLowThreshold = mean + StaticGreenToleranceMinus;  // Nominal - 0.10
+                double greenHighThreshold = mean + StaticGreenTolerancePlus;  // Nominal + 0.10
+                // Calculate normalized progress value
+                //double normalizedValue = 0;
+                //if (param.CurrentReadingAvailable)
+                //{
+                //    double reading = param.CurrentReading;
+                //    if (reading < min)
+                //        normalizedValue = 0;
+                //    else if (reading > max)
+                //        normalizedValue = 100;
+                //    else
+                //        normalizedValue = ((reading - min) / (max - min)) * 100;
+                //}
+
                 if (useFirstDesign)
                 {
-                    // First design
                     var pb = new ResultProgressBar { Margin = new Thickness(5) };
-                    // You may want to pass row.HeadDia or similar to pb here if your control supports it
+
+                    pb.ParameterName = param.Parameter;
+
+                    //// Assume ResultProgressBar has similar properties or methods to set limits and value
+                    pb.MinValue = min;        // Set minimum limit
+                    pb.MaxValue = max;        // Set maximum limit
+                    pb.MeanValue = mean;      // Set current/mean value for the needle
+                    pb.GreenLowThreshold = greenLowThreshold;
+                    pb.GreenHighThreshold = greenHighThreshold;
+                    //pb.Value = normalizedValue;
+
                     progressBar = pb;
                 }
                 else
                 {
-                    // Second design
                     var pb = new ProgresBarControl { Margin = new Thickness(5) };
-                    pb.Value = row.SeatHeight; // set value for second design
+                    pb.Min = min;
+                    pb.Mean = mean;
+                    pb.Max = max;
+                    pb.Title = param.Parameter;
+                   // pb.Value = normalizedValue;
+
                     progressBar = pb;
                 }
+
                 ProgressBarContainer.Children.Add(progressBar);
             }
         }
 
-        private void SwitchProgressBar_Click(object sender, RoutedEventArgs e)
+        private void ProgressBarContainer_SizeChanged(object sender, SizeChangedEventArgs e)
+{
+    double availableWidth = e.NewSize.Width;
+    double childWidth = availableWidth / 6; // for 6 columns
+    foreach (UIElement child in ProgressBarContainer.Children)
+    {
+        if (child is FrameworkElement fe)
         {
-            useFirstDesign = !useFirstDesign; // Toggle designs
-            LoadProgressBars();
-
-            // Update button text
-            SwitchProgressBarBtn.Content = useFirstDesign
-                ? "Switch to Design 2"
-                : "Switch to Design 1";
+            fe.Width = childWidth;  // dynamically set child width
+            // Optionally set MinWidth, MinHeight here too
+            fe.MinWidth = 100; // example minimum width
+            fe.Height = childWidth; // or any height ratio you want
         }
     }
+}
+        private void ToggleBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_showLeft)
+            {
+                // Show only RIGHT column
+                LeftColumn.Width = new GridLength(0);
+                RightColumn.Width = new GridLength(1, GridUnitType.Star);
+            }
+            else
+            {
+                // Show only LEFT column
+                LeftColumn.Width = new GridLength(1, GridUnitType.Star);
+                RightColumn.Width = new GridLength(0);
+            }
 
-    // Model data for valve readings
-    public class ValveReadingRow
-    {
-        public int SerialNumber { get; set; }
-        public double OverLeght { get; set; }
-        public double DatumToEnd { get; set; }
-        public double HeadDia { get; set; }
-        public double SeatHeight { get; set; }
-        public double GroovePositon { get; set; }
-        public double STNG { get; set; }
-        public double STNU { get; set; }
-        public double GrooveDia { get; set; }
-        public double SeatRo { get; set; }
-        public double DatuToGroove { get; set; }
+            _showLeft = !_showLeft;
+        }
+
+        private void SwitchProgressBar_Click(object sender, RoutedEventArgs e)
+        {
+            useFirstDesign = !useFirstDesign;
+            LoadProgressBars();
+
+            SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
+        }
     }
 }

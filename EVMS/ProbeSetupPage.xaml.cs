@@ -142,6 +142,8 @@ namespace EVMS
             if (_orbitService.ModulesById == null || _orbitService.ModulesById.Count == 0)
                 return;
 
+            double maxScale = 2.0;  // Scale max for full progress bar
+
             for (int i = 0; i < Probes.Count; i++)
             {
                 var probe = Probes[i];
@@ -154,25 +156,39 @@ namespace EVMS
                 try
                 {
                     double reading = (double)module.ReadingInUnits;
-                    if (double.TryParse(probe.Stroke, out double strokeValue) && strokeValue > 0)
+
+                    // Normalize for ProgressBar fill (0 to 100 scale)
+                    double normalizedValue = (reading / maxScale) * 100;
+                    probe.Value = Math.Min(Math.Max(normalizedValue, 0), 100);
+
+                    // Show actual reading in status (no percentage)
+                    if (reading > 1.600)
                     {
-                        double percentage = (reading / strokeValue) * 100;
-                        probe.Value = Math.Min(Math.Max(percentage, 0), 100);
-                        probe.InRange = true;
+                        probe.Status = "OVER";
+                        probe.InRange = false;
+                    }
+                    else if (reading < 0.370)
+                    {
+                        probe.Status = "UNDER";
+                        probe.InRange = false;
                     }
                     else
                     {
-                        probe.Value = 0;
-                        probe.InRange = false;
+                        probe.Status = $"{reading:0.000} mm";
+                        probe.InRange = true;
                     }
                 }
                 catch
                 {
                     probe.Value = 0;
+                    probe.Status = "ERR";
                     probe.InRange = false;
                 }
             }
         }
+
+
+
 
         private async void StartBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -242,6 +258,8 @@ namespace EVMS
             private string _title = string.Empty;
             private string _id = string.Empty;
             private string _stroke = string.Empty;
+            private string _Status = string.Empty;
+
             private double _value;
             private bool _inRange;
 
@@ -249,6 +267,12 @@ namespace EVMS
             {
                 get => _title;
                 set => SetField(ref _title, value);
+            }
+
+            public string Status
+            {
+                get => _Status;
+                set => SetField(ref _Status, value);
             }
             public string ID
             {

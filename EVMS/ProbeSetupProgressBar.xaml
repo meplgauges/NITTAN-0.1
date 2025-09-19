@@ -38,20 +38,23 @@
                 </Grid>
 
                 <!-- Percentage display -->
-                <TextBlock Text="{Binding Value, RelativeSource={RelativeSource AncestorType=UserControl}, StringFormat={}{0:F1}%}"
-                           HorizontalAlignment="Center"
+                <!-- Replace your existing TextBlock showing Value with this -->
+                <TextBlock HorizontalAlignment="Center"
                            Foreground="#F5F6FA"
                            FontSize="15"
                            FontWeight="Bold"
-                           Margin="0,8,0,4"/>
+                           Margin="0,8,0,4"
+                           Text="{Binding Status, RelativeSource={RelativeSource AncestorType=UserControl}}"/>  
+
+
 
                 <!-- Probe info -->
                 <TextBox Text="{Binding Title, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                         Height="25" Width="80" 
+                         Height="25" Width="110" 
                          Background="#2C2C2C" Foreground="#F5F6FA"
                          BorderBrush="#555" BorderThickness="1"
                          Padding="2" HorizontalAlignment="Center"
-                         TextAlignment="Center" IsReadOnly="True"
+                         TextAlignment="Center"
                          Focusable="False" Margin="0,0,0,5"/>
 
                 <TextBox Text="{Binding ID, RelativeSource={RelativeSource AncestorType=UserControl}}" 

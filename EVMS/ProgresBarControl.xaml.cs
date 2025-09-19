@@ -1,23 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace EVMS
 {
-    /// <summary>
-    /// Interaction logic for ProgresBarControl.xaml
-    /// </summary>
     public partial class ProgresBarControl : UserControl
     {
         public ProgresBarControl()
@@ -25,9 +12,34 @@ namespace EVMS
             InitializeComponent();
         }
 
+        // Corrected 'Title' DependencyProperty registration (fixing typo "Titl" -> "Title")
         public static readonly DependencyProperty TitleProperty =
-    DependencyProperty.Register("Titl", typeof(string), typeof(ProgresBarControl),
-        new PropertyMetadata("Probe"));
+            DependencyProperty.Register("Title", typeof(string), typeof(ProgresBarControl),
+                new PropertyMetadata("Probe"));
+
+        public double Min
+        {
+            get => (double)GetValue(MinProperty);
+            set => SetValue(MinProperty, value);
+        }
+        public static readonly DependencyProperty MinProperty =
+            DependencyProperty.Register(nameof(Min), typeof(double), typeof(ProgresBarControl), new PropertyMetadata(0.0));
+
+        public double Mean
+        {
+            get => (double)GetValue(MeanProperty);
+            set => SetValue(MeanProperty, value);
+        }
+        public static readonly DependencyProperty MeanProperty =
+            DependencyProperty.Register(nameof(Mean), typeof(double), typeof(ProgresBarControl), new PropertyMetadata(0.0));
+
+        public double Max
+        {
+            get => (double)GetValue(MaxProperty);
+            set => SetValue(MaxProperty, value);
+        }
+        public static readonly DependencyProperty MaxProperty =
+            DependencyProperty.Register(nameof(Max), typeof(double), typeof(ProgresBarControl), new PropertyMetadata(100.0));
 
         public string Title
         {
@@ -35,23 +47,23 @@ namespace EVMS
             set { SetValue(TitleProperty, value); }
         }
 
+        public static readonly DependencyProperty ValueProperty =
+            DependencyProperty.Register("Value", typeof(double), typeof(ProgresBarControl),
+                new PropertyMetadata(0.0, OnValueChanged));
+
         public double Value
         {
             get { return (double)GetValue(ValueProperty); }
             set { SetValue(ValueProperty, value); }
         }
-        public static readonly DependencyProperty ValueProperty =
-        DependencyProperty.Register("Value", typeof(double), typeof(ProgresBarControl),
-         new PropertyMetadata(0.0, OnValueChanged));
 
         private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
-            var control = d as ProgresBarControl;
-            if (control != null)
+            if (d is ProgresBarControl control)
             {
                 double newValue = (double)e.NewValue;
                 control.Bar.Value = newValue;
-                control.BarValue.Text = $"{newValue}%";
+                control.BarValue.Text = $"{newValue:F1}%"; // Format with one decimal place
 
                 // Change color based on value thresholds
                 if (newValue < 20 || newValue > 90)

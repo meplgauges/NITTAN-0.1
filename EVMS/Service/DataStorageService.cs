@@ -16,40 +16,15 @@ namespace EVMS.Service
             _connectionString = connectionString;
         }
 
-
-        public List<MasterReadingDataModel> GetMasterReadingParameters(string paraNo)
+        // ✅ Fetch Parameter Names directly from PartConfig
+        public List<PartReadingDataModel> GetParametersByPartNumber(string partNumber)
         {
-            var list = new List<MasterReadingDataModel>();
+            var list = new List<PartReadingDataModel>();
+
             string query = @"
-        SELECT Para_No, Parameter, Nominal, RTolPlus, RTolMinus
-        FROM MasterReadingData
-        WHERE Para_No = @ParaNo";
-            using SqlConnection conn = new(_connectionString);
-            using SqlCommand cmd = new(query, conn);
-            cmd.Parameters.AddWithValue("@ParaNo", paraNo);
-            conn.Open();
-            using SqlDataReader reader = cmd.ExecuteReader();
-            while (reader.Read())
-            {
-                var item = new MasterReadingDataModel
-                {
-                    Para_No = reader.IsDBNull(0) ? null : reader.GetString(0),
-                    Parameter = reader.IsDBNull(1) ? null : reader.GetString(1),
-                    Nominal = reader.IsDBNull(2) ? 0 : reader.GetDouble(2),
-                    RTolPlus = reader.IsDBNull(3) ? 0 : reader.GetDouble(3),
-                    RTolMinus = reader.IsDBNull(4) ? 0 : reader.GetDouble(4),
-                };
-                list.Add(item);
-            }
-            return list;
-        }
-
-
-        // Fetch PartConfig by part number
-        public List<PartConfigModel> GetPartConfigByPartNumber(string partNumber)
-        {
-            var list = new List<PartConfigModel>();
-            string query = "SELECT PartID, PartNumber, PartName, Description FROM PartConfig WHERE PartNumber = @PartNumber";
+        SELECT *
+        FROM PartConfig
+        WHERE Para_No = @PartNumber";   // ✅ Assuming Para_No is linked to PartNumber
 
             using SqlConnection conn = new(_connectionString);
             using SqlCommand cmd = new(query, conn);
@@ -57,49 +32,54 @@ namespace EVMS.Service
 
             conn.Open();
             using SqlDataReader reader = cmd.ExecuteReader();
-
             while (reader.Read())
             {
-                var item = new PartConfigModel
+                var item = new PartReadingDataModel
                 {
-                    PartID = reader.GetInt32(0),
-                    PartNumber = reader.GetString(1),
-                    PartName = reader.GetString(2),
-                    Description = reader.IsDBNull(3) ? null : reader.GetString(3),
-                    CreatedDate = reader.GetDateTime(4)
+                    Para_No = reader["Para_No"].ToString(),
+                    Parameter = reader["Parameter"].ToString(),
+                    Nominal = Convert.ToDouble(reader["Nominal"]),
+                    RTolPlus = Convert.ToDouble(reader["RTolPlus"]),
+                    RTolMinus = Convert.ToDouble(reader["RTolMinus"]),
+                    //YTolPlus = Convert.ToDouble(reader["YTolPlus"]),
+                    //YTolMinus = Convert.ToDouble(reader["YTolMinus"]),
+                    //ProbeStatus = reader["ProbeStatus"].ToString()
                 };
                 list.Add(item);
             }
             return list;
         }
 
-        // Fetch ProbeInstall by part number
-        public List<ProbeInstallModel> GetProbeInstallByPartNumber(string partNumber)
-        {
-            var list = new List<ProbeInstallModel>();
-            string query = "SELECT ProbeID, PartNumber, ProbeName, InstalledDate, Status FROM ProbeInstall WHERE PartNumber = @PartNumber";
 
-            using SqlConnection conn = new(_connectionString);
-            using SqlCommand cmd = new(query, conn);
-            cmd.Parameters.AddWithValue("@PartNumber", partNumber);
+        // ✅ Probe installation info
+        //public List<ProbeInstallModel> GetProbeInstallByPartNumber(string partNumber)
+        //{
+        //    var list = new List<ProbeInstallModel>();
+        //    string query = @"
+        //        SELECT ProbeID, PartNumber, ProbeName, InstalledDate, Status
+        //        FROM ProbeInstall
+        //        WHERE PartNumber = @PartNumber AND Status = 'Active'";
 
-            conn.Open();
-            using SqlDataReader reader = cmd.ExecuteReader();
+            //    using SqlConnection conn = new(_connectionString);
+            //    using SqlCommand cmd = new(query, conn);
+            //    cmd.Parameters.AddWithValue("@PartNumber", partNumber);
 
-            while (reader.Read())
-            {
-                var item = new ProbeInstallModel
-                {
-                    ProbeID = reader.GetInt32(0),
-                    PartNumber = reader.GetString(1),
-                    ProbeName = reader.GetString(2),
-                    InstalledDate = reader.GetDateTime(3),
-                    Status = reader.GetString(4)
-                };
-                list.Add(item);
-            }
-            return list;
-        }
+            //    conn.Open();
+            //    using SqlDataReader reader = cmd.ExecuteReader();
+            //    while (reader.Read())
+            //    {
+            //        var item = new ProbeInstallModel
+            //        {
+            //            ProbeID = reader.GetInt32(0),
+            //            PartNumber = reader.GetString(1),
+            //            ProbeName = reader.GetString(2),
+            //            InstalledDate = reader.GetDateTime(3),
+            //            Status = reader.GetString(4)
+            //        };
+            //        list.Add(item);
+            //    }
+            //    return list;
+            //}
 
         public void Dispose()
         {
@@ -107,31 +87,25 @@ namespace EVMS.Service
         }
     }
 
-    internal class PartConfigModel
-    {
-        public int PartID { get; set; }
-        public string? PartNumber { get; set; }   // Added PartNumber
-        public string? PartName { get; set; }
-        public string? Description { get; set; }
-        public DateTime CreatedDate { get; set; }
-    }
-
-    internal class ProbeInstallModel
-    {
-        public int ProbeID { get; set; }
-        public string? PartNumber { get; set; }   // Added PartNumber
-        public string? ProbeName { get; set; }
-        public DateTime InstalledDate { get; set; }
-        public string? Status { get; set; }
-    }
-
-    internal class MasterReadingDataModel
+    internal class PartReadingDataModel
     {
         public string? Para_No { get; set; }
         public string? Parameter { get; set; }
         public double Nominal { get; set; }
         public double RTolPlus { get; set; }
         public double RTolMinus { get; set; }
+        //public double YTolPlus { get; set; }
+        //public double YTolMinus { get; set; }
+        //public string? ProbeStatus { get; set; }
     }
 
+
+    //internal class ProbeInstallModel
+    //{
+    //    public int ProbeID { get; set; }
+    //    public string? PartNumber { get; set; }
+    //    public string? ProbeName { get; set; }
+    //    public DateTime InstalledDate { get; set; }
+    //    public string? Status { get; set; }
+    //}
 }

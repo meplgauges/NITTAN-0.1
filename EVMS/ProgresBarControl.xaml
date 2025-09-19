@@ -4,9 +4,9 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              Background="Transparent"
-             Width="250"
-             Height="180"
-             MinWidth="160" MinHeight="160"
+             Width="200"
+             Height="170"
+             MinWidth="130" MinHeight="185"
              x:Name="root">
     <!-- Everything scales proportionally -->
     <Viewbox Stretch="Uniform">
@@ -28,12 +28,18 @@
                     </Border>
                     <Canvas Margin="0,0,0,-6">
                         <Line X1="0" X2="30" Y1="150" Y2="150" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
-                        <TextBlock Text="Low" Foreground="#F5F6FA" FontSize="11" Canvas.Left="0" Canvas.Top="130"/>
+                        <TextBlock Foreground="#F5F6FA" FontSize="10" Canvas.Right="59" Canvas.Top="135"
+                           Text="{Binding Min, ElementName=root, StringFormat={}{0:F3}}"/>
+
                         <Line X1="0" X2="30" Y1="75" Y2="75" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
-                        <TextBlock Text="Min" Foreground="#F5F6FA" FontSize="11" Canvas.Left="0" Canvas.Top="80"/>
-                        <Line X1="0" X2="32" Y1="0.36" Y2="0.5" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
-                        <TextBlock Text="High" Foreground="#F5F6FA" FontSize="11" Canvas.Left="0" Canvas.Top="0"/>
+                        <TextBlock Foreground="#F5F6FA" FontSize="10" Canvas.Right="59" Canvas.Top="77"
+                           Text="{Binding Mean, ElementName=root, StringFormat={}{0:F3}}"/>
+
+                        <Line X1="0" X2="32" Y1="0" Y2="0" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
+                        <TextBlock Foreground="#F5F6FA" FontSize="10" Canvas.Right="59" Canvas.Top="0"
+                           Text="{Binding Max, ElementName=root, StringFormat={}{0:F3}}"/>
                     </Canvas>
+
                 </Grid>
                 <TextBlock x:Name="BarValue"
                            Text="{Binding Value, ElementName=root, StringFormat={}{0:F1}}"
@@ -41,13 +47,11 @@
                            Foreground="#F5F6FA"
                            FontSize="15"
                            FontWeight="Bold"/>
-                <TextBox x:Name="TitleBox"
+                <TextBlock x:Name="TitleBox"
                          Height="25" Width="80"
-                         Background="#2C2C2C"
                          Foreground="#F5F6FA"
-                         BorderBrush="#555"
-                         BorderThickness="2"
                          Padding="2"
+                         FontSize="11"
                          Text="{Binding Title, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          HorizontalAlignment="Center" />
             </StackPanel>
