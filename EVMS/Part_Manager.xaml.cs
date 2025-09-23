@@ -16,6 +16,7 @@ namespace EVMS
             InitializeComponent();
             connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
 
+            btnAdd.Click += BtnAdd_Click;
             btnUpdate.Click += BtnUpdate_Click;
             btnDelete.Click += BtnDelete_Click;
 
@@ -33,6 +34,7 @@ namespace EVMS
             {
                 string paraNo = txtPartNumber.Text.Trim();
                 string paraName = txtPartName.Text.Trim();
+                bool activePart = chkActivePart.IsChecked == true;
 
                 if (string.IsNullOrEmpty(paraNo) || string.IsNullOrEmpty(paraName))
                 {
@@ -60,12 +62,23 @@ namespace EVMS
                         }
                     }
 
-                    // Insert new record
-                    string insertQuery = "INSERT INTO Part_Entry (Para_No, Para_Name) VALUES (@Para_No, @Para_Name)";
+                    // If new part is to be active, reset other active parts
+                    if (activePart)
+                    {
+                        string resetActiveQuery = "UPDATE Part_Entry SET ActivePart = 0 WHERE ActivePart = 1";
+                        using (SqlCommand resetCmd = new SqlCommand(resetActiveQuery, con))
+                        {
+                            resetCmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    // Insert new record with ActivePart value
+                    string insertQuery = "INSERT INTO Part_Entry (Para_No, Para_Name, ActivePart) VALUES (@Para_No, @Para_Name, @ActivePart)";
                     using (SqlCommand cmd = new SqlCommand(insertQuery, con))
                     {
                         cmd.Parameters.AddWithValue("@Para_No", paraNo);
                         cmd.Parameters.AddWithValue("@Para_Name", paraName);
+                        cmd.Parameters.AddWithValue("@ActivePart", activePart ? 1 : 0);
                         cmd.ExecuteNonQuery();
                     }
                 }
@@ -102,6 +115,7 @@ namespace EVMS
 
                 string paraNo = txtPartNumber.Text.Trim();
                 string paraName = txtPartName.Text.Trim();
+                bool activePartUpdate = chkActivePart.IsChecked == true;
 
                 if (string.IsNullOrEmpty(paraNo) || string.IsNullOrEmpty(paraName))
                 {
@@ -132,12 +146,24 @@ namespace EVMS
                         }
                     }
 
-                    // Update record
-                    string updateQuery = "UPDATE Part_Entry SET Para_No = @Para_No, Para_Name = @Para_Name WHERE ID = @ID";
+                    // If updating to active, reset others to inactive
+                    if (activePartUpdate)
+                    {
+                        string resetActiveQuery = "UPDATE Part_Entry SET ActivePart = 0 WHERE ActivePart = 1 AND ID != @ID";
+                        using (SqlCommand resetCmd = new SqlCommand(resetActiveQuery, con))
+                        {
+                            resetCmd.Parameters.AddWithValue("@ID", id);
+                            resetCmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    // Update record with ActivePart value
+                    string updateQuery = "UPDATE Part_Entry SET Para_No = @Para_No, Para_Name = @Para_Name, ActivePart = @ActivePart WHERE ID = @ID";
                     using (SqlCommand cmd = new SqlCommand(updateQuery, con))
                     {
                         cmd.Parameters.AddWithValue("@Para_No", paraNo);
                         cmd.Parameters.AddWithValue("@Para_Name", paraName);
+                        cmd.Parameters.AddWithValue("@ActivePart", activePartUpdate ? 1 : 0);
                         cmd.Parameters.AddWithValue("@ID", id);
 
                         int rows = cmd.ExecuteNonQuery();
@@ -231,7 +257,8 @@ namespace EVMS
                             ID,
                             ROW_NUMBER() OVER (ORDER BY ID) AS SrNo,
                             Para_No,
-                            Para_Name
+                            Para_Name,
+                            ActivePart
                         FROM Part_Entry
                         ORDER BY ID";
 
@@ -263,6 +290,7 @@ namespace EVMS
         {
             txtPartNumber.Text = string.Empty;
             txtPartName.Text = string.Empty;
+            chkActivePart.IsChecked = false;
             btnUpdate.IsEnabled = false;
             btnDelete.IsEnabled = false;
         }
@@ -274,6 +302,7 @@ namespace EVMS
             {
                 txtPartNumber.Text = row["Para_No"].ToString();
                 txtPartName.Text = row["Para_Name"].ToString();
+                chkActivePart.IsChecked = Convert.ToBoolean(row["ActivePart"]);
                 btnUpdate.IsEnabled = true;
                 btnDelete.IsEnabled = true;
             }

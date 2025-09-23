@@ -22,24 +22,23 @@
         <Border Grid.Column="0" Margin="18,18,8,18"
                 BorderBrush="#D9D9D9"
                 BorderThickness="1"
-                CornerRadius="14">
-            <Border.Background>
-                <ImageBrush ImageSource="/Resource/bg3.jpg"
-                            Stretch="UniformToFill"
-                            Opacity="0.9"/>
-            </Border.Background>
+                CornerRadius="14" Background="{StaticResource PageBackgroundBrush}">
+           
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
+      
+                                  <!-- Title -->
+            <Border BorderBrush="BurlyWood" BorderThickness="1" Background="Black" CornerRadius="10" Padding="8" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,15,0,10">
                 <TextBlock Text="⚙ Part Configuration"
-                           HorizontalAlignment="Center"
-                           FontSize="22" FontWeight="SemiBold"
-                           Foreground="#2C3E50"
-                           Margin="0,15,0,10"
-                           VerticalAlignment="Center"/>
+                FontSize="14" FontWeight="Bold"
+                Foreground="Aqua"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"/>
+            </Border>
                 <StackPanel Grid.Row="1" VerticalAlignment="Stretch" HorizontalAlignment="Stretch">
                     <!-- ComboBox added above the Parameter label -->
                     <TextBlock Text="Select Part No:" Style="{StaticResource FormLabelStyle}"/>
@@ -78,13 +77,8 @@
         <Border Grid.Column="1" Margin="12,20,20,20"
                 BorderBrush="#D9D9D9"
                 BorderThickness="0.90"
-                CornerRadius="14">
-            <!-- Background image -->
-            <Border.Background>
-                <ImageBrush ImageSource="/Resource/bg3.jpg"
-                            Stretch="UniformToFill"
-                            Opacity="1"/>
-            </Border.Background>
+                CornerRadius="14" Background="{StaticResource PageBackgroundBrush}">
+           
             <!-- DataGrid -->
             <DataGrid x:Name="dataGrid"
                        SelectionChanged="dataGrid_SelectionChanged"

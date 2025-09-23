@@ -147,7 +147,7 @@
 
             <MenuItem Header="_Run Part" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
         <MenuItem Header="Home..." Click="HomePage_Click" />
-        <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
+                <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
         <Separator />
         <MenuItem Header="Exit" Click="Exit_Click"/>
     </MenuItem>
@@ -157,7 +157,7 @@
     </MenuItem>
 
         <MenuItem Header="Repeatibility" Click="MenuItem_Click">
-        <MenuItem Header=""/>
+        <MenuItem />
     </MenuItem>
 
             <MenuItem Header="_Report" Click="MenuItem_Click" PreviewMouseDown="SettingsMenu_PreviewMouseDown">

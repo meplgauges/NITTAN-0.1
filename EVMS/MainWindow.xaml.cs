@@ -20,7 +20,22 @@ namespace EVMS
         public MainWindow()
         {
             InitializeComponent();
+            
+        }
 
+        private void EntryPage_StartClicked(object sender, StartClickedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            ResultPage resultPage = new ResultPage
+            {
+                HorizontalAlignment = HorizontalAlignment.Stretch,
+                VerticalAlignment = VerticalAlignment.Stretch
+            };
+
+            // Pass entered data to ResultPage
+            //resultPage.SetData(e.Model, e.LotNo, e.UserId);
+
+            MainContentGrid.Children.Add(resultPage);
         }
 
         private void HomePage_Click(object sender, RoutedEventArgs e)
@@ -52,12 +67,13 @@ namespace EVMS
         private void Mesurment_Click(object sender, RoutedEventArgs e)
         {
             MainContentGrid.Children.Clear();
-            ResultPage resultPage = new ResultPage();
+            EntryPage entryPage = new EntryPage();
 
-            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
-            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+            entryPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            entryPage.VerticalAlignment = VerticalAlignment.Stretch;
 
-            MainContentGrid.Children.Add(resultPage);
+            entryPage.StartClicked += EntryPage_StartClicked;
+            MainContentGrid.Children.Add(entryPage);
         }
 
         private void MasterPage_Click(object sender, RoutedEventArgs e)
@@ -103,7 +119,7 @@ namespace EVMS
 
             MainContentGrid.Children.Add(resultPage);
         }
-
+        
         private async void ProbeInstall_Click(object sender, RoutedEventArgs e)
         {
             // Show message box

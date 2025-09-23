@@ -85,6 +85,35 @@ namespace EVMS.Service
         {
             // Cleanup if needed
         }
+
+
+        public List<ProbeInstallModel> GetProbeInstallByPartNumber(string partNumber)
+        {
+            var list = new List<ProbeInstallModel>();
+            string query = @"
+        SELECT PartNo,ProbeId,Name
+        FROM ProbeInstallationData
+        WHERE PartNo = @PartNo";
+
+            using SqlConnection conn = new(_connectionString);
+            using SqlCommand cmd = new(query, conn);
+            cmd.Parameters.AddWithValue("@PartNo", partNumber);
+            conn.Open();
+            using SqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var item = new ProbeInstallModel
+                {
+                    ProbeId = reader.GetString(0),
+                    PartNo = reader.GetString(1),
+                    Name = reader.GetString(2),
+                };
+                list.Add(item);
+            }
+            return list;
+        }
+
+       
     }
 
     internal class PartReadingDataModel
@@ -108,4 +137,13 @@ namespace EVMS.Service
     //    public DateTime InstalledDate { get; set; }
     //    public string? Status { get; set; }
     //}
+
+    internal class ProbeInstallModel
+    {
+        public  string? ProbeId { get; set; }
+        public string? PartNo { get; set; }
+        public string? Name { get; set; }
+        
+    }
+
 }

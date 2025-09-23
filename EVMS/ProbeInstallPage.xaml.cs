@@ -266,7 +266,7 @@ namespace EVMS
             _orbitService?.Dispose();
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
@@ -274,20 +274,20 @@ namespace EVMS
     public class ProbeViewModel : INotifyPropertyChanged
     {
         private int _no;
-        private string _name;
-        private string _probeName;
-        private string _probeId;
-        private string _stroke;
-        private string _status;
+        private string? _name;
+        private string? _probeName;
+        private string? _probeId;
+        private string? _stroke;
+        private string? _status;
         public int No { get => _no; set { _no = value; OnPropertyChanged(); } }
-        public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
-        public string ProbeName { get => _probeName; set { _probeName = value; OnPropertyChanged(); } }
-        public string ProbeId { get => _probeId; set { _probeId = value; OnPropertyChanged(); } }
-        public string Stroke { get => _stroke; set { _stroke = value; OnPropertyChanged(); } }
-        public string Status { get => _status; set { _status = value; OnPropertyChanged(); } }
+        public string? Name { get => _name; set { _name = value; OnPropertyChanged(); } }
+        public string? ProbeName { get => _probeName; set { _probeName = value; OnPropertyChanged(); } }
+        public string? ProbeId { get => _probeId; set { _probeId = value; OnPropertyChanged(); } }
+        public string? Stroke { get => _stroke; set { _stroke = value; OnPropertyChanged(); } }
+        public string? Status { get => _status; set { _status = value; OnPropertyChanged(); } }
         public bool IsInstalled => Status == "Installed";
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

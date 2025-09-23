@@ -5,7 +5,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignHeight="600" d:DesignWidth="1000"
-             Background="Black">
+             Background="White">
 
     <UserControl.Resources>
         <ResourceDictionary>
@@ -24,7 +24,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- LEFT PANEL -->
-        <Border Grid.Column="0" Margin="5" BorderBrush="Gray" BorderThickness="2" CornerRadius="10" Background="Black">
+        <Border Grid.Column="0" >
           
             <Grid Margin="5">
                 <Grid.RowDefinitions>
@@ -35,7 +35,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Top Section -->
-                <Border Grid.Row="0" BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Margin="5" Padding="5" >
+                <Border Background="{StaticResource PageBackgroundBrush}" Grid.Row="0" BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Margin="5" Padding="5" >
                     
                     <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" >
 
@@ -60,51 +60,51 @@
 
                 <!-- Middel -->
 
-                <Border Grid.Row="1" BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Margin="5" Padding="5" >
+                <Border Background="{StaticResource PageBackgroundBrush}" Grid.Row="1" BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Margin="5" Padding="8" >
                    
                     <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-                        <TextBlock
+                        <Border BorderBrush="BurlyWood" BorderThickness="1" Background="Black" CornerRadius="10" Padding="8" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,15,0,10">
+                            <TextBlock
                                    Text="I/O REGISTER"
                                    Foreground="White"
-                                   FontSize="12"
+                                   FontSize="14"
                                    FontWeight="SemiBold"
-                                   Margin="0,6,0,0"
                                    HorizontalAlignment="Center"/>
-
+                        </Border>
                         <!-- Textboxes -->
                        
 
                         <StackPanel Margin="5">
-                            <TextBlock Text="DESCRIPTION:" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                            <TextBox x:Name="DescTextBox" Height="35" Background="#3E3E4E" Foreground="White" BorderThickness="0" Padding="8"/>
+                            <TextBlock Text="DESCRIPTION:" Margin="35,0,0,0" FontWeight="Bold"/>
+                            <TextBox x:Name="DescTextBox" Width="270" Style="{StaticResource ModernFilledTextBox}"/>
 
                         </StackPanel>
 
                         <StackPanel Margin="5">
-                            <TextBlock Text="BIT:" Foreground="White" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                            <TextBox x:Name="BitTextBox" Height="35" Background="#3E3E4E" Foreground="White" BorderThickness="0" Padding="8"/>
+                            <TextBlock Text="BIT:" Margin="35,0,0,0" FontWeight="Bold" />
+                            <TextBox x:Name="BitTextBox" Width="270" Style="{StaticResource ModernFilledTextBox}"/>
 
                         </StackPanel>
 
                         <!-- CheckBoxes -->
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="10,5">
                             <CheckBox x:Name="InputCheckBox" Style="{StaticResource ModernCheckBox}" Content="Input"/>
-                            <CheckBox x:Name="OutputCheckBox" Style="{StaticResource ModernCheckBox}" Content="Output"/>
+                            <CheckBox x:Name="OutputCheckBox"  Style="{StaticResource ModernCheckBox}" Content="Output"/>
                         </StackPanel>
 
                         <!-- Buttons -->
-                        <Button x:Name="AddButton" Style="{StaticResource GlossyBlueButton}" Margin="10" Content="ADD" Width="200" Height="40" />
+                        <Button x:Name="AddButton" Style="{StaticResource GlossyBlueButton}" Margin="10" Content="ADD" Width="150" Height="35" />
 
-                        <Button x:Name="UpdateButton" Style="{StaticResource GlossyBlueButton}" Content="UPDATE" Margin="10" Width="200" Height="40"/>
+                        <Button x:Name="UpdateButton" Style="{StaticResource GlossyBlueButton}" Content="UPDATE" Margin="10" Width="150" Height="35"/>
 
-                        <Button x:Name="DeleteButton" Style="{StaticResource GlossyBlueButton}" Content="DELETE" Margin="10" Width="200" Height="40" Background="#F44336"/>
+                        <Button x:Name="DeleteButton" Style="{StaticResource GlossyBlueButton}" Content="DELETE" Margin="10" Width="150" Height="35" Background="#F44336"/>
 
                     </StackPanel>
                 </Border>
 
 
                 <!-- Bottom Section -->
-                <Border Grid.Row="2" BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Margin="5" Padding="5">
+                <Border Background="{StaticResource PageBackgroundBrush}" Grid.Row="2" BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Margin="5" Padding="5">
                     
                 </Border>
             </Grid>
@@ -112,7 +112,7 @@
 
       
         <!-- RIGHT PANEL -->
-        <Border Grid.Column="1" Margin="5" BorderBrush="Gray" BorderThickness="2" CornerRadius="10"  Padding="10">
+        <Border Background="{StaticResource PageBackgroundBrush}" Grid.Column="1" Margin="5" BorderBrush="Gray" BorderThickness="2" CornerRadius="10"  Padding="10">
                 
             <StackPanel>
                 <TextBlock Text="INPUTS" Foreground="White" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
@@ -120,7 +120,8 @@
                 <!-- Column Selector -->
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
                     <TextBlock Text="Columns:" Foreground="White" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox x:Name="ColumnSelector1" Width="80" >
+                    <ComboBox x:Name="ColumnSelector1" Width="80" Style="{StaticResource ModernComboBoxStyle}"
+ >
                         <ComboBoxItem Content="1"/>
                         <ComboBoxItem Content="2"/>
                         <ComboBoxItem Content="3"/>
@@ -143,7 +144,7 @@
 
 
         <!-- MIDDLE PANEL -->
-        <Border Grid.Column="2" Margin="5" BorderBrush="Gray" BorderThickness="2" 
+        <Border Background="{StaticResource PageBackgroundBrush}" Grid.Column="2" Margin="5" BorderBrush="Gray" BorderThickness="2" 
                  CornerRadius="10"  Padding="10">
            
             <StackPanel>
@@ -154,7 +155,7 @@
                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
                     <TextBlock Text="Columns:" Foreground="White" 
                 VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox x:Name="ColumnSelector" Width="80">
+                    <ComboBox x:Name="ColumnSelector" Width="80" Style="{StaticResource ModernComboBoxStyle}">
                         <ComboBoxItem Content="1"/>
                         <ComboBoxItem Content="2"/>
                         <ComboBoxItem Content="3"/>

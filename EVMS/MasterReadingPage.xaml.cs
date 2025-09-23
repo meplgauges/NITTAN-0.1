@@ -4,6 +4,7 @@ using System.Configuration;
 using System.Data;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace EVMS
 {
@@ -326,6 +327,59 @@ namespace EVMS
 
                 btnUpdate.IsEnabled = true;
                 btnDelete.IsEnabled = true;
+            }
+        }
+
+
+        private void RadioButton_Checked(object sender, RoutedEventArgs e)
+        {
+            if (lblInput == null || txtInput == null) return; // avoid null crash
+
+            if (rbCount.IsChecked == true)
+            {
+                lblInput.Text = "Set Count (1 - 9999)";
+                txtInput.Text = "";
+                txtInput.MaxLength = 4;
+            }
+            else if (rbTime.IsChecked == true)
+            {
+                lblInput.Text = "Set Time (1 - 24 Hours)";
+                txtInput.Text = "";
+                txtInput.MaxLength = 2;
+            }
+        }
+
+
+        private void NumberValidationTextBox(object sender, TextCompositionEventArgs e)
+        {
+            e.Handled = !int.TryParse(e.Text, out _); // Allow only digits
+        }
+
+        private void btnSet_Click(object sender, RoutedEventArgs e)
+        {
+            if (rbCount.IsChecked == true)
+            {
+                if (int.TryParse(txtInput.Text, out int count))
+                {
+                    if (count < 1 || count > 9999)
+                    {
+                        MessageBox.Show("Count must be between 1 and 9999.");
+                        return;
+                    }
+                    MessageBox.Show($"Count set to {count}");
+                }
+            }
+            else if (rbTime.IsChecked == true)
+            {
+                if (int.TryParse(txtInput.Text, out int hours))
+                {
+                    if (hours < 1 || hours > 24)
+                    {
+                        MessageBox.Show("Time must be between 1 and 24 hours.");
+                        return;
+                    }
+                    MessageBox.Show($"Time set to {hours} hours");
+                }
             }
         }
     }

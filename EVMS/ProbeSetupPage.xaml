@@ -2,72 +2,19 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:EVMS"
-             Background="#121212">
+             Background="White">
 
     <UserControl.Resources>
-        
-        <!-- Modern Button Style -->
-        <Style x:Key="ModernButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#1E88E5"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="10,6"/>
-            <Setter Property="Margin" Value="1"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}"
-                                CornerRadius="8"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                SnapsToDevicePixels="True">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#1565C0"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#0D47A1"/>
-                                <Setter Property="RenderTransform">
-                                    <Setter.Value>
-                                        <ScaleTransform ScaleX="0.97" ScaleY="0.97"/>
-                                    </Setter.Value>
-                                </Setter>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#555555"/>
-                                <Setter Property="Foreground" Value="#CCC"/>
-                                <Setter Property="Cursor" Value="Arrow"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- Border Style -->
-        <Style x:Key="SectionBorder" TargetType="Border">
-            <Setter Property="CornerRadius" Value="10"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Background" Value="Black"/>
-            <Setter Property="Padding" Value="10"/>
-            <Setter Property="Margin" Value="1,4"/>
-            <Setter Property="SnapsToDevicePixels" Value="True"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="Peru" BlurRadius="20" ShadowDepth="0" Opacity="0.80"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <!-- ComboBox Style -->
-
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Style/Design.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
+   
 
-    <Grid Margin="20">
+    <Grid Margin="6">
+        
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <!-- Select Part -->
@@ -78,13 +25,10 @@
         </Grid.RowDefinitions>
 
         <!-- Row 0: Select Part inside border -->
-        <Border Grid.Row="0" Style="{StaticResource SectionBorder}" >
-            <Border.Background>
-                <ImageBrush ImageSource="/Resource/1234.jpg"
-                             Stretch="UniformToFill"
-                             Opacity="0.9"/>    
-            </Border.Background>
-            <Grid HorizontalAlignment="Center">
+
+        <Border Grid.Row="0" Style="{StaticResource SectionBorder}" Background="{StaticResource PageBackgroundBrush}">
+           
+            <Grid HorizontalAlignment="Center" >
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
@@ -98,10 +42,11 @@
                            Grid.Column="0"/>
 
                 <ComboBox
-                    Width="290"
+                    Style="{StaticResource ModernComboBoxStyle}"
                     ItemsSource="{Binding PartNumbers}"
                     SelectedItem="{Binding SelectedPartNo, Mode=TwoWay}"
                     Height="30"
+                    Width="200"
                     BorderBrush="Aqua"
                     Grid.Column="1"/>
 
@@ -109,12 +54,7 @@
         </Border>
 
         <!-- Row 1: Progress Bars -->
-        <Border Grid.Row="1" Style="{StaticResource SectionBorder}" >
-            <Border.Background>
-                <ImageBrush ImageSource="/Resource/1234.jpg"
-                 Stretch="UniformToFill"
-                 Opacity="0.9"/>
-            </Border.Background>
+        <Border Grid.Row="1" Style="{StaticResource SectionBorder}" Background="{StaticResource PageBackgroundBrush}">
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
                 <ItemsControl ItemsSource="{Binding Probes}">
                     <ItemsControl.ItemsPanel>
@@ -146,23 +86,15 @@
             </Grid.ColumnDefinitions>
 
             <!-- Info border -->
-            <Border Grid.Column="0" Style="{StaticResource SectionBorder}" Margin="0,0,5,0" Padding="10">
-                <Border.Background>
-                    <ImageBrush ImageSource="/Resource/1234.jpg"
-                 Stretch="UniformToFill"
-                 Opacity="0.9"/>
-                </Border.Background>
+            <Border Grid.Column="0" Style="{StaticResource SectionBorder}" Margin="0,0,5,0" Padding="10" Background="{StaticResource PageBackgroundBrush}">
+                
                 <!-- Replace with your info UI here, example TextBlock -->
                 <TextBlock Text="Status: Ready" Foreground="#ccc" FontSize="14" VerticalAlignment="Center" />
             </Border>
 
             <!-- Buttons border -->
-            <Border Grid.Column="1" Style="{StaticResource SectionBorder}">
-                <Border.Background>
-                    <ImageBrush ImageSource="/Resource/1234.jpg"
-                 Stretch="UniformToFill"
-                 Opacity="0.9"/>
-                </Border.Background>
+            <Border Grid.Column="1" Style="{StaticResource SectionBorder}" Background="{StaticResource PageBackgroundBrush}">
+
                 <Grid >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -170,14 +102,14 @@
                     </Grid.ColumnDefinitions>
 
                     <Button Grid.Column="0" Content="Start Reading" 
-                                Style="{StaticResource ModernButtonStyle}" 
+                                Style="{StaticResource ModernButtonStyle2}" 
                                 Height="40"
                                 Width="130"
                                 HorizontalAlignment="Center"
                                 Click="StartBtn_Click"/>        
 
                     <Button Grid.Column="1" Content="Stop Reading" 
-                                Style="{StaticResource ModernButtonStyle}" 
+                                Style="{StaticResource ModernButtonStyle2}" 
                                 Height="40" 
                                 Width="130"
                                 HorizontalAlignment="Center"

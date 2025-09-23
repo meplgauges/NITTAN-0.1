@@ -255,12 +255,13 @@
             </StackPanel>
 
             <StackPanel Grid.Column="6" Orientation="Vertical" Margin="8,0">
-                <TextBlock Text="Mastring" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
-
+                <TextBlock Text="Mastering" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
                 <ToggleButton 
-                       Style="{StaticResource SwitchToggleStyle}"
-                      />
+                    Style="{StaticResource SwitchToggleStyle}"
+                    Checked="MasterToggle_Checked"
+                    Unchecked="MasterToggle_Unchecked"/>
             </StackPanel>
+
 
             <StackPanel Grid.Column="7" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Master Infection" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
@@ -310,21 +311,21 @@
                 <Line X1="90" Y1="162" X2="90" Y2="198" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
                 <Line X1="89" Y1="162" X2="110" Y2="162" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="89" Y1="196" X2="110" Y2="196" Stroke="#5090F9" StrokeThickness="2"/>
-                <TextBlock Text="GROOVE DIA" Style="{StaticResource LabelStyle1}" Canvas.Right="770" Canvas.Top="180"/>
-                <TextBox x:Name="GrooveDiaBox" Text="--" Style="{StaticResource ValueBoxStyle1}"  Canvas.Right="750" Canvas.Top="200"/>
+                <TextBlock Text="GROOVE DIA" Style="{StaticResource LabelStyle1}" Canvas.Right="810" Canvas.Top="170"/>
+                <TextBox x:Name="GrooveDiaBox" Text="--" Style="{StaticResource ValueBoxStyle1}"  Canvas.Right="750" Canvas.Top="170"/>
                 <TextBlock Text="GROOVE POSITION" Style="{StaticResource LabelStyle1}" Canvas.Right="760" Canvas.Top="260"/>
                 <TextBox x:Name="GroovePo" Text="00.320" Style="{StaticResource ValueBoxStyle1}"  Canvas.Right="750" Canvas.Top="280"/>
                 <!-- Stem Dia -->
-                <TextBlock Text="STDC" Style="{StaticResource LabelStyle1}" Canvas.Left="190" Canvas.Top="90"/>
-                <TextBox x:Name="stdc" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="130" Canvas.Top="90"/>
-                <Line X1="240" Y1="130" X2="240" Y2="165" Stroke="#5090F9" StrokeThickness="2"/>
-                <TextBlock Text="STDG" Style="{StaticResource LabelStyle1}" Canvas.Left="210" Canvas.Top="135"/>
-                <TextBox x:Name="STDG" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="160" Canvas.Top="131"/>
-                <TextBlock Text="STDU" Style="{StaticResource LabelStyle1}" Canvas.Left="450" Canvas.Top="90"/>
-                <TextBox x:Name="stdu" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="480" Canvas.Top="90"/>
-                <Line X1="400" Y1="130" X2="400" Y2="165" Stroke="#5090F9" StrokeThickness="2"/>
-                <TextBlock Text="STEM DIA" Style="{StaticResource LabelStyle1}" Canvas.Left="410" Canvas.Top="130"/>
-                <TextBox x:Name="StemDiaBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="460" Canvas.Top="131"/>
+                <!--  <TextBlock Text="STDC" Style="{StaticResource LabelStyle1}" Canvas.Left="190" Canvas.Top="90"/> -->
+                <!--  <TextBox x:Name="stdc" Canvas.Left="130" Canvas.Top="90"/>-->
+                <Line X1="180" Y1="130" X2="180" Y2="165" Stroke="#5090F9" StrokeThickness="2"/>
+                <TextBlock Text="STDG" Style="{StaticResource LabelStyle1}" Canvas.Left="230" Canvas.Top="135"/>
+                <TextBox x:Name="STDG" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="190" Canvas.Top="131"/>
+                <!--  <TextBlock Text="STDU" Style="{StaticResource LabelStyle1}" Canvas.Left="450" Canvas.Top="90"/>  -->
+                <!--  <TextBox x:Name="stdu"  Canvas.Left="480" Canvas.Top="90"/> -->
+                <Line X1="530" Y1="130" X2="530" Y2="165" Stroke="#5090F9" StrokeThickness="2"/>
+                <TextBlock Text="STEM DIA" Style="{StaticResource LabelStyle1}" Canvas.Left="430" Canvas.Top="135"/>
+                <TextBox x:Name="StemDiaBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="480" Canvas.Top="131"/>
 
                 <!-- Head Dia -->
                 <Line X1="665" Y1="250" X2="820" Y2="250" Stroke="#5090F9" StrokeThickness="2"/>
@@ -352,7 +353,7 @@
                 <Line X1="110" Y1="50" X2="110" Y2="161" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="110" Y1="50" X2="645" Y2="50" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
                 <TextBlock Text="DATUM TO END" Style="{StaticResource LabelStyle1}" Canvas.Left="350" Canvas.Top="30"/>
-                <TextBox x:Name="DatumToEndBox" Text="3434" 
+                <TextBox x:Name="DatumToEndBox" Text="" 
                  Style="{StaticResource ValueBoxStyle1}" 
                  Canvas.Left="430" Canvas.Top="20"/>
 
@@ -361,20 +362,19 @@
                 <Line X1="140" Y1="300" X2="140" Y2="195" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="140" Y1="300" X2="650" Y2="300" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
                 <TextBlock Text="DATUM TO GROOVE" Style="{StaticResource LabelStyle1}" Canvas.Left="300" Canvas.Top="310"/>
-                <TextBox x:Name="DatumToGrooveBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="400" Canvas.Top="305"/>
-                <TextBlock Text="STEM TAPER" Style="{StaticResource LabelStyle1}" Canvas.Left="340" Canvas.Top="270"/>
+                <TextBox x:Name="DatumToEndBo" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="430" Canvas.Top="20"/>
+                <TextBlock Text="STEM TAPER" Style="{StaticResource LabelStyle1}" Canvas.Left="310" Canvas.Top="70"/>
                 <TextBox x:Name="StemTaper" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="400" Canvas.Top="205"/>
-                <TextBlock Text="STRAIGHT" Style="{StaticResource LabelStyle1}" Canvas.Left="340" Canvas.Top="210"/>
-                <TextBox x:Name="Strait" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="400" Canvas.Top="260"/>
+                <TextBlock Text="STRAIGHTNESS" Style="{StaticResource LabelStyle1}" Canvas.Left="320" Canvas.Top="210"/>
+                <TextBox x:Name="Strait" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="370" Canvas.Top="70"/>
 
 
                 <!-- Overall Length -->
                 <Line X1="110" Y1="340" X2="110" Y2="195" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="110" Y1="340" X2="665" Y2="340" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
                 <TextBlock Text="OVERALL LENGTH" Style="{StaticResource LabelStyle1}" Canvas.Left="310" Canvas.Top="360"/>
-                <TextBox x:Name="OverallLengthBox" Text="--" 
-                 Style="{StaticResource ValueBoxStyle1}" 
-                 Canvas.Left="400" Canvas.Top="350"/>
+                <TextBox x:Name="OverallLengthBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="400" Canvas.Top="350"/>
+
 
                 <TextBlock Text="HEAD RUNOUT" Style="{StaticResource LabelStyle1}" Canvas.Left="700" Canvas.Top="310"/>
                 <TextBox x:Name="HeadRunout" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="780" Canvas.Top="305"/>

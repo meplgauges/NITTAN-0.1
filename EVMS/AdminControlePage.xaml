@@ -22,12 +22,8 @@
         <Border Grid.Column="0" Margin="18,18,8,18"
             BorderBrush="#D9D9D9"
             BorderThickness="1"
-            CornerRadius="14">
-            <Border.Background>
-                <ImageBrush ImageSource="/Resource/bg3.jpg"
-                        Stretch="UniformToFill"
-                        Opacity="0.9"/>
-            </Border.Background>
+            CornerRadius="14" Background="{StaticResource PageBackgroundBrush}">
+           
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -73,14 +69,9 @@
         <Border Grid.Column="1" Margin="12,20,20,20"
             BorderBrush="#D9D9D9"
             BorderThickness="0.90"
-            CornerRadius="14">
+            CornerRadius="14" Background="{StaticResource PageBackgroundBrush}">
             <!-- Background image -->
-            <Border.Background>
-                <ImageBrush ImageSource="/Resource/bg3.jpg"
-                        Stretch="UniformToFill"
-                        Opacity="1"/>
-            </Border.Background>
-            <!-- DataGrid -->
+           
             <!--  SelectionChanged="dataGrid_SelectionChanged"
 LoadingRow="dataGrid_LoadingRow"-->
             <DataGrid x:Name="dataGrid"
