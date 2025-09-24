@@ -237,12 +237,12 @@ namespace EVMS
             NeedleRotate.CenterY = cy;
 
             double hubSize = radius * 0.35;  // bigger hub circle size
-            HubContainer.Width = hubSize;
-            HubContainer.Height = hubSize;
-            Canvas.SetLeft(HubContainer, cx - hubSize / 2);
-            Canvas.SetTop(HubContainer, cy - hubSize / 2);
-            Canvas.SetLeft(CenterValueText, cx - hubSize * 0.65);
-            Canvas.SetTop(CenterValueText, cy - hubSize * 0.45);
+            HubContainer.Width = radius * 0.7;   // wider (long width)
+            HubContainer.Height = radius * 0.2;
+            Canvas.SetLeft(HubContainer, cx - HubContainer.Width / 2);
+            Canvas.SetTop(HubContainer, cy - HubContainer.Height / 2);
+            Canvas.SetLeft(CenterValueText, cx - hubSize * 0.45);
+            Canvas.SetTop(CenterValueText, cy - hubSize * 0.55);
             LabelID.Text = ParameterName;
             Canvas.SetLeft(LabelID, cx - hubSize * 0.85);
             Canvas.SetTop(LabelID, cy + hubSize * 0.7);

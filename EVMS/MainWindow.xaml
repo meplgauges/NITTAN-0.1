@@ -197,7 +197,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <!-- Left side grows more -->
-                        <ColumnDefinition Width="2*" MinWidth="350"/>
+                        <ColumnDefinition Width="2*" MinWidth="370"/>
                         <!-- Right side (logo) shrinks gracefully -->
                         <ColumnDefinition Width="1.6*" MinWidth="150"/>
                     </Grid.ColumnDefinitions>

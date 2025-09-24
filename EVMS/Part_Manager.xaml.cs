@@ -302,7 +302,7 @@ namespace EVMS
             {
                 txtPartNumber.Text = row["Para_No"].ToString();
                 txtPartName.Text = row["Para_Name"].ToString();
-                chkActivePart.IsChecked = Convert.ToBoolean(row["ActivePart"]);
+                chkActivePart.IsChecked = row["ActivePart"].ToString() == "1";
                 btnUpdate.IsEnabled = true;
                 btnDelete.IsEnabled = true;
             }
@@ -311,5 +311,6 @@ namespace EVMS
                 ClearInputs();
             }
         }
+
     }
 }

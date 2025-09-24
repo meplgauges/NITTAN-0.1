@@ -6,7 +6,7 @@
              Background="Transparent"
              Width="200"
              Height="170"
-             MinWidth="130" MinHeight="185"
+             MinWidth="130" MinHeight="195"
              x:Name="root">
     <!-- Everything scales proportionally -->
     <Viewbox Stretch="Uniform">
@@ -28,15 +28,15 @@
                     </Border>
                     <Canvas Margin="0,0,0,-6">
                         <Line X1="0" X2="30" Y1="150" Y2="150" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
-                        <TextBlock Foreground="#F5F6FA" FontSize="10" Canvas.Right="59" Canvas.Top="135"
+                        <TextBlock Foreground="#F5F6FA" FontSize="13" Canvas.Right="59" Canvas.Top="130"
                            Text="{Binding Min, ElementName=root, StringFormat={}{0:F3}}"/>
 
                         <Line X1="0" X2="30" Y1="75" Y2="75" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
-                        <TextBlock Foreground="#F5F6FA" FontSize="10" Canvas.Right="59" Canvas.Top="77"
+                        <TextBlock Foreground="#F5F6FA" FontSize="13" Canvas.Right="59" Canvas.Top="77"
                            Text="{Binding Mean, ElementName=root, StringFormat={}{0:F3}}"/>
 
                         <Line X1="0" X2="32" Y1="0" Y2="0" Stroke="#888" StrokeThickness="1" StrokeDashArray="4,2"/>
-                        <TextBlock Foreground="#F5F6FA" FontSize="10" Canvas.Right="59" Canvas.Top="0"
+                        <TextBlock Foreground="#F5F6FA" FontSize="13" Canvas.Right="59" Canvas.Top="0"
                            Text="{Binding Max, ElementName=root, StringFormat={}{0:F3}}"/>
                     </Canvas>
 
@@ -45,13 +45,13 @@
                            Text="{Binding Value, ElementName=root, StringFormat={}{0:F1}}"
                            HorizontalAlignment="Center"
                            Foreground="#F5F6FA"
-                           FontSize="15"
+                           FontSize="20"
                            FontWeight="Bold"/>
                 <TextBlock x:Name="TitleBox"
-                         Height="25" Width="80"
+                         Height="25" Width="90"
                          Foreground="#F5F6FA"
                          Padding="2"
-                         FontSize="11"
+                         FontSize="15"
                          Text="{Binding Title, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          HorizontalAlignment="Center" />
             </StackPanel>

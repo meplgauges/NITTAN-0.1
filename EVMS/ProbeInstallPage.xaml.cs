@@ -1,24 +1,28 @@
 ﻿using System;
-using System.Collections.Generic;
+using Microsoft.Data.SqlClient;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Configuration;
-using System.Data.SqlClient;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using Microsoft.Data.SqlClient;
 using Solartron.Orbit3;
 
 namespace EVMS
 {
     public partial class ProbeInstallPage : UserControl, INotifyPropertyChanged
     {
-        private readonly OrbitService _orbitService = new();
+        // Orbit3 hardware objects
+        private OrbitServer _orbServer;
+        private OrbitNetwork _orbNet;
+        private OrbitNetworks _orbNets;
+        private OrbitModules _orbModules;
+
         private readonly string connectionString;
         public ObservableCollection<ProbeViewModel> Probes { get; set; }
         public ObservableCollection<string> PartNumbers { get; set; }
+
         private string _selectedPartNo;
         public string SelectedPartNo
         {
@@ -45,11 +49,12 @@ namespace EVMS
             Unloaded += ProbeInstallPage_Unloaded;
         }
 
+        // ================= ORBIT CONNECTION =================
         private async void ProbeInstallPage_Loaded(object sender, RoutedEventArgs e)
         {
-            bool connected = await _orbitService.ConnectAsync();
+            bool connected = await ConnectOrbitAsync();
             if (connected)
-                MessageBox.Show($"{_orbitService.NetworkCount} Networks Found. Connected to Orbit.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show($"{_orbNets?.Count ?? 0} Networks Found. Connected to Orbit.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
             else
                 MessageBox.Show("Failed to connect to Orbit.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
 
@@ -58,6 +63,46 @@ namespace EVMS
                 SelectedPartNo = PartNumbers[0];
         }
 
+        private Task<bool> ConnectOrbitAsync()
+        {
+            try
+            {
+                _orbServer ??= new OrbitServer();
+
+                if (!_orbServer.Connected)
+                    _orbServer.Connect();
+
+                if (!_orbServer.Connected)
+                    return Task.FromResult(false);
+
+                _orbNets = _orbServer.Networks;
+                if (_orbNets == null || _orbNets.Count == 0)
+                    return Task.FromResult(false);
+
+                _orbNet = _orbNets[0];
+                if (_orbNet == null)
+                    return Task.FromResult(false);
+
+                _orbModules = _orbNet.Modules;
+                return Task.FromResult(_orbModules != null);
+            }
+            catch
+            {
+                return Task.FromResult(false);
+            }
+        }
+
+        private void DisconnectOrbit()
+        {
+            try
+            {
+                if (_orbServer != null && _orbServer.Connected)
+                    _orbServer.Disconnect();
+            }
+            catch { }
+        }
+
+        // ================= DATABASE FUNCTIONS =================
         private async Task LoadPartNumbersAsync()
         {
             try
@@ -84,6 +129,7 @@ namespace EVMS
                 MessageBox.Show($"Error loading Part Numbers: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
         public async Task LoadProbesForPartAsync(string partNo)
         {
             if (string.IsNullOrEmpty(partNo)) return;
@@ -95,10 +141,10 @@ namespace EVMS
                     await con.OpenAsync();
                     string query = @"
                         SELECT pc.SrNo, pc.Para_No, pc.Parameter, 
-                            ISNULL(pid.ProbeId, '--'), ISNULL(pid.Stroke, '--'), ISNULL(pid.Status, 'Pending')
+                               ISNULL(pid.ProbeId, '--'), ISNULL(pid.Stroke, '--'), ISNULL(pid.Status, 'Pending')
                         FROM PartConfig pc
                         LEFT JOIN ProbeInstallationData pid 
-                            ON pc.Para_No = pid.PartNo AND pc.Parameter = pid.Name
+                               ON pc.Para_No = pid.PartNo AND pc.Parameter = pid.Name
                         WHERE pc.Para_No = @PartNo AND pc.ProbeStatus = 'Probe'
                         ORDER BY pc.SrNo";
                     using (var cmd = new SqlCommand(query, con))
@@ -158,7 +204,8 @@ namespace EVMS
                 return true;
             }
         }
-        public void SaveModelData(string partNo, string name, string probeId, string stroke, string status)
+
+        private void SaveModelData(string partNo, string name, string probeId, string stroke, string status)
         {
             if (string.IsNullOrWhiteSpace(probeId) || probeId == "--") return;
             try
@@ -188,13 +235,15 @@ namespace EVMS
             }
         }
 
-        private async void CheckButton_Click(object sender, RoutedEventArgs e)
+        // ================= BUTTON HANDLERS =================
+        private void CheckButton_Click(object sender, RoutedEventArgs e)
         {
-            if (!_orbitService.IsConnected)
+            if (_orbServer == null || !_orbServer.Connected)
             {
                 MessageBox.Show("Orbit hardware not connected.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
+
             if (sender is Button btn && btn.DataContext is ProbeViewModel probe)
             {
                 if (probe.Status == "Installed")
@@ -202,31 +251,49 @@ namespace EVMS
                     MessageBox.Show("This probe is already installed for this parameter.", "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
+
                 btn.IsEnabled = false;
                 try
                 {
-                    MessageBox.Show("Move the probe now to be detected. Press ESC to cancel.", "Notification", MessageBoxButton.OK, MessageBoxImage.Information);
-                    bool added = _orbitService.NotifyAddModule();
+                    MessageBox.Show("Move the probe now to be detected. Press ESC to cancel.",
+                                    "Notification", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    // --- Wait for probe signal ---
+                    bool added = _orbModules?.NotifyAddModule() ?? true;
                     if (!added)
                     {
-                        MessageBox.Show("No new probe detected or operation cancelled.", "Information", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("No new probe detected or operation cancelled.",
+                                        "Information", MessageBoxButton.OK, MessageBoxImage.Information);
                         return;
                     }
-                    var mod = _orbitService.GetLastModule();
+
+                    // --- Get last added module ---
+                    var mod = _orbModules[_orbModules.Count - 1];
                     if (mod != null)
                     {
-                        SaveModelData(SelectedPartNo, probe.Name, mod.ModuleID, mod.Stroke.ToString(), "Installed");
-                        Application.Current.Dispatcher.Invoke(() =>
+                        string probeId = mod.ModuleID;
+                        string stroke = mod.Stroke.ToString();
+
+                        if (ProbeIdAlreadyAssignedToPart(SelectedPartNo, probeId))
                         {
-                            probe.ProbeId = mod.ModuleID;
-                            probe.Stroke = mod.Stroke.ToString();
-                            probe.Status = "Installed";
-                        });
+                            MessageBox.Show("This probe is already installed for this part number.",
+                                            "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+
+                        // Save in DB
+                        SaveModelData(SelectedPartNo, probe.Name, probeId, stroke, "Installed");
+
+                        // Update UI
+                        probe.ProbeId = probeId;
+                        probe.Stroke = stroke;
+                        probe.Status = "Installed";
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Error during probe install: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show($"Error during probe install: {ex.Message}",
+                                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 finally
                 {
@@ -241,6 +308,7 @@ namespace EVMS
                                          "Confirm Reset", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result != MessageBoxResult.Yes)
                 return;
+
             try
             {
                 using (var con = new SqlConnection(connectionString))
@@ -251,43 +319,56 @@ namespace EVMS
                         await cmd.ExecuteNonQueryAsync();
                     }
                 }
-                _orbitService.ClearModules();
-                Probes?.Clear();
-                MessageBox.Show("All probes have been reset.", "Reset Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // ✅ Reload probes for the selected part number instead of blank UI
+                await LoadProbesForPartAsync(SelectedPartNo);
+
+                MessageBox.Show("All probes have been reset.",
+                                "Reset Successful",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error resetting probes: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Error resetting probes: {ex.Message}",
+                                "Error",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
             }
         }
 
+
         private void ProbeInstallPage_Unloaded(object sender, RoutedEventArgs e)
         {
-            _orbitService?.Dispose();
+            DisconnectOrbit();
         }
 
+        // ================= NOTIFY PROPERTY CHANGED =================
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
+    // ================= VIEWMODEL =================
     public class ProbeViewModel : INotifyPropertyChanged
     {
         private int _no;
-        private string? _name;
-        private string? _probeName;
-        private string? _probeId;
-        private string? _stroke;
-        private string? _status;
+        private string _name;
+        private string _probeName;
+        private string _probeId;
+        private string _stroke;
+        private string _status;
+
         public int No { get => _no; set { _no = value; OnPropertyChanged(); } }
-        public string? Name { get => _name; set { _name = value; OnPropertyChanged(); } }
-        public string? ProbeName { get => _probeName; set { _probeName = value; OnPropertyChanged(); } }
-        public string? ProbeId { get => _probeId; set { _probeId = value; OnPropertyChanged(); } }
-        public string? Stroke { get => _stroke; set { _stroke = value; OnPropertyChanged(); } }
-        public string? Status { get => _status; set { _status = value; OnPropertyChanged(); } }
+        public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
+        public string ProbeName { get => _probeName; set { _probeName = value; OnPropertyChanged(); } }
+        public string ProbeId { get => _probeId; set { _probeId = value; OnPropertyChanged(); } }
+        public string Stroke { get => _stroke; set { _stroke = value; OnPropertyChanged(); } }
+        public string Status { get => _status; set { _status = value; OnPropertyChanged(); } }
         public bool IsInstalled => Status == "Installed";
+
         public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
+        protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

@@ -1,9 +1,8 @@
 ﻿using EVMS.Service;
 using System;
-using System.Configuration;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Configuration;
+using System.Data;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -14,6 +13,7 @@ namespace EVMS
         private bool useFirstDesign = true;
         private bool _showLeft = true;
         private List<PartReadingDataModel> parameterData;
+        private string activePartNumber = string.Empty;
 
         private PlcProbeService plcProbeService;
         private DataStorageService dataStorageService;
@@ -23,14 +23,10 @@ namespace EVMS
         private const double StaticGreenToleranceMinus = -0.10;
         private const double StaticGreenTolerancePlus = 0.10;
 
-        // Hardcoded PartNumber for demo
-        private readonly string activePartNumber = "12134";
-
         public ResultPage()
         {
             InitializeComponent();
             this.Loaded += ResultPage_Loaded;
-            //this.Unloaded += ResultPage_Unloaded;
 
             _connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
             dataStorageService = new DataStorageService(_connectionString);
@@ -39,57 +35,67 @@ namespace EVMS
         private void ResultPage_Loaded(object sender, RoutedEventArgs e)
         {
             InitializeValveDataAndUI();
-            //_ = TryAutoConnectAsync();
         }
-
-        //private async Task TryAutoConnectAsync()
-        //{
-        //    if (plcProbeService == null)
-        //        plcProbeService = new PlcProbeService();
-
-        //    if (!plcProbeService.IsConnected)
-        //    {
-        //        bool connected = await plcProbeService.ConnectAsync();
-        //        if (!connected)
-        //        {
-        //            MessageBox.Show("Failed to connect to PLC and probes on page load.", "Connection Error", MessageBoxButton.OK, MessageBoxImage.Warning);
-        //        }
-        //    }
-        //}
 
         private void InitializeValveDataAndUI()
         {
             try
             {
-                // Fetch parameters from DB
-                parameterData = dataStorageService.GetParametersByPartNumber(activePartNumber);
-                if (parameterData == null || parameterData.Count == 0)
+                // Get active parts
+                var activeParts = dataStorageService.GetActiveParts();
+                if (activeParts == null || activeParts.Count == 0)
                 {
-                    MessageBox.Show($"No parameters found for part {activePartNumber}");
+                    MessageBox.Show("No active parts found.");
                     return;
                 }
 
-                ValveReadingsGrid.Columns.Clear();
+                activePartNumber = activeParts[0].Para_No ?? string.Empty;
 
-                foreach (var param in parameterData)
+                // Get parameters for active part
+                parameterData = dataStorageService.GetPartConfigByPartNumber(activePartNumber);
+                if (parameterData == null || parameterData.Count == 0)
                 {
-                    var column = new DataGridTextColumn
-                    {
-                        Header = param.Parameter
-                    };
-                    ValveReadingsGrid.Columns.Add(column);
+                    MessageBox.Show($"No parameters found for active part {activePartNumber}");
+                    return;
                 }
 
-                ValveReadingsGrid.ItemsSource = parameterData;
+                // Setup DataGrid dynamically
+                LoadDataGrid();
 
+                // Load progress bars
                 LoadProgressBars();
 
+                // Set toggle button text
                 SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error loading data: {ex.Message}");
             }
+        }
+
+        private void LoadDataGrid()
+        {
+            ValveReadingsGrid.Columns.Clear();
+
+            // Transform parameterData into a DataTable for DataGrid binding
+            DataTable dt = new DataTable();
+
+            // Add columns for each parameter
+            foreach (var param in parameterData)
+            {
+                dt.Columns.Add(param.Parameter, typeof(double));
+            }
+
+            // Add a single row of current values
+            //DataRow row = dt.NewRow();
+            //foreach (var param in parameterData)
+            //{
+            //    row[param.Parameter] = param.Value;
+            //}
+            //dt.Rows.Add(row);
+
+            ValveReadingsGrid.ItemsSource = dt.DefaultView;
         }
 
         private void LoadProgressBars()
@@ -130,6 +136,7 @@ namespace EVMS
                 ProgressBarContainer.Children.Add(progressBar);
             }
         }
+
         private void ToggleBtn_Click(object sender, RoutedEventArgs e)
         {
             if (_showLeft)
@@ -145,32 +152,6 @@ namespace EVMS
             _showLeft = !_showLeft;
         }
 
-
-        private async void MasterToggle_Checked(object sender, RoutedEventArgs e)
-        {
-            await MasterInitializeAsync();
-        }
-
-        private void MasterToggle_Unchecked(object sender, RoutedEventArgs e)
-        {
-            
-        }
-
-        private async Task MasterInitializeAsync()
-        {
-           
-        }
-
-
-        private void PlcProbeService_ProbeValueUpdated(object? sender, ProbeReadingEventArgs e)
-        {
-           
-        }
-
-        //private void SetTextBoxValue(string probeName, double? value)
-        //{
-        //}
-
         private void SwitchProgressBar_Click(object sender, RoutedEventArgs e)
         {
             useFirstDesign = !useFirstDesign;
@@ -178,23 +159,16 @@ namespace EVMS
             SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
         }
 
-        //private void ResultPage_Unloaded(object sender, RoutedEventArgs e)
-        //{
-        //    try
-        //    {
-        //        if (plcProbeService != null)
-        //        {
-        //            plcProbeService.StopLiveReading();
-        //            plcProbeService.ProbeValueUpdated -= PlcProbeService_ProbeValueUpdated;
-        //            plcProbeService.Dispose();
-        //            plcProbeService = null;
-        //        }
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        // Log or ignore exceptions during unload
-        //    }
-        //}
+        private async void MasterToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            // Call your initialization logic
+            //await MasterInitializeAsync();
+        }
+
+        private void MasterToggle_Unchecked(object sender, RoutedEventArgs e)
+        {
+            // Optional: handle toggle off event
+        }
 
     }
 }

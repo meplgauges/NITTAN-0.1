@@ -95,6 +95,7 @@
                     </Border.Effect>
                     <DataGrid x:Name="dataGrid"
                           AutoGenerateColumns="False"
+                          CanUserAddRows="False" 
                           SelectionChanged="dataGrid_SelectionChanged"
                           IsReadOnly="False" 
                           HeadersVisibility="Column"
@@ -136,18 +137,35 @@
 
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="ID" Binding="{Binding ID}" Width="Auto" IsReadOnly="True"
-                                ElementStyle="{StaticResource CenterTextBlockStyle}"
-                                EditingElementStyle="{StaticResource CenterTextBoxStyle}"/>
+        ElementStyle="{StaticResource CenterTextBlockStyle}"
+        EditingElementStyle="{StaticResource CenterTextBoxStyle}"/>
                             <DataGridTextColumn Header="Part Number" Binding="{Binding Para_No}" Width="*"
-                                ElementStyle="{StaticResource CenterTextBlockStyle}"
-                                EditingElementStyle="{StaticResource CenterTextBoxStyle}"/> 
+        ElementStyle="{StaticResource CenterTextBlockStyle}"
+        EditingElementStyle="{StaticResource CenterTextBoxStyle}"/>
                             <DataGridTextColumn Header="Part Name" Binding="{Binding Para_Name}" Width="*"
-                                ElementStyle="{StaticResource CenterTextBlockStyle}"
-                                EditingElementStyle="{StaticResource CenterTextBoxStyle}"/>
-                            <DataGridCheckBoxColumn Header="ActivePart" Binding="{Binding ActivePart, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*"
-                                ElementStyle="{StaticResource CenterCheckBoxStyle}"
-                                EditingElementStyle="{StaticResource CenterCheckBoxStyle}"/>
+        ElementStyle="{StaticResource CenterTextBlockStyle}"
+        EditingElementStyle="{StaticResource CenterTextBoxStyle}"/>
+                            <!-- Status Indicator Column -->
+                            <DataGridTemplateColumn Header="Status" Width="*">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Ellipse Width="18" Height="18" Stroke="Black">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="Red"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding ActivePart}" Value="True">
+                                                            <Setter Property="Fill" Value="Green"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
                         </DataGrid.Columns>
+
                     </DataGrid>
 
 

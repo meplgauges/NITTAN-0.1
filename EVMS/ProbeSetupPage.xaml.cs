@@ -244,6 +244,7 @@ namespace EVMS
                 probe.Value = 0;
                 probe.ID = string.Empty;
                 probe.Stroke = string.Empty;
+                probe.Status = string.Empty;
                 probe.InRange = false;
             }
             _orbitService.Disconnect();

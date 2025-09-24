@@ -26,18 +26,19 @@
 
             <!-- Hub container (circle + value inside) -->
             <Grid x:Name="HubContainer"
-                  Width="60" Height="60"
+                  Width="60" Height="30"
                   IsHitTestVisible="False"
                   RenderTransformOrigin="0.5,0.5">
-                <Ellipse Fill="Black"/>
+                <Rectangle Fill="Black" RadiusX="9" RadiusY="9"/>
                 <TextBlock x:Name="CenterValueText"
-                           Text="0.000"
-                           FontSize="15"
-                           Foreground="White"
-                           FontWeight="Bold"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center"/>
+               Text="0.000"
+               FontSize="23"
+               Foreground="White"
+               FontWeight="Bold"
+               HorizontalAlignment="Center"
+               VerticalAlignment="Center"/>
             </Grid>
+
 
             <TextBlock x:Name="LabelID"
                        Text="{Binding ParameterName, RelativeSource={RelativeSource AncestorType=UserControl}}"

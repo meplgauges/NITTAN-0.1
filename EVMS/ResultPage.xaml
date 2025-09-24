@@ -405,26 +405,26 @@
 
         <!-- Row 2: DataGrid spanning both columns -->
         <Border Style="{StaticResource CardBox}"
-            Grid.Row="2" Grid.ColumnSpan="2"
-            Margin="20,5,20,10" Padding="3" >
+        Grid.Row="2" Grid.ColumnSpan="4"
+        Margin="20,5,20,10" Padding="3">
             <DataGrid x:Name="ValveReadingsGrid"
-                AutoGenerateColumns="False"
-                HeadersVisibility="Column"
-                CanUserAddRows="False"
-                CanUserDeleteRows="False"
-                IsReadOnly="True"
-                GridLinesVisibility="None"
-                Background="#1E1E1E"
-                Foreground="White"
-                BorderBrush="#333"
-                RowBackground="#1E1E1E"
-                AlternatingRowBackground="#2A2A2A"
-                HorizontalGridLinesBrush="#444"
-                VerticalGridLinesBrush="#444"
-                RowHeight="20"
-                ColumnHeaderHeight="30"
-                FontSize="14"
-                FontFamily="Segoe UI">
+              AutoGenerateColumns="True"
+              CanUserAddRows="False"
+              CanUserDeleteRows="False"
+              IsReadOnly="True"
+              GridLinesVisibility="None"
+              Background="#1E1E1E"
+              Foreground="White"
+              BorderBrush="#333"
+              RowBackground="#1E1E1E"
+              AlternatingRowBackground="#2A2A2A"
+              HorizontalGridLinesBrush="#444"
+              VerticalGridLinesBrush="#444"
+              RowHeight="25"
+              ColumnHeaderHeight="35"
+              FontSize="14"
+              FontFamily="Segoe UI"
+           >
 
                 <!-- Modern Styles -->
                 <DataGrid.Resources>
@@ -436,7 +436,7 @@
                         <Setter Property="BorderBrush" Value="#444"/>
                         <Setter Property="BorderThickness" Value="0,0,1,1"/>
                         <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                        <Setter Property="Padding" Value="6"/>
+                        <Setter Property="Padding" Value="5"/>
                     </Style>
 
                     <!-- Row Style -->
@@ -458,33 +458,16 @@
                         </Style.Triggers>
                     </Style>
 
-                    <!-- Cell Style (applies to all text cells) -->
+                    <!-- Cell Style -->
                     <Style TargetType="DataGridCell">
                         <Setter Property="TextBlock.TextAlignment" Value="Center"/>
                         <Setter Property="HorizontalContentAlignment" Value="Center"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
                     </Style>
                 </DataGrid.Resources>
-
-                <!-- Columns -->
-                <DataGrid.Columns>
-                    <!-- Serial Number Column -->
-                    <DataGridTextColumn Header="S.No." Binding="{Binding SerialNumber}" Width="50" IsReadOnly="True" />
-
-                    <DataGridTextColumn Header="Groove Dia" Binding="{Binding GrooveDia}" Width="*" />
-                    <DataGridTextColumn Header="STNG" Binding="{Binding STNG}" Width="*" />
-                    <DataGridTextColumn Header="STNU" Binding="{Binding STNU}" Width="*" />
-                    <DataGridTextColumn Header="Groove Position" Binding="{Binding GroovePositon}" Width="*" />
-                    <DataGridTextColumn Header="Seat Ro" Binding="{Binding SeatRo}" Width="*" />
-                    <DataGridTextColumn Header="Head Dia" Binding="{Binding HeadDia}" Width="*" />
-                    <DataGridTextColumn Header="Seat Height" Binding="{Binding SeatHeight}" Width="*" />
-                    <DataGridTextColumn Header="Datum To End" Binding="{Binding DatumToEnd}" Width="*" />
-                    <DataGridTextColumn Header="Datum To Groove" Binding="{Binding DatuToGroove}" Width="*" />
-                    <DataGridTextColumn Header="Overall Length" Binding="{Binding OverLeght}" Width="*" />
-                </DataGrid.Columns>
-
             </DataGrid>
         </Border>
+
 
     </Grid>
 </UserControl>
