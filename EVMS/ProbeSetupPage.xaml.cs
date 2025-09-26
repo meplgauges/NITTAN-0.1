@@ -13,7 +13,7 @@ namespace EVMS
 {
     public partial class ProbeSetupPage : UserControl, INotifyPropertyChanged
     {
-        private readonly string _connectionString;
+            private readonly string _connectionString;
         private readonly DispatcherTimer _timer;
         private readonly OrbitService _orbitService = new OrbitService();
 

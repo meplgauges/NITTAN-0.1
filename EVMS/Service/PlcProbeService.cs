@@ -102,15 +102,50 @@ internal class PlcProbeService : IDisposable
     }
 
 
-    public void StartLiveReading(int channel = 0, int intervalMs = 1000)
+
+    public void StartLiveReading(int intervalMs = 1000)
     {
-        
+        StopLiveReading(); // Ensure only one loop runs
+
+        _cts = new CancellationTokenSource();
+        var token = _cts.Token;
+
+        Task.Run(async () =>
+        {
+            while (!token.IsCancellationRequested)
+            {
+                var moduleIds = orbitService.GetConnectedModuleIds();
+                foreach (var moduleId in moduleIds)
+                {
+                    try
+                    {
+                        // Get module and its main reading value
+                        dynamic module = orbitService.GetModuleById(moduleId);
+                        double value = (double)module.ReadingInUnits;
+
+                        // Raise the probe value updated event
+                        ProbeValueUpdated?.Invoke(
+                            this,
+                            new ProbeReadingEventArgs(moduleId, value)
+                        );
+                    }
+                    catch
+                    {
+                        // If a reading fails, ignore and continue
+                    }
+                }
+                await Task.Delay(intervalMs, token).ConfigureAwait(false);
+            }
+        }, token);
     }
 
     public void StopLiveReading()
     {
-       
-    }
+        _cts?.Cancel();
+        _cts?.Dispose();
+        _cts = null;
+    }   
+
 
     public void Dispose()
     {

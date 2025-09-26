@@ -35,26 +35,41 @@
                 </Grid.RowDefinitions>
 
                 <!-- Top Section -->
-                <Border Background="{StaticResource PageBackgroundBrush}" Grid.Row="0" BorderBrush="Gray" BorderThickness="1" CornerRadius="8" Margin="5" Padding="5" >
-                    
-                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" >
+                <Border Background="{StaticResource PageBackgroundBrush}" 
+                    Grid.Row="0" 
+                    BorderBrush="Gray" 
+                    BorderThickness="1" 
+                    CornerRadius="8" 
+                    Margin="5" 
+                    Padding="5"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    MinHeight="80" MinWidth="150">
 
-                        <!-- Power Button -->
+                    <Grid VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
                         <ToggleButton x:Name="PowerToggle"
                       Style="{StaticResource PowerButtonStyle}"
-                    
-  />
+                      MinWidth="80"
+                      MinHeight="50"
+                      Grid.Row="0"
+                      HorizontalAlignment="Center"/>
 
-                        <!-- PLC Status -->
                         <TextBlock x:Name="PlcStatusText"
-                           Text="PLC"
-                           Foreground="White"
-                           FontSize="12"
-                           FontWeight="SemiBold"
-                           Margin="0,6,0,0"
-                           HorizontalAlignment="Center"/>
-                    </StackPanel>
+                   Text="PLC"
+                   Foreground="Black"
+                   FontSize="14"
+                   FontWeight="Bold"
+                   Margin="0,6,0,0"
+                   HorizontalAlignment="Center"
+                   Grid.Row="1"/>
+                    </Grid>
                 </Border>
+
 
 
 

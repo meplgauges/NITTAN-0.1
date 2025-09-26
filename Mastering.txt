@@ -1,0 +1,370 @@
+//---------------------------------------Step1----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+using System;
+using System.Threading.Tasks;
+using System.Windows;
+
+namespace EVMS.Service
+{
+    public class MasterService
+    {
+        private readonly DataStorageService _dataStorageService;
+        private readonly PlcProbeService _plcProbeService;
+
+        // Internal state variables
+        private int _currentOperationalMode;
+        private int _currentAutoWeightLoad;
+        private string _currentPartCode = "";
+        private string _currentMotorDirection = "Normal";
+        private int _currentAutoRotateState;
+
+        public MasterService()
+        {
+            _dataStorageService = new DataStorageService();
+            _plcProbeService = new PlcProbeService();
+        }
+
+        /// <summary>
+        /// Public method to be called from initialization block.
+        /// </summary>
+        public async Task PerformInitializationAsync()
+        {
+            await InitializeSettingsAsync();
+        }
+
+        /// <summary>
+        /// Encapsulates all the initialization logic.
+        /// </summary>
+        private async Task InitializeSettingsAsync()
+        {
+            try
+            {
+                // Read system parameters from storage
+                var interlock = _dataStorageService.GetInterlockSettings();
+                _currentOperationalMode = interlock?.OperationalMode ?? 0;
+                _currentAutoWeightLoad = interlock?.AutoWeight ?? 0;
+
+                var autoRotation = _dataStorageService.GetAutoRotationState();
+                _currentAutoRotateState = autoRotation?.AutoRotateState ?? 0;
+
+                var activePart = _dataStorageService.GetActivePart();
+                _currentPartCode = activePart?.Part_cd ?? "";
+
+                var motorDir = _dataStorageService.GetMotorDirection();
+                _currentMotorDirection = motorDir?.Direction ?? "Normal";
+
+                var masterValues = _dataStorageService.GetMasterValuesByPart(_currentPartCode);
+                if (masterValues == null || masterValues.Count == 0)
+                {
+                    MessageBox.Show($"Master values not entered for part: {_currentPartCode}",
+                        "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+
+                // Connect to PLC and probe system
+                bool connected = await _plcProbeService.ConnectAsync();
+                if (!connected)
+                {
+                    MessageBox.Show("PLC connectivity failed in Probe Service.",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Check for AUTO Mode on HMI if required
+                if (_currentOperationalMode == 1)
+                {
+                    bool startCycle = false;
+                    do
+                    {
+                        int plcInputData = await _plcProbeService.GetDeviceAsync("X14");
+                        if (plcInputData == 1)
+                            startCycle = true;
+                        else
+                        {
+                            MessageBox.Show("Please select Auto Mode in HMI to proceed.",
+                                "Select AUTO Mode", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            await Task.Delay(1000);
+                        }
+                    } while (!startCycle);
+                }
+
+                // Set initial PLC signals for master cycle readiness
+                await _plcProbeService.SetDeviceAsync("M400", 1);
+                await _plcProbeService.SetDeviceAsync("M300", 0);
+                await _plcProbeService.SetDeviceAsync("M100", 1);
+
+                if (_currentAutoWeightLoad == 1)
+                    await _plcProbeService.SetDeviceAsync("M10", 0);
+
+                // Initial probe reading warm-up
+                await ReadFromProbesAsync();
+
+                MessageBox.Show("Initialization completed successfully.",
+                    "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error during initialization: " + ex.Message,
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ReadFromProbesAsync()
+        {
+            try
+            {
+                _plcProbeService.StartLiveReading();
+                await Task.Delay(500); // Warm-up for 0.5 seconds (adjust as needed)
+                _plcProbeService.StopLiveReading();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Probe reading error: " + ex.Message,
+                    "Warning", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+    }
+}
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using ActUtlTypeLib;
+
+namespace EVMS.Service
+{
+    public class ProbeMeasurement
+    {
+        public string ProbeId { get; set; }
+        public List<double> Readings { get; } = new List<double>();
+        public double ReferenceValue { get; set; } = 0;
+        public double MasterValue { get; set; } = 0;
+        public double TolerancePlus { get; set; }
+        public double ToleranceMinus { get; set; }
+    }
+
+    public class MasterService : IDisposable
+    {
+        private readonly DataStorageService _dataStorageService;
+        private readonly PlcProbeService _plcProbeService;
+        private readonly ActUtlType plc;
+
+        private Dictionary<string, ProbeMeasurement> _probeMeasurements = new Dictionary<string, ProbeMeasurement>();
+        private const int SampleCount = 70;
+        private bool _isMasteringStage = true;
+
+        // Store live probe readings as they come in
+        private readonly List<(string ProbeId, double Value)> _collectedReadings = new List<(string, double)>();
+
+        private int _currentOperationalMode;
+        private int _currentAutoWeightLoad;
+        private int _currentAutoRotateState;
+        private string _currentPartCode = "";
+        private string _currentMotorDirection = "Normal";
+
+        public MasterService()
+        {
+            _dataStorageService = new DataStorageService();
+            _plcProbeService = new PlcProbeService();
+
+            // Subscribe to live probe value events
+            _plcProbeService.ProbeValueUpdated += ProbeValueUpdatedHandler;
+
+            plc = new ActUtlType
+            {
+                ActLogicalStationNumber = 1
+            };
+            int openResult = plc.Open();
+            if (openResult != 0)
+            {
+                MessageBox.Show($"Failed to open PLC connection. Error code: {openResult}", "PLC Init Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void ProbeValueUpdatedHandler(object? sender, ProbeReadingEventArgs e)
+        {
+            lock (_collectedReadings)
+            {
+                _collectedReadings.Add((e.ModuleId, e.Value));
+            }
+        }
+
+        private bool SetPlcDevice(string device, int value)
+        {
+            int ret = plc.SetDevice(device, (short)value);
+            if (ret != 0)
+            {
+                MessageBox.Show($"SetDevice failed: Device={device}, Code={ret}", "PLC Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            return true;
+        }
+
+        private Task<bool> SetPlcDeviceAsync(string device, int value) =>
+            Task.Run(() => SetPlcDevice(device, value));
+
+        private int GetPlcDevice(string device)
+        {
+            int value = 0;
+            int ret = plc.GetDevice(device, ref value);
+            if (ret != 0)
+            {
+                MessageBox.Show($"GetDevice failed: Device={device}, Code={ret}", "PLC Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return -1;
+            }
+            return value;
+        }
+
+        private Task<int> GetPlcDeviceAsync(string device) =>
+            Task.Run(() => GetPlcDevice(device));
+
+        // Your existing PerformInitializationAsync, MasterTimerCycleAsync, GetOrbitReadAsync etc. remain unchanged
+
+        private async Task MasterCheckProcedureAsync()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(_currentPartCode))
+                {
+                    MessageBox.Show("No active part code selected.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                LoadProbeConfigurations(_currentPartCode);
+
+                foreach (var pm in _probeMeasurements.Values)
+                    pm.Readings.Clear();
+
+                if (!await SetPlcDeviceAsync("M14", 1)) return;
+
+                _collectedReadings.Clear();
+                _plcProbeService.StartLiveReading();
+
+                // Collect live probe readings for 1 second
+                await Task.Delay(1000);
+
+                _plcProbeService.StopLiveReading();
+
+                if (!await SetPlcDeviceAsync("M14", 0)) return;
+
+                Dictionary<string, List<double>> groupedReadings;
+                lock (_collectedReadings)
+                {
+                    groupedReadings = _collectedReadings
+                        .GroupBy(r => r.ProbeId)
+                        .ToDictionary(g => g.Key, g => g.Select(x => x.Value).ToList());
+                }
+
+                foreach (var pm in _probeMeasurements.Values)
+                {
+                    if (groupedReadings.TryGetValue(pm.ProbeId, out List<double> readings))
+                    {
+                        pm.Readings.AddRange(readings);
+                        pm.Readings.Sort();
+                        int n = pm.Readings.Count;
+                        pm.ReferenceValue = Math.Round((pm.Readings[Math.Max(5, n / 4)] + pm.Readings[Math.Max(0, n - 5)]) / 2.0, 3);
+                    }
+                }
+
+                if (_isMasteringStage)
+                {
+                    foreach (var pm in _probeMeasurements.Values)
+                    {
+                        _dataStorageService.SaveProbeReadings(
+                            _dataStorageService.GetProbeInstallByPartNumber(_currentPartCode),
+                            _currentPartCode,
+                            new Dictionary<string, double> { { pm.ProbeId, pm.ReferenceValue } });
+                    }
+                    _dataStorageService.UpdateMasterExpiration(DateTime.Now, _currentPartCode);
+
+                    if (_currentOperationalMode == 1)
+                        await SetPlcDeviceAsync("M102", 1);
+
+                    MessageBox.Show("Mastering completed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                    _isMasteringStage = false;
+                }
+                else
+                {
+                    bool allOk = true;
+                    foreach (var pm in _probeMeasurements.Values)
+                    {
+                        double upperLimit = pm.MasterValue + pm.TolerancePlus;
+                        double lowerLimit = pm.MasterValue - pm.ToleranceMinus;
+                        if (pm.ReferenceValue < lowerLimit || pm.ReferenceValue > upperLimit)
+                        {
+                            allOk = false;
+                            UpdateProbeUI(pm.ProbeId, pm.ReferenceValue, false);
+                        }
+                        else
+                        {
+                            UpdateProbeUI(pm.ProbeId, pm.ReferenceValue, true);
+                        }
+                    }
+                    _dataStorageService.StoreInspectionResults(_currentPartCode, _probeMeasurements.Values.ToList());
+
+                    MessageBox.Show(allOk ? "Inspection passed. All probes within tolerance." : "Inspection failed! Some measurements out of tolerance.",
+                        "Inspection", MessageBoxButton.OK, allOk ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error in MasterCheckProcedure: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task<double> ReadProbeOnceAsync(string probeId)
+        {
+            // Replaced by live event data collection - fallback returns NaN
+            lock (_collectedReadings)
+            {
+                var latest = _collectedReadings.LastOrDefault(r => r.ProbeId == probeId);
+                if (!latest.Equals(default((string, double))))
+                {
+                    return latest.Value;
+                }
+            }
+            return double.NaN;
+        }
+
+        // LoadProbeConfigurations, UpdateProbeUI and Dispose remain unchanged
+
+        private void LoadProbeConfigurations(string partCode)
+        {
+            _probeMeasurements.Clear();
+            var probeInstalls = _dataStorageService.GetProbeInstallByPartNumber(partCode);
+            var masterVals = _dataStorageService.GetMasterReadingByPart(partCode);
+
+            foreach (var probe in probeInstalls)
+            {
+                var master = masterVals?.FirstOrDefault(m => m.Para_No == probe.ProbeId);
+                double masterVal = master?.Nominal ?? 0;
+                double tolPlus = master?.RTolPlus ?? 0;
+                double tolMinus = master?.RTolMinus ?? 0;
+
+                _probeMeasurements[probe.ProbeId] = new ProbeMeasurement
+                {
+                    ProbeId = probe.ProbeId,
+                    MasterValue = masterVal,
+                    TolerancePlus = tolPlus,
+                    ToleranceMinus = tolMinus
+                };
+            }
+        }
+
+        private void UpdateProbeUI(string probeId, double value, bool isPass)
+        {
+            // Your UI update logic here
+        }
+
+        public void Dispose()
+        {
+            _probeService.ProbeValueUpdated -= ProbeValueUpdatedHandler;
+            _probeService.Dispose();
+            plc?.Close();
+            _dataStorageService?.Dispose();
+        }
+    }
+}
+
+

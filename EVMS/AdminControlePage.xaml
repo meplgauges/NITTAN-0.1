@@ -76,6 +76,7 @@
 LoadingRow="dataGrid_LoadingRow"-->
             <DataGrid x:Name="dataGrid"
                       AutoGenerateColumns="False"
+                      SelectionChanged="dataGrid_SelectionChanged"
                       IsReadOnly="True"
                       Margin="10"
                       SelectionMode="Single"
@@ -84,7 +85,7 @@ LoadingRow="dataGrid_LoadingRow"-->
                       CanUserAddRows="False"
                       CanUserDeleteRows="False"
                       CanUserResizeRows="False"
-                      AlternatingRowBackground="#F4F6F8"
+                      AlternatingRowBackground="White"
                       GridLinesVisibility="None"
                       RowHeaderWidth="0"
                       FontSize="14"
@@ -98,18 +99,21 @@ LoadingRow="dataGrid_LoadingRow"-->
                       ColumnHeaderStyle="{StaticResource CustomDataGridColumnHeaderStyle}"
                       RowStyle="{StaticResource CustomDataGridRowStyle}">   
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="Sr No" Binding="{Binding RowNo}" IsReadOnly="True" Width="60"
+                    <DataGridTextColumn Header="Sr No" Binding="{Binding SrNo}" Width="*"
                             ElementStyle="{StaticResource CenterCellStyle}"
                             EditingElementStyle="{StaticResource CenterCellStyle}" />
-                    <DataGridTextColumn Header="ID" Binding="{Binding Parameter}" Width="2*"
+                    <DataGridTextColumn Header="User Type" Binding="{Binding UserType}" Width="*"
                             ElementStyle="{StaticResource CenterCellStyle}"
                             EditingElementStyle="{StaticResource CenterCellStyle}" />
-                    <DataGridTextColumn Header="Name" Binding="{Binding Nominal}" Width="*"
+                    <DataGridTextColumn Header="User ID" Binding="{Binding UserID}" Width="*"
                             ElementStyle="{StaticResource CenterCellStyle}"
                             EditingElementStyle="{StaticResource CenterCellStyle}" />
-                    <DataGridTextColumn Header="Role" Binding="{Binding RTolMinus}" Width="*"
+                    <DataGridTextColumn Header="Name" Binding="{Binding UserName}" Width="*"
                             ElementStyle="{StaticResource CenterCellStyle}"
                             EditingElementStyle="{StaticResource CenterCellStyle}" />
+                    <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="*"
+                             ElementStyle="{StaticResource CenterCellStyle}"
+                             EditingElementStyle="{StaticResource CenterCellStyle}" />  
                 </DataGrid.Columns>
             </DataGrid>
 

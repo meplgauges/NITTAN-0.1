@@ -1,10 +1,13 @@
 ﻿using EVMS.Service;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 namespace EVMS
 {
@@ -17,9 +20,10 @@ namespace EVMS
 
         private PlcProbeService plcProbeService;
         private DataStorageService dataStorageService;
-        private readonly string _connectionString;
+        private MasterService _masterService;
 
-        // Constants for static tolerance range (+/- 0.10)
+        private string _connectionString;
+
         private const double StaticGreenToleranceMinus = -0.10;
         private const double StaticGreenTolerancePlus = 0.10;
 
@@ -29,7 +33,8 @@ namespace EVMS
             this.Loaded += ResultPage_Loaded;
 
             _connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
-            dataStorageService = new DataStorageService(_connectionString);
+            dataStorageService = new DataStorageService();
+            _masterService = new MasterService();  // Add this line
         }
 
         private void ResultPage_Loaded(object sender, RoutedEventArgs e)
@@ -41,7 +46,6 @@ namespace EVMS
         {
             try
             {
-                // Get active parts
                 var activeParts = dataStorageService.GetActiveParts();
                 if (activeParts == null || activeParts.Count == 0)
                 {
@@ -50,22 +54,16 @@ namespace EVMS
                 }
 
                 activePartNumber = activeParts[0].Para_No ?? string.Empty;
-
-                // Get parameters for active part
                 parameterData = dataStorageService.GetPartConfigByPartNumber(activePartNumber);
+
                 if (parameterData == null || parameterData.Count == 0)
                 {
                     MessageBox.Show($"No parameters found for active part {activePartNumber}");
                     return;
                 }
 
-                // Setup DataGrid dynamically
                 LoadDataGrid();
-
-                // Load progress bars
                 LoadProgressBars();
-
-                // Set toggle button text
                 SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
             }
             catch (Exception ex)
@@ -74,29 +72,32 @@ namespace EVMS
             }
         }
 
-        private void LoadDataGrid()
+        private void ValveReadingsGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
         {
-            ValveReadingsGrid.Columns.Clear();
+            // Set all generated columns to star sizing so they share available width evenly
+            e.Column.Width = new DataGridLength(1, DataGridLengthUnitType.Star);
 
-            // Transform parameterData into a DataTable for DataGrid binding
-            DataTable dt = new DataTable();
-
-            // Add columns for each parameter
-            foreach (var param in parameterData)
-            {
-                dt.Columns.Add(param.Parameter, typeof(double));
-            }
-
-            // Add a single row of current values
-            //DataRow row = dt.NewRow();
-            //foreach (var param in parameterData)
-            //{
-            //    row[param.Parameter] = param.Value;
-            //}
-            //dt.Rows.Add(row);
-
-            ValveReadingsGrid.ItemsSource = dt.DefaultView;
+            // Center align the header text
+            var headerStyle = new Style(typeof(DataGridColumnHeader));
+            headerStyle.Setters.Add(new Setter(HorizontalContentAlignmentProperty, HorizontalAlignment.Center));
+            e.Column.HeaderStyle = headerStyle;
         }
+
+        private void LoadDataGrid()
+{
+    ValveReadingsGrid.Columns.Clear();
+
+    DataTable dt = new();
+
+    foreach (var param in parameterData)
+    {
+        dt.Columns.Add(param.Parameter, typeof(double));
+    }
+
+    ValveReadingsGrid.ItemsSource = dt.DefaultView;
+}
+
+
 
         private void LoadProgressBars()
         {
@@ -105,7 +106,6 @@ namespace EVMS
             foreach (var param in parameterData)
             {
                 UserControl progressBar;
-
                 double min = param.Nominal - param.RTolMinus;
                 double max = param.Nominal + param.RTolPlus;
                 double mean = param.Nominal;
@@ -161,14 +161,57 @@ namespace EVMS
 
         private async void MasterToggle_Checked(object sender, RoutedEventArgs e)
         {
-            // Call your initialization logic
-            //await MasterInitializeAsync();
+            if (sender is ToggleButton toggleButton)
+                toggleButton.IsEnabled = false;
+
+            try
+            {
+                await _masterService.RunMasterCycleAsync(10);
+               // MessageBox.Show("Mastering started and completed.");
+                if (sender is ToggleButton tb)
+                    tb.IsChecked = false;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error starting mastering: {ex.Message}");
+            }
+            finally
+            {
+                if (sender is ToggleButton tb)
+                    tb.IsEnabled = true;
+            }
         }
 
-        private void MasterToggle_Unchecked(object sender, RoutedEventArgs e)
+
+
+        //private void MasterToggleButton_Unchecked(object sender, RoutedEventArgs e)
+        //{
+        //    // Called when toggle is switched OFF
+        //    try
+        //    {
+        //        // Stop mastering or cleanup resources here
+        //        // For example, stop live reading or reset UI
+        //        _masterService.StopLiveReading(ProbeReadingHandler);
+
+        //        MessageBox.Show("Mastering stopped.");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($"Error stopping mastering: {ex.Message}");
+        //    }
+        //}
+
+        // Example probe reading event handler (pass to master service)
+        private void ProbeReadingHandler(object? sender, ProbeReadingEventArgs e)
         {
-            // Optional: handle toggle off event
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                MessageBox.Show($"Probe {e.ModuleId}: {e.Value:0.000}");
+            });
         }
+
+
+
 
     }
 }

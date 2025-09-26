@@ -27,11 +27,11 @@
                        Margin="0,0,0,10"/>
                 <TextBlock Text="Select Model" Style="{StaticResource FormLabelStyle}"/>
                 <ComboBox 
-                Width="370"
-                    Style="{StaticResource ModernComboBoxStyle}" x:Name="TxtEmail"/>
+                Width="370" x:Name="cmbModels"
+                    Style="{StaticResource ModernComboBoxStyle}" />
                
                 <TextBlock Text="Lot No" Style="{StaticResource FormLabelStyle}"/>
-                <TextBox x:Name="Txt"
+                <TextBox x:Name="Txt" 
                     Style="{StaticResource ModernFilledTextBox}"
                      ToolTip="Enter lot number"/>
 

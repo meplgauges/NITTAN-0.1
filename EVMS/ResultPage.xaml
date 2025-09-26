@@ -259,7 +259,7 @@
                 <ToggleButton 
                     Style="{StaticResource SwitchToggleStyle}"
                     Checked="MasterToggle_Checked"
-                    Unchecked="MasterToggle_Unchecked"/>
+                    />
             </StackPanel>
 
 
@@ -405,33 +405,44 @@
 
         <!-- Row 2: DataGrid spanning both columns -->
         <Border Style="{StaticResource CardBox}"
-        Grid.Row="2" Grid.ColumnSpan="4"
-        Margin="20,5,20,10" Padding="3">
+                Grid.Row="2" Grid.ColumnSpan="4"
+                Margin="20,5,20,10" Padding="3"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch">
+
             <DataGrid x:Name="ValveReadingsGrid"
-              AutoGenerateColumns="True"
-              CanUserAddRows="False"
-              CanUserDeleteRows="False"
-              IsReadOnly="True"
-              GridLinesVisibility="None"
-              Background="#1E1E1E"
-              Foreground="White"
-              BorderBrush="#333"
-              RowBackground="#1E1E1E"
-              AlternatingRowBackground="#2A2A2A"
-              HorizontalGridLinesBrush="#444"
-              VerticalGridLinesBrush="#444"
-              RowHeight="25"
-              ColumnHeaderHeight="35"
-              FontSize="14"
-              FontFamily="Segoe UI"
-           >
+                      AutoGenerateColumns="True"
+                      AutoGeneratingColumn="ValveReadingsGrid_AutoGeneratingColumn"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="None"
+                      Background="#1E1E1E"
+                      Foreground="Black"
+                      BorderBrush="#333"
+                      RowBackground="#1E1E1E"
+                      AlternatingRowBackground="#2A2A2A"
+                      HorizontalGridLinesBrush="#444"
+                      VerticalGridLinesBrush="#444"
+                      RowHeight="25"
+                      ColumnHeaderHeight="35"
+                      FontSize="14"
+                      FontFamily="Segoe UI"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      ColumnWidth="*"
+                      MinHeight="100"
+                      MinWidth="100">
+
+         
+
 
                 <!-- Modern Styles -->
                 <DataGrid.Resources>
                     <!-- Header Style -->
                     <Style TargetType="DataGridColumnHeader">
                         <Setter Property="Background" Value="#2D2D2D"/>
-                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="Foreground" Value="Black"/>
                         <Setter Property="FontWeight" Value="SemiBold"/>
                         <Setter Property="BorderBrush" Value="#444"/>
                         <Setter Property="BorderThickness" Value="0,0,1,1"/>
@@ -442,7 +453,7 @@
                     <!-- Row Style -->
                     <Style TargetType="DataGridRow">
                         <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="Foreground" Value="Black"/>
                         <Setter Property="FontSize" Value="13"/>
                         <Setter Property="BorderBrush" Value="Transparent"/>
                         <Setter Property="SnapsToDevicePixels" Value="True"/>
