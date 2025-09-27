@@ -22,7 +22,6 @@ namespace EVMS
         private DataStorageService dataStorageService;
         private MasterService _masterService;
 
-        private string _connectionString;
 
         private const double StaticGreenToleranceMinus = -0.10;
         private const double StaticGreenTolerancePlus = 0.10;
@@ -31,16 +30,42 @@ namespace EVMS
         {
             InitializeComponent();
             this.Loaded += ResultPage_Loaded;
+            this.Unloaded += ResultPage_Unloaded;
 
-            _connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
+
             dataStorageService = new DataStorageService();
-            _masterService = new MasterService();  // Add this line
+            _masterService = new MasterService();
+            plcProbeService= new PlcProbeService();
+            // Add this line
         }
 
-        private void ResultPage_Loaded(object sender, RoutedEventArgs e)
+        private async void ResultPage_Loaded(object sender, RoutedEventArgs e)
         {
             InitializeValveDataAndUI();
+            try
+            {
+                // Ensure PLC and Probe Connection asynchronously when page loads
+                bool connected = await _masterService.EnsureConnectionAsync();
+                if (connected)
+                {
+                    MessageBox.Show("PLC and Probe Connected Successfully", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Failed to connect to PLC and Probe", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during connection: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
+
+        private void ResultPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            _masterService.Cleanup();
+        }
+
 
         private void InitializeValveDataAndUI()
         {
@@ -166,10 +191,12 @@ namespace EVMS
 
             try
             {
-                await _masterService.RunMasterCycleAsync(10);
-               // MessageBox.Show("Mastering started and completed.");
                 if (sender is ToggleButton tb)
+                {
+                    await _masterService.MasterCheckProcedureAsync();
+                    MessageBox.Show("Mastering started and completed.");
                     tb.IsChecked = false;
+                }
             }
             catch (Exception ex)
             {
@@ -181,6 +208,7 @@ namespace EVMS
                     tb.IsEnabled = true;
             }
         }
+
 
 
 

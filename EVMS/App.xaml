@@ -31,11 +31,34 @@
         </Style>
 
 
-        <LinearGradientBrush x:Key="PageBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Color="#3d5a80" Offset="0"/>
-            <GradientStop Color="#e0fbfc" Offset="1"/>
-        </LinearGradientBrush>
-    </Application.Resources>
+      
+            <!-- Gradient Brush Resource -->
+            <LinearGradientBrush x:Key="PageBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#3d5a80" Offset="0"/>
+                <GradientStop Color="#e0fbfc" Offset="1"/>
+            </LinearGradientBrush>
+
+            <!-- Style for blurred window background -->
+            <Style x:Key="BlurredBackgroundStyle" TargetType="Grid">
+                <Setter Property="Background">
+                    <Setter.Value>
+                        <VisualBrush>
+                            <VisualBrush.Visual>
+                                <Rectangle>
+                                    <Rectangle.Fill>
+                                        <StaticResource ResourceKey="PageBackgroundBrush"/>
+                                    </Rectangle.Fill>
+                                    <Rectangle.Effect>
+                                        <BlurEffect Radius="30"/>
+                                    </Rectangle.Effect>
+                                </Rectangle>
+                            </VisualBrush.Visual>
+                        </VisualBrush>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Application.Resources>
+
 
 
 </Application>
