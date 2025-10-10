@@ -16,7 +16,7 @@ namespace EVMS
         private ActUtlType plc = new ActUtlType();
         private bool isConnected = false;
         private DispatcherTimer monitorTimer = new DispatcherTimer();
-        private readonly string connectionString;
+        private readonly string? connectionString;
         private Dictionary<string, Button> inputButtons = new Dictionary<string, Button>();
         private Dictionary<string, ToggleButton> outputButtons = new Dictionary<string, ToggleButton>();
         private List<IODevice> inputDevices = new List<IODevice>();
@@ -73,7 +73,7 @@ namespace EVMS
         {
             public int ID { get; set; }
             public string Description { get; set; }
-            public string Bit { get; set; }
+            public string? Bit { get; set; }
             public bool IsInput { get; set; }
             public bool IsOutput { get; set; }
         }
@@ -207,7 +207,6 @@ namespace EVMS
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             }
         }
-
 
         // Load all devices from the database into input and output device lists
         private void LoadDevicesFromDatabase()
@@ -679,7 +678,7 @@ namespace EVMS
             {
                 isConnected = false;
                 PowerToggle.IsChecked = false;
-                MessageBox.Show($"PLC connection error: {ex.Message}", "PLC Error",
+                MessageBox.Show($"PLC connection error: {ex.Message}", "PLC Error",  
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 PlcStatusText.Text = "Connection Error ❌";
             }

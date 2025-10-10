@@ -13,18 +13,20 @@ namespace EVMS
 {
     public partial class ProbeInstallPage : UserControl, INotifyPropertyChanged
     {
-        // Orbit3 hardware objects
-        private OrbitServer _orbServer;
-        private OrbitNetwork _orbNet;
-        private OrbitNetworks _orbNets;
-        private OrbitModules _orbModules;
+        // Orbit3 hardware objects - mark nullable since initialized later
+        public event Action<string>? StatusMessageChanged;
+
+        private OrbitServer? _orbServer;
+        private OrbitNetwork? _orbNet;
+        private OrbitNetworks? _orbNets;
+        private OrbitModules? _orbModules;
 
         private readonly string connectionString;
         public ObservableCollection<ProbeViewModel> Probes { get; set; }
         public ObservableCollection<string> PartNumbers { get; set; }
 
-        private string _selectedPartNo;
-        public string SelectedPartNo
+        private string? _selectedPartNo; // nullable as may be empty initially
+        public string? SelectedPartNo
         {
             get => _selectedPartNo;
             set
@@ -33,20 +35,35 @@ namespace EVMS
                 {
                     _selectedPartNo = value;
                     OnPropertyChanged();
-                    _ = LoadProbesForPartAsync(_selectedPartNo);
+                    _ = LoadProbesForPartAsync(_selectedPartNo ?? string.Empty);
                 }
             }
         }
 
+      
+
         public ProbeInstallPage()
         {
-            connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
+            connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"]?.ConnectionString ?? throw new InvalidOperationException("Connection string missing");
             InitializeComponent();
             Probes = new ObservableCollection<ProbeViewModel>();
             PartNumbers = new ObservableCollection<string>();
             DataContext = this;
             Loaded += ProbeInstallPage_Loaded;
             Unloaded += ProbeInstallPage_Unloaded;
+
+            // Initialize as null, assigned later on connect
+            _orbServer = null!;
+            _orbNet = null!;
+            _orbNets = null!;
+            _orbModules = null!;
+            _selectedPartNo = string.Empty;
+        }
+
+
+        private void NotifyStatus(string message)
+        {
+            StatusMessageChanged?.Invoke(message);
         }
 
         // ================= ORBIT CONNECTION =================
@@ -54,16 +71,17 @@ namespace EVMS
         {
             bool connected = await ConnectOrbitAsync();
             if (connected)
-                MessageBox.Show($"{_orbNets?.Count ?? 0} Networks Found. Connected to Orbit.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                NotifyStatus("Connected to Probes.");
+            //MessageBox.Show($"{_orbNets?.Count ?? 0} Networks Found. Connected to Orbit.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
             else
-                MessageBox.Show("Failed to connect to Orbit.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                NotifyStatus("Failed to connect to Orbit.");
 
             await LoadPartNumbersAsync();
             if (PartNumbers.Count > 0)
                 SelectedPartNo = PartNumbers[0];
         }
 
-        private Task<bool> ConnectOrbitAsync()
+        private async Task<bool> ConnectOrbitAsync()
         {
             try
             {
@@ -73,22 +91,22 @@ namespace EVMS
                     _orbServer.Connect();
 
                 if (!_orbServer.Connected)
-                    return Task.FromResult(false);
+                    return false;
 
                 _orbNets = _orbServer.Networks;
                 if (_orbNets == null || _orbNets.Count == 0)
-                    return Task.FromResult(false);
+                    return false;
 
                 _orbNet = _orbNets[0];
                 if (_orbNet == null)
-                    return Task.FromResult(false);
+                    return false;
 
                 _orbModules = _orbNet.Modules;
-                return Task.FromResult(_orbModules != null);
+                return _orbModules != null;
             }
             catch
             {
-                return Task.FromResult(false);
+                return false;
             }
         }
 
@@ -255,8 +273,7 @@ namespace EVMS
                 btn.IsEnabled = false;
                 try
                 {
-                    MessageBox.Show("Move the probe now to be detected. Press ESC to cancel.",
-                                    "Notification", MessageBoxButton.OK, MessageBoxImage.Information);
+                    NotifyStatus("Move the probe now to be detected.");
 
                     // --- Wait for probe signal ---
                     bool added = _orbModules?.NotifyAddModule() ?? true;
@@ -323,10 +340,8 @@ namespace EVMS
                 // ✅ Reload probes for the selected part number instead of blank UI
                 await LoadProbesForPartAsync(SelectedPartNo);
 
-                MessageBox.Show("All probes have been reset.",
-                                "Reset Successful",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Information);
+                NotifyStatus("Reset Successful");
+                          
             }
             catch (Exception ex)
             {
@@ -353,11 +368,11 @@ namespace EVMS
     public class ProbeViewModel : INotifyPropertyChanged
     {
         private int _no;
-        private string _name;
-        private string _probeName;
-        private string _probeId;
-        private string _stroke;
-        private string _status;
+        private string _name = string.Empty;          // Initialize to empty string to avoid nulls
+        private string _probeName = string.Empty;
+        private string _probeId = string.Empty;
+        private string _stroke = string.Empty;
+        private string _status = string.Empty;
 
         public int No { get => _no; set { _no = value; OnPropertyChanged(); } }
         public string Name { get => _name; set { _name = value; OnPropertyChanged(); } }
@@ -365,10 +380,11 @@ namespace EVMS
         public string ProbeId { get => _probeId; set { _probeId = value; OnPropertyChanged(); } }
         public string Stroke { get => _stroke; set { _stroke = value; OnPropertyChanged(); } }
         public string Status { get => _status; set { _status = value; OnPropertyChanged(); } }
+
         public bool IsInstalled => Status == "Installed";
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null) =>
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 }

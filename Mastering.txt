@@ -289,12 +289,16 @@ namespace EVMS.Service
         public double TolerancePlus { get; set; }
         public double ToleranceMinus { get; set; }
     }
+   
+
 
     public class MasterService : IDisposable
     {
         private readonly ActUtlType plc;
         private readonly DataStorageService _dataStorageService;
         private readonly PlcProbeService _plcProbeService;
+       
+
 
         private Dictionary<string, ProbeMeasurement> _probeMeasurements = new Dictionary<string, ProbeMeasurement>();
         private const int SampleCount = 70;
@@ -312,45 +316,22 @@ namespace EVMS.Service
         {
             _dataStorageService = new DataStorageService();
             _plcProbeService = new PlcProbeService();
-            plc = new ActUtlType { ActLogicalStationNumber = 1 };
+	    plc = new ActUtlType { ActLogicalStationNumber = 1 };
 
             _plcProbeService.ProbeValueUpdated += ProbeValueUpdatedHandler;
-        }
 
-        public bool IsConnected => _plcProbeService?.IsConnected ?? false;
-
-        public async Task<bool> EnsureConnectionAsync()
-        {
-            if (_plcProbeService == null)
-                return false;
-
-            if (!_plcProbeService.IsConnected)
+            plc = new ActUtlType
             {
-                bool connected = await _plcProbeService.ConnectAsync();
-                if (connected)
-                {
-                    _plcProbeService.ProbeValueUpdated += ProbeValueUpdatedHandler;
-
-                    int openResult = plc.Open();
-                    if (openResult != 0)
-                    {
-                        MessageBox.Show($"Failed to open PLC connection. Error code: {openResult}", "PLC Init Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        return false;
-                    }
-                }
-                return connected;
+                ActLogicalStationNumber = 1
+            };
+            int openResult = plc.Open();
+            if (openResult != 0)
+            {
+                MessageBox.Show($"Failed to open PLC connection. Error code: {openResult}", "PLC Init Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-            return true;
         }
 
-        public void Cleanup()
-        {
-            StopLiveReading();
-            _plcProbeService?.Disconnect();
-            _plcProbeService.ProbeValueUpdated -= ProbeValueUpdatedHandler;
-            plc.Close();
-        }
-
+	public bool IsConnected => _plcProbeService?.IsConnected ?? false;
         private void ProbeValueUpdatedHandler(object? sender, ProbeReadingEventArgs e)
         {
             lock (_collectedReadings)
@@ -397,10 +378,7 @@ namespace EVMS.Service
                 foreach (var pm in _probeMeasurements.Values)
                     pm.Readings.Clear();
 
-                bool ok = await EnsureConnectionAsync();
-                if (!ok) return;
-
-                ok = SetPlcDevice("M14", 1);
+                bool ok = await Task.Run(() => SetPlcDevice("M14", 1));
                 if (!ok) return;
 
                 _collectedReadings.Clear();
@@ -411,7 +389,7 @@ namespace EVMS.Service
 
                 _plcProbeService.StopLiveReading();
 
-                ok = SetPlcDevice("M14", 0);
+                ok = await Task.Run(() => SetPlcDevice("M14", 0));
                 if (!ok) return;
 
                 Dictionary<string, List<double>> groupedReadings;
@@ -440,13 +418,12 @@ namespace EVMS.Service
                         _dataStorageService.SaveProbeReadings(
                             _dataStorageService.GetProbeInstallByPartNumber(_currentPartCode),
                             _currentPartCode,
-                            new Dictionary<string, double> { { pm.ProbeId, pm.ReferenceValue } }
-                        );
+                            new Dictionary<string, double> { { pm.ProbeId, pm.ReferenceValue } });
                     }
                     _dataStorageService.UpdateMasterExpiration(DateTime.Now, _currentPartCode);
 
                     if (_currentOperationalMode == 1)
-                        SetPlcDevice("M102", 1);
+                        await Task.Run(() => SetPlcDevice("M102", 1));
 
                     MessageBox.Show("Mastering completed successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
                     _isMasteringStage = false;
@@ -523,11 +500,12 @@ namespace EVMS.Service
 
         public void Dispose()
         {
-            Cleanup();
+            _plcProbeService.ProbeValueUpdated -= ProbeValueUpdatedHandler;
+            _plcProbeService.Dispose();
+            plc?.Close();
             _dataStorageService?.Dispose();
         }
     }
 }
-
 
 

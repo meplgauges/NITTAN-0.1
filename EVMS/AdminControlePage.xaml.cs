@@ -10,10 +10,13 @@ namespace EVMS
     public partial class AdminControlePage : UserControl
     {
         private readonly string connectionString;
+        public event Action<string>? StatusMessageChanged;
 
         public AdminControlePage()
         {
             InitializeComponent();
+            
+
             connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
 
             EnsureUsersTableExists();  // Create table if missing
@@ -27,6 +30,11 @@ namespace EVMS
 
             LoadData();
             ClearInputs();
+
+        }
+        private void UpdateStatus(string message)
+        {
+            StatusMessageChanged?.Invoke(message);
         }
 
         private void EnsureUsersTableExists()
@@ -96,7 +104,7 @@ namespace EVMS
                     }
                 }
 
-                MessageBox.Show("User added successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                UpdateStatus("User Added Sucessesfuly...!!");
                 LoadData();
                 ClearInputs();
             }
@@ -198,7 +206,7 @@ namespace EVMS
                     }
                 }
 
-                MessageBox.Show("User deleted successfully.", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+                UpdateStatus("User Deleted Sucessesfuly...!!");
                 LoadData();
                 ClearInputs();
             }

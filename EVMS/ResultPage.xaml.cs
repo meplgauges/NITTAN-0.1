@@ -1,18 +1,26 @@
-﻿using EVMS.Service;
+﻿
+using EVMS.Service;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using static EVMS.Service.MasterService;
 
 namespace EVMS
 {
     public partial class ResultPage : UserControl
     {
+        public event Action<string>? StatusMessageChanged;
+
+        private Dictionary<string, UserControl> _progressBarControls = new Dictionary<string, UserControl>();
+        public event PropertyChangedEventHandler? PropertyChanged;
+
         private bool useFirstDesign = true;
         private bool _showLeft = true;
         private List<PartReadingDataModel> parameterData;
@@ -22,23 +30,109 @@ namespace EVMS
         private DataStorageService dataStorageService;
         private MasterService _masterService;
 
+        private string _model;
+        private string _lotNo;
+        private string _userId;
 
-        private const double StaticGreenToleranceMinus = -0.10;
-        private const double StaticGreenTolerancePlus = 0.10;
 
-        public ResultPage()
+        public ResultPage(string model, string lotNo, string userId)
         {
             InitializeComponent();
+            _model = model;
+            _lotNo = lotNo;
+            _userId = userId;
+
+            SetData(_model, _lotNo, _userId);
             this.Loaded += ResultPage_Loaded;
             this.Unloaded += ResultPage_Unloaded;
 
-
             dataStorageService = new DataStorageService();
             _masterService = new MasterService();
-            plcProbeService= new PlcProbeService();
-            // Add this line
+            plcProbeService = new PlcProbeService();
+
+            _masterService.CalculatedValuesWithStatusReady += MasterService_CalculatedValuesWithStatusReady;
+
+            _masterService.StatusMessageUpdated += (message) =>
+            {
+                StatusMessageChanged?.Invoke(message);
+            };
+
+            // Set DataContext for data binding
+            this.DataContext = this;
+
+            // Initialize counts to zero to display correctly on UI load
+            InspectionQty = 0;
+            OkCount = 0;
+            NgCount = 0;
         }
 
+     
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public void SetData(string model, string lotNo, string userId)
+        {
+            txtModel.Text = model;
+            txtLotNo.Text = lotNo;
+            txtUserId.Text = userId;
+        }
+
+        private void NotifyStatus(string message)
+        {
+            StatusMessageChanged?.Invoke(message);
+        }
+
+        private async void MasterService_CalculatedValuesWithStatusReady(object? sender, Dictionary<string, ParameterResult> resultsWithStatus)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                UpdateProgressBarsWithStatus(resultsWithStatus);
+
+                int okCount = resultsWithStatus.Count(r => r.Value.IsOk);
+                int ngCount = resultsWithStatus.Count - okCount;
+                int totalCount = resultsWithStatus.Count;
+
+                InspectionQty = totalCount;
+                OkCount = okCount;
+                NgCount = ngCount;
+
+                string status = okCount == totalCount ? "OK" : "NG";
+                //NotifyStatus($"Inspection Completed. OK: {okCount}, NG: {ngCount}");
+
+                // Save inspection asynchronously
+                _ = Task.Run(async () =>
+                {
+                    float GetValue(string key) => resultsWithStatus.TryGetValue(key, out var param) ? (float)param.Value : 0f;
+
+                    await dataStorageService.InsertMasterInspectionAsync(
+                        _model,
+                        _userId,
+                        _lotNo,
+                        GetValue("OL"),
+                        GetValue("DE"),
+                        GetValue("HD"),
+                        GetValue("GP"),
+                        GetValue("STDG"),
+                        GetValue("STDU"),
+                        GetValue("GIR DIA"),
+                        GetValue("STN"),
+                        GetValue("EFRO"),
+                        GetValue("SH"),
+                        GetValue("S R/O"),
+                        GetValue("DG"),
+                        status
+                    );
+                });
+            });
+        }
+
+
+
+
+     
         private async void ResultPage_Loaded(object sender, RoutedEventArgs e)
         {
             InitializeValveDataAndUI();
@@ -48,7 +142,7 @@ namespace EVMS
                 bool connected = await _masterService.EnsureConnectionAsync();
                 if (connected)
                 {
-                    MessageBox.Show("PLC and Probe Connected Successfully", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    NotifyStatus("PLC and Probe Connected Successfully");
                 }
                 else
                 {
@@ -61,9 +155,14 @@ namespace EVMS
             }
         }
 
+        // Helper method to add timeout to PLC connection
+        
+
+
+
         private void ResultPage_Unloaded(object sender, RoutedEventArgs e)
         {
-            _masterService.Cleanup();
+            _masterService.Dispose();
         }
 
 
@@ -109,33 +208,40 @@ namespace EVMS
         }
 
         private void LoadDataGrid()
-{
-    ValveReadingsGrid.Columns.Clear();
+        {
+            ValveReadingsGrid.Columns.Clear();
 
-    DataTable dt = new();
+            DataTable dt = new();
 
-    foreach (var param in parameterData)
-    {
-        dt.Columns.Add(param.Parameter, typeof(double));
-    }
+            foreach (var param in parameterData)
+            {
+                dt.Columns.Add(param.Parameter, typeof(double));
+            }
 
-    ValveReadingsGrid.ItemsSource = dt.DefaultView;
-}
+            ValveReadingsGrid.ItemsSource = dt.DefaultView;
+        }
 
 
 
+        // Dictionary to hold references to dynamically created progress bar controls keyed by parameter name
+
+        /// <summary>
+        /// Dynamically load progress bars into ProgressBarContainer based on parameterData.
+        /// Tracks controls in _progressBarControls dictionary for later value updates.
+        /// </summary>
         private void LoadProgressBars()
         {
             ProgressBarContainer.Children.Clear();
+            _progressBarControls.Clear();
 
             foreach (var param in parameterData)
             {
                 UserControl progressBar;
+
                 double min = param.Nominal - param.RTolMinus;
                 double max = param.Nominal + param.RTolPlus;
                 double mean = param.Nominal;
-                double greenLowThreshold = mean + StaticGreenToleranceMinus;
-                double greenHighThreshold = mean + StaticGreenTolerancePlus;
+
 
                 if (useFirstDesign)
                 {
@@ -144,8 +250,8 @@ namespace EVMS
                     pb.MinValue = min;
                     pb.MaxValue = max;
                     pb.MeanValue = mean;
-                    pb.GreenLowThreshold = greenLowThreshold;
-                    pb.GreenHighThreshold = greenHighThreshold;
+
+                    pb.Value = 0; // Initialize with zero or default
                     progressBar = pb;
                 }
                 else
@@ -154,13 +260,62 @@ namespace EVMS
                     pb.Min = min;
                     pb.Mean = mean;
                     pb.Max = max;
+                    pb.Value = 0; // Initialize with zero or default
                     pb.Title = param.Parameter;
                     progressBar = pb;
                 }
 
                 ProgressBarContainer.Children.Add(progressBar);
+                _progressBarControls[param.Parameter] = progressBar;
             }
         }
+
+        /// <summary>
+        /// Update the progress bars with mastered values after mastering completes.
+        /// Input dictionary keys must match Parameter names used when loading progress bars.
+        /// </summary>
+        /// <param name="masteredValues">Dictionary of parameter name to mastered reference value</param>
+        //private void UpdateProgressBarsWithCalculatedValues(Dictionary<string, double> calculatedValues)
+        //{
+        //    foreach (var kvp in calculatedValues)
+        //    {
+        //        if (_progressBarControls.TryGetValue(kvp.Key, out var control))
+        //        {
+        //            if (control is ResultProgressBar pb1)
+        //            {
+        //                pb1.Value = kvp.Value;  // You might need to add an ActualValue property in your control
+        //            }
+        //            else if (control is ProgresBarControl pb2)
+        //            {
+        //                pb2.Value = kvp.Value;  // Likewise
+        //            }
+        //        }
+        //    }
+        //}
+
+        private void UpdateProgressBarsWithStatus(Dictionary<string, ParameterResult> resultsWithStatus)
+        {
+            foreach (var kvp in resultsWithStatus)
+            {
+                if (_progressBarControls.TryGetValue(kvp.Key, out var control))
+                {
+                    if (control is ResultProgressBar pb)
+                    {
+                        pb.UpdateValue(kvp.Value.Value, kvp.Value.IsOk);
+                    }
+                    else if (control is ProgresBarControl pb2)
+                    {
+                        pb2.Value = kvp.Value.Value;
+                        // Optional: add IsOk property and color logic to ProgresBarControl if desired
+                    }
+                }
+            }
+        }
+
+
+
+
+
 
         private void ToggleBtn_Click(object sender, RoutedEventArgs e)
         {
@@ -184,52 +339,83 @@ namespace EVMS
             SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
         }
 
+        // Mastering toggle
         private async void MasterToggle_Checked(object sender, RoutedEventArgs e)
         {
-            if (sender is ToggleButton toggleButton)
-                toggleButton.IsEnabled = false;
+            ToggleButton? toggleButton = sender as ToggleButton;
+            if (toggleButton == null) return;
+
+            toggleButton.IsEnabled = false;
 
             try
             {
-                if (sender is ToggleButton tb)
-                {
-                    await _masterService.MasterCheckProcedureAsync();
-                    MessageBox.Show("Mastering started and completed.");
-                    tb.IsChecked = false;
-                }
+                _masterService.IsMasteringStage = true;
+
+                // Run mastering procedure
+                await _masterService.MasterCheckProcedureAsync();
+
+                // Mastering complete → automatically turn off the toggle
+                _masterService.IsMasteringStage = false;
+                toggleButton.IsChecked = false;
+
+                //MessageBox.Show("Mastering completed. You can now perform Master Inspection.",
+                //                "Mastering Completed", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Error starting mastering: {ex.Message}");
+                toggleButton.IsChecked = false;
             }
             finally
             {
-                if (sender is ToggleButton tb)
-                    tb.IsEnabled = true;
+                toggleButton.IsEnabled = true;
             }
         }
 
+        // Master Inspection toggle
+        private async void MasterInspectionToggleButton_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!(sender is ToggleButton inspectionToggle)) return;
 
+            if (!_masterService.IsConnected)
+            {
+                MessageBox.Show("PLC not connected. Cannot perform inspection.");
+                inspectionToggle.IsChecked = false;
+                return;
+            }
 
+            //if (!_masterService.MasterComplete)
+            //{
+            //    MessageBox.Show("Mastering not complete. Please complete mastering first.");
+            //    inspectionToggle.IsChecked = false;
+            //    return;
+            //}
 
-        //private void MasterToggleButton_Unchecked(object sender, RoutedEventArgs e)
-        //{
-        //    // Called when toggle is switched OFF
-        //    try
-        //    {
-        //        // Stop mastering or cleanup resources here
-        //        // For example, stop live reading or reset UI
-        //        _masterService.StopLiveReading(ProbeReadingHandler);
+            //inspectionToggle.IsEnabled = false;
 
-        //        MessageBox.Show("Mastering stopped.");
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        MessageBox.Show($"Error stopping mastering: {ex.Message}");
-        //    }
-        //}
+            try
+            {
+                _masterService.IsMasteringStage = false;
 
-        // Example probe reading event handler (pass to master service)
+                // Run the inspection procedure
+                await _masterService.MasterCheckProcedureAsync();
+
+                // Inspection complete → turn off toggle automatically
+                inspectionToggle.IsChecked = false;
+                //MessageBox.Show("Master Inspection completed.", "Inspection Completed",
+                //                MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during inspection: {ex.Message}");
+                inspectionToggle.IsChecked = false;
+            }
+            finally
+            {
+                inspectionToggle.IsEnabled = true;
+            }
+        }
+
         private void ProbeReadingHandler(object? sender, ProbeReadingEventArgs e)
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -239,6 +425,39 @@ namespace EVMS
         }
 
 
+
+
+        private int _inspectionQty;
+        public int InspectionQty
+        {
+            get => _inspectionQty;
+            set { _inspectionQty = value; OnPropertyChanged(nameof(InspectionQty)); }
+        }
+
+        private int _okCount;
+        public int OkCount
+        {
+            get => _okCount;
+            set { _okCount = value; OnPropertyChanged(nameof(OkCount)); }
+        }
+
+        private int _ngCount;
+        public int NgCount
+        {
+            get => _ngCount;
+            set { _ngCount = value; OnPropertyChanged(nameof(NgCount)); }
+        }
+
+        public void AddPartInspectionResults(Dictionary<string, ParameterResult> parameterResults)
+        {
+            InspectionQty++; // increment total parts inspected
+
+            bool partIsOk = parameterResults.All(r => r.Value.IsOk);
+            if (partIsOk)
+                OkCount++;
+            else
+                NgCount++;
+        }
 
 
     }

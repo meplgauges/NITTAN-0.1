@@ -13,7 +13,9 @@ namespace EVMS
 {
     public partial class ProbeSetupPage : UserControl, INotifyPropertyChanged
     {
-            private readonly string _connectionString;
+
+
+        private readonly string _connectionString;
         private readonly DispatcherTimer _timer;
         private readonly OrbitService _orbitService = new OrbitService();
 
@@ -162,12 +164,12 @@ namespace EVMS
                     probe.Value = Math.Min(Math.Max(normalizedValue, 0), 100);
 
                     // Show actual reading in status (no percentage)
-                    if (reading > 1.600)
+                    if (reading > 1.200)
                     {
                         probe.Status = "OVER";
                         probe.InRange = false;
                     }
-                    else if (reading < 0.370)
+                    else if (reading < 0.2)
                     {
                         probe.Status = "UNDER";
                         probe.InRange = false;

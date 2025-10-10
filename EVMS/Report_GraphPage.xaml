@@ -1,0 +1,144 @@
+﻿<UserControl x:Class="EVMS.Report_GraphPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
+    xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+    MinWidth="900" MinHeight="600"
+    Background="Black">
+    
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="D:\NITTAN\NITTAN 0.1\EVMS\Style\ReportPageDesign.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50"/>
+            <!-- Header -->
+            <RowDefinition Height="90"/>
+            <!-- Pickers, Dropdowns, Button -->
+            <RowDefinition Height="90"/>
+            <!-- Labels with TextBlocks -->
+            <RowDefinition Height="*"/>
+            <!-- Content area -->
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#2C3E50" CornerRadius="12" Padding="12" 
+                VerticalAlignment="Center" >
+            <TextBlock Text="Graphs" Foreground="White" FontSize="20" FontWeight="DemiBold" HorizontalAlignment="Center"/>
+        </Border>
+
+        <!-- First Row: DatePicker and TimePicker, same width -->
+        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="10" 
+        Margin="0,15,0,0" 
+        BorderBrush="#D1D9E6" BorderThickness="1" >
+            <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+
+                </Grid.ColumnDefinitions>
+
+                <!-- Date Picker -->
+                <DatePicker Grid.Column="0" Margin="5" 
+                                 BorderBrush="#1976D2"
+                                 BorderThickness="1"
+                                 Padding="4"/>
+
+                <!-- TO Label -->
+                <TextBlock Text="TO" Grid.Column="1" Margin="1,0" VerticalAlignment="Center" FontWeight="Bold" />
+
+                <!-- DatePicker -->
+                <DatePicker Grid.Column="2" Margin="4"  BorderBrush="#1976D2"
+                                             BorderThickness="1"
+                                             Padding="4"/>
+                <!-- Second MaterialDesign TimePicker -->
+
+                <!-- Four Dropdowns -->
+                <ComboBox Grid.Column="3" Margin="4" Style="{DynamicResource  ModernComboBoxStyle}"  VerticalContentAlignment="Center" >
+                    <ComboBoxItem Content="Admin" />
+                    <ComboBoxItem Content="Operator" />
+                </ComboBox>
+                <ComboBox Grid.Column="4" Margin="4" Style="{DynamicResource  ModernComboBoxStyle}" VerticalContentAlignment="Center" />
+                <ComboBox Grid.Column="5" Margin="4" Style="{DynamicResource  ModernComboBoxStyle}" VerticalContentAlignment="Center" />
+                <ComboBox Grid.Column="6" Margin="4" Style="{DynamicResource  ModernComboBoxStyle}" VerticalContentAlignment="Center" />
+                <ComboBox Grid.Column="7" Margin="4" Style="{DynamicResource  ModernComboBoxStyle}" VerticalContentAlignment="Center" />
+
+                <!-- Button -->
+                <Button Grid.Column="8" Width="90" Margin="4" Content="Submit" Background="#1976D2" Foreground="White" FontWeight="Bold" Cursor="Hand" Style="{DynamicResource  ModernButtonStyle1}" />
+            </Grid>
+        </Border>
+
+
+        <!-- Third Row: Labels and TextBlocks, no ComboBoxes -->
+        <Border Grid.Row="2" Background="White" CornerRadius="12" Padding="20 15" 
+                Margin="0,15,0,0" BorderBrush="#D1D9E6" BorderThickness="1" >
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Part No" FontWeight="Bold" Foreground="#555" />
+                    <TextBlock Text="Value 1" FontSize="16" Foreground="#222" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="Lot No" FontWeight="Bold" Foreground="#555" />
+                    <TextBlock Text="Value 2" FontSize="16" Foreground="#222" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Parameter" FontWeight="Bold" Foreground="#555" />
+                    <TextBlock Text="Value 3" FontSize="16" Foreground="#222" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="3">
+                    <TextBlock Text="Shift" FontWeight="Bold" Foreground="#555" />
+                    <TextBlock Text="Value 4" FontSize="16" Foreground="#222" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="4">
+                    <TextBlock Text="Date" FontWeight="Bold" Foreground="#555" />
+                    <TextBlock Text="Value 4" FontSize="16" Foreground="#222" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="5">
+                    <TextBlock Text="Shift" FontWeight="Bold" Foreground="#555" />
+                    <TextBlock Text="Value 4" FontSize="16" Foreground="#222" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main content view area -->
+        <Border Grid.Row="3" Background="White" CornerRadius="12" Padding="15"
+        Margin="0,15,0,0" BorderBrush="#D1D9E6" BorderThickness="1">
+            <lvc:CartesianChart Grid.Row="3"
+                    Series="{Binding Series}"
+                    ZoomMode="X"
+                    LegendPosition="Bottom" />
+
+        </Border>
+
+
+
+    </Grid>
+</UserControl>

@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:EVMS"
         mc:Ignorable="d"
         Title="MetroMic Soft"
         Width="900" Height="600"
@@ -13,7 +14,64 @@
         Background="#F9FAFB">
 
     <Window.Resources>
-        
+            <!-- Your existing resources -->
+
+            <Style x:Key="ActivePartStatusButtonStyle" TargetType="Button">
+                <Setter Property="Width" Value="120"/>
+                <Setter Property="Height" Value="30"/>
+                <Setter Property="Foreground" Value="#F9FAFB"/>
+                <Setter Property="Background" Value="#2563EB"/>
+                <Setter Property="BorderBrush" Value="Transparent"/>
+                <Setter Property="FontFamily" Value="Segoe UI Semibold"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="FontSize" Value="17"/>
+                <Setter Property="VerticalAlignment" Value="Top"/>
+                <Setter Property="HorizontalAlignment" Value="Right"/>
+                <Setter Property="Padding" Value="10,0"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+                <Setter Property="IsHitTestVisible" Value="False"/>
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect Color="#1678F3" ShadowDepth="0" Opacity="0.6" BlurRadius="8"/>
+                    </Setter.Value>
+                </Setter>
+
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                            CornerRadius="14"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                                <Grid>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="6,0">
+                                        <!-- Status indicator circle -->
+                                        <Ellipse Width="10" Height="10" Margin="0,0,8,0" Fill="LightGreen">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActivePart, RelativeSource={RelativeSource AncestorType=Window}}" Value="False">
+                                                            <Setter Property="Fill" Value="#EF4444"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+                                        <!-- Content Text -->
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                  VerticalAlignment="Center"
+                                                  RecognizesAccessKey="True"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!-- Other existing resources here -->
+
+
         <DropShadowEffect x:Key="DropShadow"
                           Color="#000000"
                           Direction="270"
@@ -72,108 +130,143 @@
 
     <DockPanel LastChildFill="True">
 
-        <!-- Top Menu Bar -->
-        <Menu DockPanel.Dock="Top"
-      Background="#1F2937"      
-            Foreground="#F9FAFB"
-           
-            Height="36"
-      FontSize="16"
-      FontWeight="SemiBold"
-      FontFamily="Segoe UI Semibold"
-      BorderThickness="0"
-      Padding="0,2">
-            <Menu.Resources>
-                <!-- Remove default menu item highlighting -->
-                <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2563EB" />
-                <!-- Bright Blue highlight -->
-                <Style TargetType="MenuItem">
-                    <Setter Property="Padding" Value="20,5" />
-                    <Setter Property="Foreground" Value="#F9FAFB" />
-                    <Setter Property="Background" Value="Transparent" />
-                    <Setter Property="BorderThickness" Value="0" />
-                    <Setter Property="BorderBrush" Value="Transparent" />
-                    <Setter Property="Cursor" Value="Hand" />
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="MenuItem">
-                                <Grid>
-                                    <Border x:Name="Border"
-                            Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
-                            BorderThickness="{TemplateBinding BorderThickness}"
-                            Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter ContentSource="Header"
-                                          RecognizesAccessKey="True"
-                                          HorizontalAlignment="Left"
-                                          VerticalAlignment="Center"/>
-                                    </Border>
-                                    <!-- Popup for submenu -->
-                                    <Popup x:Name="PART_Popup"
-                                           Placement="Bottom"
-                                           PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
-                                           AllowsTransparency="True"
-                                           Focusable="False"
-                                           PopupAnimation="Fade"
-                                           StaysOpen="False">
-                                        <Border Background="#1F2937"
-                                                BorderBrush="#2563EB"
-                                                BorderThickness="1"
-                                                CornerRadius="4"
-                                                SnapsToDevicePixels="True"> 
-                                            <StackPanel IsItemsHost="True"
-                                        KeyboardNavigation.DirectionalNavigation="Cycle"/>
+        <!-- Top DockPanel hosting Menu and ActivePartStatusButton -->
+        <DockPanel DockPanel.Dock="Top" Background="#1F2937" Height="36" LastChildFill="False">
+
+            <!-- Menu docked left -->
+            <Menu DockPanel.Dock="Left"
+                  Background="#1F2937"
+                  Foreground="#F9FAFB"
+                  Height="40"
+                  FontSize="16"
+                  FontWeight="SemiBold"
+                  FontFamily="Segoe UI Semibold"
+                  BorderThickness="0"
+                  Padding="0,2"
+                  VerticalAlignment="Stretch"
+                  HorizontalAlignment="Left"
+                  Width="Auto">
+                <Menu.Resources>
+                    <!-- Remove default menu item highlighting -->
+                    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#2563EB" />
+                    <!-- Bright Blue highlight -->
+                    <Style TargetType="MenuItem">
+                        <Setter Property="Padding" Value="20,5" />
+                        <Setter Property="Foreground" Value="#F9FAFB" />
+                        <Setter Property="Background" Value="Transparent" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="BorderBrush" Value="Transparent" />
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="MenuItem">
+                                    <Grid>
+                                        <Border x:Name="Border"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                Padding="{TemplateBinding Padding}">
+                                            <ContentPresenter ContentSource="Header"
+                                                              RecognizesAccessKey="True"
+                                                              HorizontalAlignment="Left"
+                                                              VerticalAlignment="Center"/>
                                         </Border>
-                                    </Popup>
-                                </Grid>
-                                <ControlTemplate.Triggers>
-                                    <Trigger Property="IsHighlighted" Value="True">
-                                        <Setter TargetName="Border" Property="Background" Value="#2563EB"/>
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </Trigger>
-                                    <Trigger Property="IsEnabled" Value="False">
-                                        <Setter Property="Foreground" Value="#6B7280"/>
-                                    </Trigger>
-                                    <Trigger Property="IsSubmenuOpen" Value="True">
-                                        <Setter TargetName="PART_Popup" Property="IsOpen" Value="True"/>
-                                    </Trigger>
-                                </ControlTemplate.Triggers>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
+                                        <!-- Popup for submenu -->
+                                        <Popup x:Name="PART_Popup"
+                                               Placement="Bottom"
+                                               PlacementTarget="{Binding RelativeSource={RelativeSource TemplatedParent}}"
+                                               AllowsTransparency="True"
+                                               Focusable="False"
+                                               PopupAnimation="Fade"
+                                               StaysOpen="False">
+                                            <Border Background="#1F2937"
+                                                    BorderBrush="#2563EB"
+                                                    BorderThickness="1"
+                                                    CornerRadius="4"
+                                                    SnapsToDevicePixels="True">
+                                                <StackPanel IsItemsHost="True"
+                                                            KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="Border" Property="Background" Value="#2563EB"/>
+                                            <Setter Property="Foreground" Value="White"/>
+                                        </Trigger>
+                                        <Trigger Property="IsEnabled" Value="False">
+                                            <Setter Property="Foreground" Value="#6B7280"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSubmenuOpen" Value="True">
+                                            <Setter TargetName="PART_Popup" Property="IsOpen" Value="True"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Menu.Resources>
 
-            </Menu.Resources>
+                <MenuItem Header="_Run Part" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
+                    <MenuItem Header="Home..." Click="HomePage_Click" />
+                    <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
+                    <Separator />
+                    <MenuItem Header="Exit" Click="Exit_Click"/>
+                </MenuItem>
 
-            <MenuItem Header="_Run Part" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
-        <MenuItem Header="Home..." Click="HomePage_Click" />
-                <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
-        <Separator />
-        <MenuItem Header="Exit" Click="Exit_Click"/>
-    </MenuItem>
+                <MenuItem Header="_Mastring Configuration" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
+                    <MenuItem Header="Master Configuration" Click="MasterPage_Click"/>
+                </MenuItem>
 
-            <MenuItem Header="_Mastring Configuration" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
-                <MenuItem Header="Master Configuration" Click="MasterPage_Click"/>
-    </MenuItem>
+                <MenuItem Header="Repeatibility" Click="MenuItem_Click">
+                    <MenuItem />
+                </MenuItem>
 
-        <MenuItem Header="Repeatibility" Click="MenuItem_Click">
-        <MenuItem />
-    </MenuItem>
+                <MenuItem Header="_Report" Click="MenuItem_Click" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
+                    <MenuItem Header="SPC Graph" Click="Report_Page"/>
+                    <MenuItem Header="Report"/>
+                </MenuItem>
 
-            <MenuItem Header="_Report" Click="MenuItem_Click" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
-        <MenuItem Header="SPC Graph" Click="RoundBar_Click"/>
-        <MenuItem Header="Report"/>
-    </MenuItem>
+                <MenuItem Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
+                    <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
+                    <MenuItem Header="Part Manager" Click="PartManager_Click"/>
+                    <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
+                    <MenuItem Header="Part Configuration" Click="PartConfig_Click"/>
+                    <MenuItem Header="I/O Configuration" Click="IO_Click"/>
+                    <MenuItem Header="Controls" Click="CO_Click"/>
+                    <MenuItem Header="Login Setup" Click="LoginSetup_Click"/>
+                </MenuItem>
+            </Menu>
 
-            <MenuItem Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
-        <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
-                <MenuItem Header="Part Manager" Click="PartManager_Click"/>
-        <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
-                <MenuItem Header="Part Configuration" Click="PartConfig_Click"/>
-                <MenuItem Header="I/O Configuration" Click="IO_Click"/>
-        <MenuItem Header="Login Setup" Click="LoginSetup_Click"/>
-    </MenuItem>
-</Menu>
+            <TextBox x:Name="StatusMessageTextBox"
+         DockPanel.Dock="Left"
+         Margin="250,4,8,4"
+         Width="500"
+         Height="28"
+         IsReadOnly="True"
+         HorizontalAlignment="Right"
+         VerticalAlignment="Center"
+         Background="#1F2937"
+         Foreground="Red"
+         Padding="6,0"
+         FontSize="20"
+         BorderThickness="0"         
+         FontWeight="Bold"
+         Text=""
+         HorizontalContentAlignment="Center"
+         VerticalContentAlignment="Center"
+          />
+                <!-- Rounded corners for modern look -->
+
+
+
+                <!-- Button docked right -->
+            <Button x:Name="ActivePartStatusButton"
+        DockPanel.Dock="Right"
+        Margin="0,4,12,0"
+        Style="{StaticResource ActivePartStatusButtonStyle}"/>
+
+        </DockPanel>
 
 
         <!-- Optional ScrollViewer for very small window sizes -->
@@ -315,10 +408,6 @@
             </Border>
         </Grid>
 
-        <!-- Optional end ScrollViewer -->
-        <!--
-        </ScrollViewer>
-        -->
-
+        
     </DockPanel>
 </Window>

@@ -1,4 +1,5 @@
 ﻿using ActUtlTypeLib;
+using DocumentFormat.OpenXml.Drawing.Charts;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -31,6 +32,7 @@ internal class PlcProbeService : IDisposable
         return isConnected;
     }
 
+
     private async Task<bool> ConnectPlcAsync()
     {
         plc.ActLogicalStationNumber = 1;
@@ -56,6 +58,42 @@ internal class PlcProbeService : IDisposable
             return false; // timeout
         }
     }
+
+    //private async Task<bool> ConnectPlcAsync(int timeoutMs = 3000)
+    //{
+    //    _cts?.Cancel();
+    //    _cts = new CancellationTokenSource();
+
+    //    var token = _cts.Token;
+
+    //    var openTask = Task.Run(() =>
+    //    {
+    //        try
+    //        {
+    //            return plc.Open(); // Blocking call
+    //        }
+    //        catch
+    //        {
+    //            return -1;
+    //        }
+    //    }, token);
+
+    //    var delayTask = Task.Delay(timeoutMs, token);
+
+    //    var completedTask = await Task.WhenAny(openTask, delayTask);
+
+    //    if (completedTask == openTask)
+    //    {
+    //        int result = await openTask;
+    //        return result == 0;
+    //    }
+    //    else
+    //    {
+    //        // Timeout happened, return false
+    //        return false;
+    //    }
+    //}
+
 
     public void Disconnect()
     {

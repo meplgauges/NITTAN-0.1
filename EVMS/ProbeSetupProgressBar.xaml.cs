@@ -86,7 +86,7 @@ namespace EVMS
                 control.Bar.BeginAnimation(ProgressBar.ValueProperty, animation);
 
                 // Color logic based on the new value thresholds
-                if (newValue < 20 || newValue > 80)
+                if (newValue < 15 || newValue > 90)
                 {
                     control.Bar.Foreground = new SolidColorBrush(Colors.Red);
                 }

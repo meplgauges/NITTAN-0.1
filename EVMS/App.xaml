@@ -4,6 +4,7 @@
              xmlns:local="clr-namespace:EVMS"
              Startup="Application_Startup">
     <Application.Resources>
+        
         <!-- Modern Button -->
         <Style x:Key="ModernButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#2196F3"/>
@@ -57,7 +58,9 @@
                     </Setter.Value>
                 </Setter>
             </Style>
-        </Application.Resources>
+
+
+    </Application.Resources>
 
 
 

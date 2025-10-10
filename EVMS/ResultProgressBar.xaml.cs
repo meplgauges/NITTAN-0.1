@@ -11,8 +11,9 @@ namespace EVMS
     {
         // Dependency Properties
         public static readonly DependencyProperty MinValueProperty =
-            DependencyProperty.Register(nameof(MinValue), typeof(double),
-                typeof(ResultProgressBar), new PropertyMetadata(0.0, OnMinMaxChanged));
+            DependencyProperty.Register(nameof(MinValue), typeof(double), typeof(ResultProgressBar),
+                new PropertyMetadata(0.0, OnMinMaxChanged));
+
         public double MinValue
         {
             get => (double)GetValue(MinValueProperty);
@@ -20,8 +21,9 @@ namespace EVMS
         }
 
         public static readonly DependencyProperty MaxValueProperty =
-            DependencyProperty.Register(nameof(MaxValue), typeof(double),
-                typeof(ResultProgressBar), new PropertyMetadata(1.0, OnMinMaxChanged));
+            DependencyProperty.Register(nameof(MaxValue), typeof(double), typeof(ResultProgressBar),
+                new PropertyMetadata(1.0, OnMinMaxChanged));
+
         public double MaxValue
         {
             get => (double)GetValue(MaxValueProperty);
@@ -29,8 +31,9 @@ namespace EVMS
         }
 
         public static readonly DependencyProperty MeanValueProperty =
-            DependencyProperty.Register(nameof(MeanValue), typeof(double),
-                typeof(ResultProgressBar), new PropertyMetadata(0.5, OnMeanValueChanged));
+            DependencyProperty.Register(nameof(MeanValue), typeof(double), typeof(ResultProgressBar),
+                new PropertyMetadata(0.5, OnMeanValueChanged));
+
         public double MeanValue
         {
             get => (double)GetValue(MeanValueProperty);
@@ -38,31 +41,34 @@ namespace EVMS
         }
 
         public static readonly DependencyProperty ParameterNameProperty =
-            DependencyProperty.Register(nameof(ParameterName), typeof(string),
-                typeof(ResultProgressBar), new PropertyMetadata(string.Empty));
+            DependencyProperty.Register(nameof(ParameterName), typeof(string), typeof(ResultProgressBar),
+                new PropertyMetadata(string.Empty));
+
         public string ParameterName
         {
             get => (string)GetValue(ParameterNameProperty);
             set => SetValue(ParameterNameProperty, value);
         }
 
-        public static readonly DependencyProperty GreenLowThresholdProperty =
-            DependencyProperty.Register(nameof(GreenLowThreshold), typeof(double),
-                typeof(ResultProgressBar), new PropertyMetadata(double.NaN));
-        public double GreenLowThreshold
+        public static readonly DependencyProperty ValueProperty =
+            DependencyProperty.Register(nameof(Value), typeof(double), typeof(ResultProgressBar),
+                new PropertyMetadata(0.0, OnValueChanged));
+
+        public double Value
         {
-            get => (double)GetValue(GreenLowThresholdProperty);
-            set => SetValue(GreenLowThresholdProperty, value);
+            get => (double)GetValue(ValueProperty);
+            set => SetValue(ValueProperty, value);
         }
 
-        public static readonly DependencyProperty GreenHighThresholdProperty =
-            DependencyProperty.Register(nameof(GreenHighThreshold), typeof(double),
-                typeof(ResultProgressBar), new PropertyMetadata(double.NaN));
-        public double GreenHighThreshold
-        {
-            get => (double)GetValue(GreenHighThresholdProperty);
-            set => SetValue(GreenHighThresholdProperty, value);
-        }
+        //public static readonly DependencyProperty IsOkProperty =
+        //    DependencyProperty.Register(nameof(IsOk), typeof(bool?), typeof(ResultProgressBar),
+        //        new PropertyMetadata(null, OnIsOkChanged));
+
+        //public bool? IsOk
+        //{
+        //    get => (bool?)GetValue(IsOkProperty);
+        //    set => SetValue(IsOkProperty, value);
+        //}
 
         // Geometry
         private double cx, cy, radius;
@@ -78,6 +84,12 @@ namespace EVMS
         {
             ComputeGeometry();
             Redraw();
+            PositionStaticElements();
+
+            // Initialize display
+            CenterValueText.Text = "0.000";
+            UpdateArcColor();
+            UpdateNeedle(MinValue);
         }
 
         private void ResultProgressBar_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -98,6 +110,23 @@ namespace EVMS
                 ctrl.UpdateValue((double)e.NewValue);
         }
 
+        private static void OnValueChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is ResultProgressBar ctrl)
+            {
+                double newValue = (double)e.NewValue;
+                ctrl.UpdateValue(newValue);
+            }
+        }
+
+        //private static void OnIsOkChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        //{
+        //    if (d is ResultProgressBar ctrl)
+        //    {
+        //        ctrl.UpdateArcColor();
+        //    }
+        //}
+
         private void ComputeGeometry()
         {
             double w = GaugeCanvas.ActualWidth;
@@ -105,17 +134,34 @@ namespace EVMS
             if (w <= 0 || h <= 0) return;
             cx = w / 2.0;
             cy = h * 0.70;
-            radius = Math.Min(w, h) * 0.45; // increased radius factor for bigger gauge
+            radius = Math.Min(w, h) * 0.45;
         }
-
 
         private void Redraw()
         {
             ArcsLayer.Children.Clear();
-            DrawArc(MinValue, MaxValue, Brushes.LightGray); // default gray
+            DrawArc(MinValue, MaxValue, Brushes.LightGray);
             DrawTicksAndLabels();
             PositionStaticElements();
         }
+
+        private void UpdateArcColor()
+        {
+            ArcsLayer.Children.Clear();
+
+            Brush brush;
+
+            // Red if value is outside the allowed range, otherwise green
+            if (Value < MinValue || Value > MaxValue)
+                brush = Brushes.IndianRed;
+            else
+                brush = Brushes.LimeGreen;
+
+            DrawArc(MinValue, MaxValue, brush);
+        }
+
+
+
 
         private void DrawArc(double fromVal, double toVal, Brush brush)
         {
@@ -149,13 +195,14 @@ namespace EVMS
 
             ArcsLayer.Children.Add(path);
         }
+
         private void DrawTicksAndLabels()
         {
             TicksLayer.Children.Clear();
             if (MaxValue <= MinValue) return;
 
-            int majorDivisions = 6;  // Number of major divisions
-            int minorDivisions = 4;  // Minor ticks per major division
+            int majorDivisions = 6;
+            int minorDivisions = 4;
             int totalTicks = (majorDivisions - 1) * minorDivisions + majorDivisions;
             double step = (MaxValue - MinValue) / (totalTicks - 1);
             double arcThickness = radius * 0.18;
@@ -190,9 +237,8 @@ namespace EVMS
 
                 if (isMajor)
                 {
-                    double fontSize = (i == 0 || i == midMajorTickIndex || i == totalTicks - 1) ? radius * 0.07 : radius * 0.05;
-                    // Ensure font size is at least 8
-                    fontSize = Math.Max(fontSize, 13);
+                    double fontSize = radius * 0.07;
+                    fontSize = Math.Max(fontSize, 10); // ensure font size is at least 10
                     var tb = new TextBlock
                     {
                         FontSize = fontSize,
@@ -200,17 +246,9 @@ namespace EVMS
                         Foreground = tickBrush,
                         Text = val.ToString("0.000")
                     };
-
-
-
                     double labelRadius = tickEndR_major - radius * 0.06;
                     double lx = cx + labelRadius * Math.Cos(rad);
                     double ly = cy - labelRadius * Math.Sin(rad);
-
-                    // Optional: Adjust vertical label position to reduce overlap, e.g., push mid label slightly up/down
-                    if (i == midMajorTickIndex) ly -= radius * 0.06;
-                    else if (i == 0 || i == totalTicks - 1) ly += radius * 0.04;
-
                     tb.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                     Canvas.SetLeft(tb, lx - tb.DesiredSize.Width / 2);
                     Canvas.SetTop(tb, ly - tb.DesiredSize.Height / 2);
@@ -219,15 +257,10 @@ namespace EVMS
             }
         }
 
-
-
-
-
-
-
         private void PositionStaticElements()
         {
             if (radius <= 0) return;
+
             double needleLength = radius * 0.75;
             Needle.X1 = cx;
             Needle.Y1 = cy;
@@ -236,8 +269,8 @@ namespace EVMS
             NeedleRotate.CenterX = cx;
             NeedleRotate.CenterY = cy;
 
-            double hubSize = radius * 0.35;  // bigger hub circle size
-            HubContainer.Width = radius * 0.7;   // wider (long width)
+            double hubSize = radius * 0.35;
+            HubContainer.Width = radius * 0.7;
             HubContainer.Height = radius * 0.2;
             Canvas.SetLeft(HubContainer, cx - HubContainer.Width / 2);
             Canvas.SetTop(HubContainer, cy - HubContainer.Height / 2);
@@ -248,28 +281,23 @@ namespace EVMS
             Canvas.SetTop(LabelID, cy + hubSize * 0.7);
         }
 
-        public void UpdateValue(double value)
+        private void UpdateNeedle(double value)
         {
-            if (MaxValue <= MinValue) return;
-
-            value = Math.Max(MinValue, Math.Min(MaxValue, value));
-            CenterValueText.Text = value.ToString("0.000");
-
-            // Color check
-            Brush arcBrush = Brushes.Red;
-            if (!double.IsNaN(GreenLowThreshold) && !double.IsNaN(GreenHighThreshold))
+            if (MaxValue == MinValue) // Prevent division by zero
             {
-                if (value >= GreenLowThreshold && value <= GreenHighThreshold)
-                    arcBrush = Brushes.Green;
+                return; // or handle default angle, e.g., 0 degrees
             }
-            ArcsLayer.Children.Clear();
-            DrawArc(MinValue, MaxValue, arcBrush);
 
-            // Animate needle
-            double center = (MinValue + MaxValue) / 2;
-            double halfSpan = (MaxValue - MinValue) / 2;
+            double center = (MinValue + MaxValue) / 2.0;
+            double halfSpan = (MaxValue - MinValue) / 2.0;
             double normalized = (value - center) / halfSpan;
-            double targetAngle = normalized * 90;
+            double targetAngle = Math.Max(-90, Math.Min(90, normalized * 90));
+
+            // Check for NaN before animating
+            if (double.IsNaN(targetAngle))
+            {
+                targetAngle = 0; // fallback angle
+            }
 
             var anim = new DoubleAnimation
             {
@@ -277,10 +305,26 @@ namespace EVMS
                 Duration = TimeSpan.FromMilliseconds(400),
                 EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
             };
+
             NeedleRotate.BeginAnimation(RotateTransform.AngleProperty, anim);
         }
 
-        // Helpers
+
+        // **Main method to update value + OK status**
+        public void UpdateValue(double value, bool? isOk = null)
+        {
+            Value = value;
+            //if (isOk.HasValue)
+            //    IsOk = isOk;
+
+            if (CenterValueText != null)
+                CenterValueText.Text = value.ToString("0.000");
+
+            UpdateArcColor();
+            UpdateNeedle(value);
+        }
+
+
         private double ValueToTheta(double value)
         {
             return 180.0 - ((value - MinValue) / (MaxValue - MinValue)) * 180.0;

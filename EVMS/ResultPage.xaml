@@ -80,26 +80,58 @@
             <Setter Property="HorizontalGridLinesBrush" Value="#E2E8F0"/>
             <Setter Property="VerticalGridLinesBrush" Value="#E2E8F0"/>
         </Style>
-
         <Style x:Key="ValueBoxStyle" TargetType="TextBox">
-            <!-- Remove fixed Width/Height -->
+            <!-- Layout constraints -->
             <Setter Property="MinWidth" Value="80"/>
-            <Setter Property="MinHeight" Value="30"/>
-            <Setter Property="MaxWidth" Value="130"/>
-            <!-- prevent too wide on large screen -->
-            <!-- Stretch to fill available space -->
+            <Setter Property="MinHeight" Value="34"/>
+            <Setter Property="MaxWidth" Value="150"/>
             <Setter Property="HorizontalAlignment" Value="Left"/>
             <Setter Property="VerticalAlignment" Value="Top"/>
-            <!-- Visuals -->
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="#D0D7E2"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Foreground" Value="#234E70"/>
+            <!-- Modern fonts -->
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="FontSize" Value="18"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Foreground" Value="White"/>
+            <!-- Box visuals -->
+            <Setter Property="Background" Value="Black"/>
+            <Setter Property="BorderBrush" Value="#D0D7E2"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
             <Setter Property="Padding" Value="7,0"/>
-            <!-- reduced a bit to fit smaller screens -->
+            <!-- Center text -->
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="TextAlignment" Value="Center"/>
+            <!-- Subtle shadow -->
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect Color="#D3E2F2" BlurRadius="6" ShadowDepth="1" />
+                </Setter.Value>
+            </Setter>
+            <!-- Focus styling -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="6">
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                  Padding="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="PART_ContentHost" Property="BorderBrush" Value="#3399FF"/>
+                                <Setter TargetName="PART_ContentHost" Property="BorderThickness" Value="2"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
+
+
 
         <Style x:Key="ValueBoxStyle1" TargetType="TextBox">
             <!-- Remove fixed Width/Height -->
@@ -213,6 +245,8 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+
 
 
 
@@ -221,40 +255,50 @@
                 <!-- Part No -->
             <StackPanel Grid.Column="0" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Part No" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <TextBox Style="{StaticResource ValueBoxStyle}" Text="24"/>
+                <TextBox x:Name="txtModel" Style="{StaticResource ValueBoxStyle}" />
             </StackPanel>
 
             <!-- Lot No -->
             <StackPanel Grid.Column="1" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Lot No" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <TextBox Style="{StaticResource ValueBoxStyle}"/>
+                <TextBox x:Name="txtLotNo" Style="{StaticResource ValueBoxStyle}" />
             </StackPanel>
 
             <!-- Operator ID -->
             <StackPanel Grid.Column="2" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Operator ID" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <TextBox Style="{StaticResource ValueBoxStyle}"/>
+                <TextBox x:Name="txtUserId" Style="{StaticResource ValueBoxStyle}" />
             </StackPanel>
 
             <!-- Inspection Qty -->
             <StackPanel Grid.Column="3" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Inspection Qty" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <TextBox Style="{StaticResource ValueBoxStyle}"/>
+                <TextBox Style="{StaticResource ValueBoxStyle}" Text="{Binding InspectionQty}" IsReadOnly="True"/>
             </StackPanel>
 
             <!-- OK Count -->
             <StackPanel Grid.Column="4" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="OK Count" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <TextBox Style="{StaticResource ValueBoxStyle}" Foreground="#44BA6B" FontWeight="SemiBold"/>
+                <TextBox Style="{StaticResource ValueBoxStyle}" Foreground="Green" FontWeight="Bold"
+             Text="{Binding OkCount}" IsReadOnly="True" />
             </StackPanel>
 
             <!-- NG Count -->
             <StackPanel Grid.Column="5" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="NG Count" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <TextBox Style="{StaticResource ValueBoxStyle}" Foreground="#EA5455" FontWeight="SemiBold"/>
+                <TextBox Style="{StaticResource ValueBoxStyle}" Foreground="Red" FontWeight="Bold"
+             Text="{Binding NgCount}" IsReadOnly="True" />
             </StackPanel>
 
+
             <StackPanel Grid.Column="6" Orientation="Vertical" Margin="8,0">
+                <TextBlock Text="Measurment" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
+                <ToggleButton 
+                       Style="{StaticResource SwitchToggleStyle}"
+                      />
+            </StackPanel>
+
+            <StackPanel Grid.Column="7" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Mastering" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
                 <ToggleButton 
                     Style="{StaticResource SwitchToggleStyle}"
@@ -263,14 +307,15 @@
             </StackPanel>
 
 
-            <StackPanel Grid.Column="7" Orientation="Vertical" Margin="8,0">
-                <TextBlock Text="Master Infection" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
+            <StackPanel Grid.Column="8" Orientation="Vertical" Margin="8,0">
+                <TextBlock Text="Master Inspection" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
 
                 <ToggleButton 
                    Style="{StaticResource SwitchToggleStyle}"
+                    Checked="MasterInspectionToggleButton_Checked"
                   />    
             </StackPanel>
-            <StackPanel Grid.Column="8" Orientation="Vertical" Margin="8,0">
+            <StackPanel Grid.Column="9" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Auto/Manual" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
 
                 <ToggleButton 
@@ -280,7 +325,7 @@
 
 
 
-            <StackPanel Grid.Column="9" Orientation="Vertical" Margin="8,0">
+            <StackPanel Grid.Column="10" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="SwitchBar" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
 
                 <ToggleButton x:Name="SwitchProgressBarBtn"
@@ -290,7 +335,7 @@
             </StackPanel>
 
 
-            <StackPanel Grid.Column="10" Orientation="Vertical" Margin="8,0">
+            <StackPanel Grid.Column="11" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="SwitchValve" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
                 <ToggleButton x:Name="ToggleBtn"
                     Style="{StaticResource SwitchToggleStyle}"

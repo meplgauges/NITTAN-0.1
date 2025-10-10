@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Microsoft.Data.SqlClient;
+using System;
 using System.Configuration;
-using Microsoft.Data.SqlClient;
+using System.Diagnostics;
 
 namespace EVMS.Service
 {
-    internal class DataStorageService : IDisposable
+    public class DataStorageService : IDisposable
     {
         private readonly string _connectionString;
 
@@ -136,6 +137,32 @@ namespace EVMS.Service
             return count > 0;
         }
 
+        public List<(string Name, double Value)> GetMasterProbeRef(string partNo)
+        {
+            string query = @"
+        SELECT Name, Value
+        FROM MasterReadingProbeReference
+        WHERE PartNo = @PartNo";
+
+            var result = new List<(string, double)>();
+
+            using SqlConnection conn = new SqlConnection(_connectionString);
+            using SqlCommand cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@PartNo", partNo);
+
+            conn.Open();
+            using SqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                string name = reader["Name"].ToString() ?? "";
+                double value = reader["Value"] != DBNull.Value ? Convert.ToDouble(reader["Value"]) : 0.0;
+
+                result.Add((name, value));
+            }
+            return result;
+        }
+
+
         public void SaveProbeReadings(List<ProbeInstallModel> probes, string partNo, Dictionary<string, double> probeValues)
         {
             using SqlConnection conn = new SqlConnection(_connectionString);
@@ -168,13 +195,181 @@ namespace EVMS.Service
             }
         }
 
+        public List<Controls> GetActiveBit()
+        {
+            var list = new List<Controls>();
+            string query = "SELECT Description, Bit FROM Controls";
+
+            using SqlConnection conn = new(_connectionString);
+            using SqlCommand cmd = new(query, conn);
+
+            conn.Open();
+            using SqlDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                list.Add(new Controls
+                {
+                    Description = reader["Description"]?.ToString() ?? string.Empty,
+                    Bit = reader["Bit"] != DBNull.Value ? Convert.ToInt32(reader["Bit"]) : 0
+                });
+            }
+            return list;
+        }
+
+        public List<Dictionary<string, object>> GetAllMeasuredDataDynamic(string partNo, DateTime? filterDate = null)
+        {
+            var list = new List<Dictionary<string, object>>();
+
+            string query = "SELECT * FROM MeasuredData WHERE PartNo = @PartNo";
+
+            if (filterDate.HasValue)
+            {
+                query += " AND DateTime >= @StartDate AND DateTime < @EndDate ";
+            }
+
+            query += " ORDER BY DateTime ASC";
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                using var cmd = new SqlCommand(query, conn);
+
+                cmd.Parameters.AddWithValue("@PartNo", partNo);
+
+                if (filterDate.HasValue)
+                {
+                    var startDate = filterDate.Value.Date;
+                    var endDate = startDate.AddDays(1);
+
+                    cmd.Parameters.AddWithValue("@StartDate", startDate);
+                    cmd.Parameters.AddWithValue("@EndDate", endDate);
+                }
+
+                conn.Open();
+
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var row = new Dictionary<string, object>();
+                    for (int i = 1; i < reader.FieldCount; i++)
+                    {
+                        var colName = reader.GetName(i);
+                        var val = reader.IsDBNull(i) ? null : reader.GetValue(i);
+                        row[colName] = val;
+                    }
+                    list.Add(row);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine("DB Exception: " + ex.Message);
+            }
+
+            return list;
+        }
+
+
+
+
+        //public void SaveMeasuredDataDynamic(
+        //    string partNo,
+        //    DateTime dateTime,
+        //    string lotNo,
+        //    Dictionary<string, double> paramValues,
+        //    string operatorName,
+        //    string partStatus)
+        //{
+        //    var partParams = GetPartConfigByPartNumber(partNo);
+
+        //    var columns = new List<string> { "DateTime", "LotNo" };
+        //    var parameters = new List<string> { "@DateTime", "@LotNo" };
+        //                var sqlParams = new List<SqlParameter>
+        //        {
+        //            new SqlParameter("@DateTime", dateTime),
+        //            new SqlParameter("@LotNo", lotNo ?? string.Empty)
+        //        };
+
+        //    foreach (var param in partParams)
+        //    {
+        //        string colName = param.Parameter.Replace(" ", "_");
+        //        if (paramValues.TryGetValue(param.Parameter, out double value))
+        //        {
+        //            columns.Add(colName);
+        //            string paramName = "@" + colName;
+        //            parameters.Add(paramName);
+        //            sqlParams.Add(new SqlParameter(paramName, value));
+        //        }
+        //    }
+
+        //    columns.Add("PartNo");
+        //    parameters.Add("@PartNo");
+        //    sqlParams.Add(new SqlParameter("@PartNo", partNo));
+
+        //    columns.Add("Operator");
+        //    parameters.Add("@Operator");
+        //    sqlParams.Add(new SqlParameter("@Operator", operatorName ?? string.Empty));
+
+        //    columns.Add("PartStatus");
+        //    parameters.Add("@PartStatus");
+        //    sqlParams.Add(new SqlParameter("@PartStatus", partStatus ?? string.Empty));
+
+        //    string insertQuery = $"INSERT INTO MeasuredData ({string.Join(", ", columns)}) VALUES ({string.Join(", ", parameters)})";
+
+        //    using SqlConnection conn = new SqlConnection(_connectionString);
+        //    using SqlCommand cmd = new SqlCommand(insertQuery, conn);
+        //    cmd.Parameters.AddRange(sqlParams.ToArray());
+
+        //    conn.Open();
+        //    cmd.ExecuteNonQuery();
+        //}
+
+        // Insert a new record into MasterInspection table
+        public async Task InsertMasterInspectionAsync(string partNo, string operatorId, string lotNo,
+     float ol, float de, float hd, float gp, float stdg, float stdu, float girDia, float stn,
+     float efro, float sh, float sRo, float dg, string status)
+        {
+            string query = @"
+    INSERT INTO MasterInspection 
+    (PartNo, Operator_ID, LotNo, OL, DE, HD, GP, STDG, STDU, GIR_DIA, STN, EFRO, SH, S_RO, DG, Status, InspectionDate)
+    VALUES 
+    (@PartNo, @Operator_ID, @LotNo, @OL, @DE, @HD, @GP, @STDG, @STDU, @GIR_DIA, @STN, @EFRO, @SH, @S_RO, @DG, @Status, GETDATE())";
+
+            using (var connection = new SqlConnection(_connectionString))
+            using (var command = new SqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@PartNo", partNo);
+                command.Parameters.AddWithValue("@Operator_ID", operatorId);
+                command.Parameters.AddWithValue("@LotNo", lotNo);
+                command.Parameters.AddWithValue("@OL", ol.ToString("F3"));
+                command.Parameters.AddWithValue("@DE", de.ToString("F3"));
+                command.Parameters.AddWithValue("@HD", hd.ToString("F3"));
+                command.Parameters.AddWithValue("@GP", gp.ToString("F3"));
+                command.Parameters.AddWithValue("@STDG", stdg.ToString("F3"));
+                command.Parameters.AddWithValue("@STDU", stdu.ToString("F3"));
+                command.Parameters.AddWithValue("@GIR_DIA", girDia.ToString("F3"));
+                command.Parameters.AddWithValue("@STN", stn.ToString("F3"));
+                command.Parameters.AddWithValue("@EFRO", efro.ToString("F3"));
+                command.Parameters.AddWithValue("@SH", sh.ToString("F3"));
+                command.Parameters.AddWithValue("@S_RO", sRo.ToString("F3"));
+                command.Parameters.AddWithValue("@DG", dg.ToString("F3"));
+
+                command.Parameters.AddWithValue("@Status", status);
+
+                await connection.OpenAsync();
+                int rowsAffected = await command.ExecuteNonQueryAsync();
+
+                if (rowsAffected == 0)
+                    throw new Exception("Insert failed: No rows were affected.");
+            }
+        }
+
         public void Dispose()
         {
             // Cleanup if needed
         }
     }
 
-    internal class PartReadingDataModel
+    public class PartReadingDataModel
     {
         public string? Para_No { get; set; }
         public string? Parameter { get; set; }
@@ -183,7 +378,7 @@ namespace EVMS.Service
         public double RTolMinus { get; set; }
     }
 
-    internal class ProbeInstallModel
+    public class ProbeInstallModel
     {
         public string? PartNo { get; set; }
         public string? ProbeId { get; set; }
@@ -192,7 +387,7 @@ namespace EVMS.Service
 
     }
 
-    internal class MasterReadingModel
+    public class MasterReadingModel
     {
         public string? Para_No { get; set; }
         public string? Parameter { get; set; }
@@ -215,5 +410,12 @@ namespace EVMS.Service
         public string? ProbeName { get; set; }
         public double Value { get; set; }
         public DateTime LastUpdated { get; set; }
+    }
+
+    public class Controls
+    {
+        public string ? Description { get; set; }
+
+        public int Bit { get; set; }
     }
 }

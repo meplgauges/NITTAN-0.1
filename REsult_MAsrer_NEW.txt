@@ -1,0 +1,1615 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using ActUtlTypeLib;
+using Windows.Storage.Streams;
+using Windows.UI.WindowManagement;
+
+namespace EVMS.Service
+{
+    public class ProbeMeasurement
+    {
+        public string? ProbeId { get; set; }
+        public string? Name { get; set; }  // Add this property
+
+        public List<double> Readings { get; set; } = new List<double>();
+        public double ReferenceValue { get; set; } = 0;
+        public double MasterValue { get; set; } = 0;
+        public double TolerancePlus { get; set; }
+        public double ToleranceMinus { get; set; }
+    }
+
+    public class ParameterResult
+    {
+        public double Value { get; set; }
+        public bool IsOk { get; set; }
+    }
+
+    public class 
+        MasterService : IDisposable
+    {
+        public event Action<string>? StatusMessageUpdated;
+        public delegate void CalculatedValuesWithStatusHandler(object? sender, Dictionary<string, ParameterResult> results);
+        public event CalculatedValuesWithStatusHandler? CalculatedValuesWithStatusReady;
+        public event EventHandler<MasterCompletedEventArgs>? MasterCompleted;
+        public delegate void CalculatedValuesReadyHandler(object? sender, Dictionary<string, double> calculatedValues);
+        public event CalculatedValuesReadyHandler? CalculatedValuesReady;
+
+        private readonly ActUtlType plc;
+        private readonly DataStorageService _dataStorageService;
+        private readonly PlcProbeService _plcProbeService;
+
+        private Dictionary<string, ProbeMeasurement> _probeMeasurements = new Dictionary<string, ProbeMeasurement>();
+        private const int ArraySize = 200;
+
+        private readonly ConcurrentQueue<(string ProbeId, double Value)> _collectedReadings
+            = new ConcurrentQueue<(string, double)>();
+
+        private int _currentOperationalMode = 1;
+        private string _currentPartCode = "";
+
+        public bool IsMasteringStage { get; set; } = true;
+        public bool MasterComplete { get; set; } = false;
+        public bool MasteringOK { get; set; } = false;
+        public bool Abort { get; set; } = false;
+
+        //private const string MotorOnDevice = "M14";
+        //private const string Auto  = "X14";
+
+        public MasterService()
+        {
+            _dataStorageService = new DataStorageService();
+            _plcProbeService = new PlcProbeService();
+            plc = new ActUtlType { ActLogicalStationNumber = 1 };
+            _plcProbeService.ProbeValueUpdated += ProbeValueUpdatedHandler;
+        }
+
+        protected virtual void OnCalculatedValuesWithStatusReady(Dictionary<string, ParameterResult> results)
+        {
+            CalculatedValuesWithStatusReady?.Invoke(this, results);
+        }
+        public bool IsConnected => _plcProbeService?.IsConnected ?? false;
+
+        public async Task<bool> EnsureConnectionAsync()
+        {
+            if (_plcProbeService == null) return false;
+
+            if (!_plcProbeService.IsConnected)
+            {
+                bool connected = await _plcProbeService.ConnectAsync();
+                if (connected)
+                {
+                    _plcProbeService.ProbeValueUpdated += ProbeValueUpdatedHandler;
+                    int openResult = plc.Open();
+                    if (openResult != 0)
+                    {
+                        MessageBox.Show($"Failed to open PLC connection. Error code: {openResult}", "PLC Init Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return false;
+                    }
+                }
+                return connected;
+            }
+            return true;
+        }
+
+        private void ProbeValueUpdatedHandler(object? sender, ProbeReadingEventArgs e)
+        {
+            _collectedReadings.Enqueue((e.ModuleId, e.Value));
+        }
+
+        private bool SetPlcDevice(string device, int value)
+        {
+            int ret = plc.SetDevice(device, (short)value);
+            if (ret != 0)
+            {
+                MessageBox.Show($"SetDevice failed: Device={device}, Code={ret}", "PLC Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            return true;
+        }
+
+        private int GetPlcDeviceBit(string device)
+        {
+            if (plc.GetDevice(device, out int value) != 0)
+            {
+                MessageBox.Show($"GetDevice failed: Device={device}", "PLC Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return -1; // Indicate failure
+            }
+            return value; // Return the bit value read from PLC device
+        }
+
+
+        private void Cleanup()
+        {
+            _plcProbeService.StopLiveReading();
+            _plcProbeService?.Disconnect();
+            _plcProbeService.ProbeValueUpdated -= ProbeValueUpdatedHandler;
+            plc.Close();
+        }
+
+        public async Task MasterCheckProcedureAsync()
+        {
+            try
+            {
+                var autoList = _dataStorageService.GetActiveBit();
+
+                if (autoList == null || autoList.Count == 0)
+                {
+                    MessageBox.Show("No Settings Found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var autoControl = autoList.FirstOrDefault(c =>
+                    string.Equals(c.Description, "Auto/Manual", StringComparison.OrdinalIgnoreCase));
+
+                int bitValue = GetPlcDeviceBit("X14");
+
+                if (bitValue == 1 && autoControl?.Bit == bitValue)
+                {
+                    MessageBox.Show("System is not in Auto mode. Please switch to Auto mode.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var activeParts = _dataStorageService.GetActiveParts();
+                if (activeParts == null || activeParts.Count == 0)
+                {
+                    MessageBox.Show("No active parts found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                _currentPartCode = activeParts[0]?.Para_No ?? "";
+                if (string.IsNullOrEmpty(_currentPartCode))
+                {
+                    MessageBox.Show("Active part code is invalid.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                if (autoControl?.Bit == 1)
+                {
+                    SetPlcDevice("M400", 1); // vb ready plc 
+                    SetPlcDevice("M300", 0); // Measurement Cycle off
+                    SetPlcDevice("M100", 1); // Master Cycle selected
+                }
+
+                SetPlcDevice("M10", 0); // Auto Weight on
+
+                LoadProbeConfigurations(_currentPartCode);
+
+                // Sort probe measurements by ProbeId before clearing readings
+                var sortedProbeMeasurements = _probeMeasurements.Values.OrderBy(pm => pm.ProbeId).ToList();
+
+                foreach (var pm in sortedProbeMeasurements)
+                {
+                    pm.Readings.Clear();
+                    pm.ReferenceValue = 0;
+                }
+
+                if (autoControl?.Bit == 0)
+                {
+                    await NotifyOnUIAsync("Load The Value in fixture...");
+                    await WaitForValidProbeReadingAsync("100AY08P42");
+
+                    //await NotifyOnUIAsync("Probe value detected for continuing...");
+                    await NotifyOnUIAsync("PRESS START SWITCH TO START MASTERING");
+
+                    while (GetPlcDeviceBit("X1") != 1)
+                        await Task.Delay(100);
+
+                    await NotifyOnUIAsync("START BUTTON PRESSED");
+                }
+                else
+                {
+                    await NotifyOnUIAsync("Press Robo start button to start mastering.");
+
+                    while (GetPlcDeviceBit("M20") != 1)
+                        await Task.Delay(100);
+
+                    await NotifyOnUIAsync(" Robo start button Pressed");
+
+                    SetPlcDevice("M101", 1);
+                    await NotifyOnUIAsync("Load Valve in Fixture....");
+
+                    await WaitForValidProbeReadingAsync("100AY08P42");
+
+                    await NotifyOnUIAsync("Waiting Safe position from Robot");
+
+                    while (GetPlcDeviceBit("M101") != 0)
+                        await Task.Delay(100);
+                }
+
+                SetPlcDevice("M10", 1); // Motor Down
+
+                while (GetPlcDeviceBit("X0") != 1)
+                    await Task.Delay(100);
+
+                SetPlcDevice("M14", 1); // MOTOR ON
+
+                // wait for motor to stabilize
+                while (_collectedReadings.TryDequeue(out _)) { }
+
+                _plcProbeService.StartLiveReading();
+
+                for (int i = 0; i < ArraySize; i++)
+                {
+                    if (Abort)
+                    {
+                        MessageBox.Show("Mastering aborted.", "Abort", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        break;
+                    }
+
+                    await Task.Delay(10); // keep loop async friendly
+
+                    foreach (var pm in sortedProbeMeasurements)
+                    {
+                        var latest = _collectedReadings.Reverse().FirstOrDefault(r => r.ProbeId == pm.ProbeId);
+                        pm.Readings.Add(!string.IsNullOrEmpty(latest.ProbeId) ? latest.Value : double.NaN);
+                    }
+                }
+
+                _plcProbeService.StopLiveReading();
+                SetPlcDevice("M14", 0); // MOTOR OFF
+                SetPlcDevice("M10", 0); // Motor UP
+
+                await NotifyOnUIAsync("Mastering Completed. Press Enter to Inspect the Master");
+
+                // Calculate reference values
+                foreach (var pm in sortedProbeMeasurements)
+                {
+                    var validReadings = pm.Readings.Where(r => !double.IsNaN(r)).ToList();
+                    pm.ReferenceValue = (validReadings.Count > 0) ? validReadings.Max() : 0;
+                }
+
+                var MasterValues = sortedProbeMeasurements
+                    .Where(pm => !string.IsNullOrEmpty(pm.Name))
+                    .ToDictionary(pm => pm.Name!, pm => pm.ReferenceValue);
+
+                OnCalculatedValuesReady(MasterValues);
+
+                var probeMeasurementByName = sortedProbeMeasurements
+                    .Where(pm => !string.IsNullOrEmpty(pm.Name))
+                    .ToDictionary(pm => pm.Name!);
+
+                if (IsMasteringStage)
+                {
+                    // Mastering stage
+                    await HandleMasteringStageAsync(); // Master complete message already inside
+
+                    //if (autoControl?.Bit == 0)
+                    //{
+                    //    await NotifyOnUIAsync("System autoControl = 0: remove valve.");
+
+                    //    // suppress “Part detected” message after mastering
+                    //    await WaitForValidProbeReadingAsync("100AY08P42", suppressDetectedMessage: true);
+                    //}
+                    //else
+                    //{
+                    //    await NotifyOnUIAsync("System autoControl = 1: Proceed with master inspection.");
+                    //    SetPlcDevice("M102", 1);
+                    //}
+                }
+                else
+                {
+                    // Master Inspection stage
+                    HandleMasterInspectionStage(probeMeasurementByName);
+
+                    // ✅ Show Master Inspection complete message
+                    await NotifyOnUIAsync("Master Inspection Completed");
+                }
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error in MasterCheckProcedure: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+        private async Task HandleMasteringStageAsync()
+        {
+            if (Abort)
+            {
+                MessageBox.Show("Mastering aborted.", "Abort", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            foreach (var pm in _probeMeasurements.Values)
+            {
+                _dataStorageService.SaveProbeReadings(
+                    _dataStorageService.GetProbeInstallByPartNumber(_currentPartCode),
+                    _currentPartCode,
+                    new Dictionary<string, double> { { pm.ProbeId, pm.ReferenceValue } }
+                );
+            }
+
+            MasterComplete = true;
+
+            // ✅ Show Mastering Complete message here
+            await NotifyOnUIAsync("Mastering Completed. Press Enter to Inspect the Master");
+        }
+
+
+
+
+        private void HandleMasterInspectionStage(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            var dbRefList = _dataStorageService.GetMasterProbeRef(_currentPartCode);
+            var dbRefDict = dbRefList.ToDictionary(x => x.Name, x => x.Value);
+
+            var calculatedValues = new Dictionary<string, double>();
+            string[] dbNames = { "OL", "DE", "HD", "GP", "STDG", "STDU", "GIR DIA", "STN", "EFRO", "SH", "S R/O", "DG" };
+
+            foreach (var db in dbNames)
+            {
+                try
+                {
+                    double value = CalculateProbeValue(db, probeMeasurements, dbRefDict);
+                    calculatedValues[db] = value;
+                }
+                catch
+                {
+                    calculatedValues[db] = double.NaN;
+                }
+            }
+
+            var resultsWithStatus = new Dictionary<string, ParameterResult>();
+            bool overallOk = true;
+
+            foreach (var kvp in calculatedValues)
+            {
+                string param = kvp.Key;
+                double val = kvp.Value;
+                bool isOk = false;
+
+                if (probeMeasurements.TryGetValue(param, out var probe))
+                {
+                    double lowerLimit = probe.MasterValue - probe.ToleranceMinus;
+                    double upperLimit = probe.MasterValue + probe.TolerancePlus;
+                    isOk = !double.IsNaN(val) && val >= lowerLimit && val <= upperLimit;
+                }
+
+                if (!isOk) overallOk = false;
+
+                resultsWithStatus[param] = new ParameterResult { Value = val, IsOk = isOk };
+            }
+
+            MasteringOK = overallOk;
+
+            OnCalculatedValuesWithStatusReady(resultsWithStatus);
+            OnCalculatedValuesReady(calculatedValues);
+        }
+
+
+
+        protected virtual void OnCalculatedValuesReady(Dictionary<string, double> calculatedValues)
+        {
+            CalculatedValuesReady?.Invoke(this, calculatedValues);
+        }
+
+        // Calculation dispatcher adapted to accept both probeMeasurements and dbRefDict
+        private double CalculateProbeValue(string dbName, Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            switch (dbName.ToUpper())
+            {
+                case "DE": return CalculateDatumToEnd(probeMeasurements, dbRefDict);
+                case "OL": return CalculateOverallLength(probeMeasurements, dbRefDict);
+                case "HD": return CalculateHeadDiameter(probeMeasurements, dbRefDict);
+                case "GP": return CalculateGroovePosition(probeMeasurements, dbRefDict);
+                case "STDG": return CalculateStemDia1(probeMeasurements, dbRefDict);
+                case "STDU": return CalculateStemDia2(probeMeasurements, dbRefDict);
+                case "GIR DIA": return CalculateGrooveDia(probeMeasurements, dbRefDict);
+                case "STN": return CalculateReducedDia(probeMeasurements, dbRefDict);
+                case "EFRO": return CalculateEFRO(probeMeasurements, dbRefDict);
+                case "SH": return CalculateSeatHeight(probeMeasurements, dbRefDict);
+                case "S R/O": return CalculateSeatRunout(probeMeasurements, dbRefDict);
+                case "DG": return CalculateDatumToGroove(probeMeasurements, dbRefDict);
+                default: throw new Exception($"Unknown probe DB name: {dbName}");
+            }
+        }
+
+
+        #region Calculation Methods
+
+
+
+        #endregion
+
+        #region Calculation Methods
+
+        private double CalculateDatumToEnd(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("DE", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("DE", out var dbRefValue)) dbRefValue = 0.0;
+
+            double current = pm.ReferenceValue;
+            double offset = current - dbRefValue;
+
+            double datumToEnd = Math.Abs(offset);
+            if (offset > 0)
+                datumToEnd += datumToEnd * 0.33;
+            else if (offset < 0)
+                datumToEnd += datumToEnd * 0.40;
+
+            return Math.Round(pm.MasterValue - datumToEnd, 4);
+        }
+
+        private double CalculateOverallLength(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("OL", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("OL", out var dbRefValue)) dbRefValue = 0.0;
+
+            double offset = pm.ReferenceValue - dbRefValue;
+            return Math.Round(pm.MasterValue + offset, 3);
+        }
+
+        private double CalculateHeadDiameter(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("HD", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("HD", out var dbRefValue)) dbRefValue = 0.0;
+
+            double offset = pm.ReferenceValue - dbRefValue;
+            return Math.Round(pm.MasterValue + offset, 3);
+        }
+
+        private double CalculateGroovePosition(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("GP", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("GP", out var dbRefValue)) dbRefValue = 0.0;
+
+            double offset = pm.ReferenceValue - dbRefValue;
+            return Math.Round(pm.MasterValue + offset, 3);
+        }
+
+        private double CalculateStemDia1(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("STDG", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("STDG", out var dbRefValue)) dbRefValue = 0.0;
+
+            double offset = pm.ReferenceValue - dbRefValue;
+            return Math.Round(pm.MasterValue + offset, 3);
+        }
+
+        private double CalculateStemDia2(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("STDU", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("STDU", out var dbRefValue)) dbRefValue = 0.0;
+
+            double offset = pm.ReferenceValue - dbRefValue;
+            return Math.Round(pm.MasterValue + offset, 3);
+        }
+
+        private double CalculateReducedDia(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("STN", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("STN", out var dbRefValue)) dbRefValue = 0.0;
+
+            // For ReducedDia, you may need a second probe or different logic; simplified here:
+            double offset = pm.ReferenceValue - dbRefValue;
+            return Math.Round(pm.MasterValue + offset, 3);
+        }
+
+        private double CalculateEFRO(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("EFRO", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("EFRO", out var dbRefValue)) dbRefValue = 0.0;
+
+            double offset = pm.ReferenceValue - dbRefValue;
+            return Math.Round(pm.MasterValue + offset, 3);
+        }
+
+        private double CalculateGrooveDia(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("GIR DIA", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("GIR DIA", out var dbRefValue)) dbRefValue = 0.0;
+
+            double offset = pm.ReferenceValue - dbRefValue;
+            return Math.Round(pm.MasterValue + offset, 3);
+        }
+
+        private double CalculateSeatHeight(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            double ol = CalculateOverallLength(probeMeasurements, dbRefDict);
+            double de = CalculateDatumToEnd(probeMeasurements, dbRefDict);
+
+            if (double.IsNaN(ol) || double.IsNaN(de)) return double.NaN;
+            return Math.Round(ol - de, 3);
+        }
+
+        private double CalculateSeatRunout(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            if (!probeMeasurements.TryGetValue("S R/O", out var pm)) return double.NaN;
+            if (!dbRefDict.TryGetValue("S R/O", out var dbRefValue)) dbRefValue = 0.0;
+
+            double offset = pm.ReferenceValue - dbRefValue;
+            double runout = Math.Abs(offset);
+            return runout == 0 ? 0.001 : runout;
+        }
+
+        private double CalculateDatumToGroove(Dictionary<string, ProbeMeasurement> probeMeasurements, Dictionary<string, double> dbRefDict)
+        {
+            double de = CalculateDatumToEnd(probeMeasurements, dbRefDict);
+            double gp = CalculateGroovePosition(probeMeasurements, dbRefDict);
+
+            if (double.IsNaN(de) || double.IsNaN(gp)) return double.NaN;
+            return Math.Round(de - gp, 3);
+        }
+
+
+
+
+
+        #endregion
+
+
+        private void LoadProbeConfigurations(string partCode)
+        {
+            _probeMeasurements.Clear();
+            var probeInstalls = _dataStorageService.GetProbeInstallByPartNumber(partCode);
+            var masterVals = _dataStorageService.GetMasterReadingByPart(partCode);
+
+            foreach (var probe in probeInstalls)
+            {
+                var master = masterVals?
+                    .FirstOrDefault(m =>
+                        string.Equals(m.Para_No, probe.ProbeId, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(m.Parameter, probe.Name, StringComparison.OrdinalIgnoreCase)
+                    );
+
+                double masterVal = master?.Nominal ?? 0;
+                double tolPlus = master?.RTolPlus ?? 0;
+                double tolMinus = master?.RTolMinus ?? 0;
+
+                _probeMeasurements[probe.ProbeId] = new ProbeMeasurement
+                {
+                    ProbeId = probe.ProbeId,
+                    Name = probe.Name,
+                    MasterValue = masterVal,
+                    TolerancePlus = tolPlus,
+                    ToleranceMinus = tolMinus
+                };
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Loaded {_probeMeasurements.Count} probe configs for part {partCode}");
+            foreach (var kv in _probeMeasurements)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Probe {kv.Key} ({kv.Value.Name}): Master={kv.Value.MasterValue}, Tol±={kv.Value.TolerancePlus}/{kv.Value.ToleranceMinus}");
+            }
+        }
+
+
+        public void Dispose()
+        {
+            Cleanup();
+            _dataStorageService?.Dispose();
+        }
+
+        public class MasterCompletedEventArgs : EventArgs
+        {
+            public Dictionary<string, double> MasteredValues { get; }
+            public bool Success { get; }
+
+            public MasterCompletedEventArgs(Dictionary<string, double> values, bool success)
+            {
+                MasteredValues = values;
+                Success = success;
+            }
+        }
+
+        private void OnMasterCompleted(Dictionary<string, double> values, bool success)
+        {
+            MasterCompleted?.Invoke(this, new MasterCompletedEventArgs(values, success));
+        }
+        //        
+        public async Task WaitForValidProbeReadingAsync(string targetProbeId, bool suppressDetectedMessage = false)
+        {
+            await NotifyOnUIAsync("Initializing probe readings...");
+
+            _plcProbeService.StartLiveReading(100);
+
+            bool partDetected = false;
+            bool messageFired = false;
+
+            if (!suppressDetectedMessage)
+                await NotifyOnUIAsync("Load part in fixture...");
+
+            while (!partDetected)
+            {
+                await Task.Delay(100);
+
+                var probeVal = _collectedReadings
+                    .Where(r => r.ProbeId == targetProbeId)
+                    .Select(r => r.Value)
+                    .LastOrDefault();
+
+                bool partPresent = Math.Abs(probeVal) > 0.100;
+
+                if (partPresent && !messageFired)
+                {
+                    messageFired = true;
+                    partDetected = true;
+                    if (!suppressDetectedMessage)
+                        await NotifyOnUIAsync("Part detected. Proceeding...");
+                }
+                else if (!partPresent && messageFired)
+                {
+                    messageFired = false;
+                    if (!suppressDetectedMessage)
+                        await NotifyOnUIAsync("Part removed. Waiting for new part...");
+                }
+                else if (!partPresent && !messageFired)
+                {
+                    if (!suppressDetectedMessage)
+                        await NotifyOnUIAsync("Load part in fixture...");
+                }
+            }
+
+            _plcProbeService.StopLiveReading();
+
+            if (!suppressDetectedMessage)
+                await NotifyOnUIAsync("Values updated...");
+        }
+
+
+        private void NotifyStatus(string message)
+        {
+            var handler = StatusMessageUpdated;
+            handler?.Invoke(message);
+        }
+
+
+
+        private async Task NotifyOnUIAsync(string message)
+        {
+            if (Application.Current?.Dispatcher?.CheckAccess() == true)
+                NotifyStatus(message);
+            else
+                await Application.Current.Dispatcher.InvokeAsync(() => NotifyStatus(message));
+        }
+
+
+    }
+}
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+using EVMS.Service;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Configuration;
+using System.Data;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using static EVMS.Service.MasterService;
+
+namespace EVMS
+{
+    public partial class ResultPage : UserControl
+    {
+        public event Action<string>? StatusMessageChanged;
+
+        private Dictionary<string, UserControl> _progressBarControls = new Dictionary<string, UserControl>();
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private bool useFirstDesign = true;
+        private bool _showLeft = true;
+        private List<PartReadingDataModel> parameterData;
+        private string activePartNumber = string.Empty;
+
+        private PlcProbeService plcProbeService;
+        private DataStorageService dataStorageService;
+        private MasterService _masterService;
+
+        private string _model;
+        private string _lotNo;
+        private string _userId;
+
+
+        public ResultPage(string model, string lotNo, string userId)
+        {
+            InitializeComponent();
+            _model = model;
+            _lotNo = lotNo;
+            _userId = userId;
+
+
+
+            // Call SetData after UI initialization
+            SetData(_model, _lotNo, _userId);
+            this.Loaded += ResultPage_Loaded;
+            this.Unloaded += ResultPage_Unloaded;
+
+            dataStorageService = new DataStorageService();
+            _masterService = new MasterService();
+            plcProbeService = new PlcProbeService();
+
+            // Existing event subscription
+            _masterService.CalculatedValuesReady += MasterService_CalculatedValuesReady;
+
+            // New subscription to status messages from MasterService
+            _masterService.StatusMessageUpdated += (message) =>
+            {
+                // Bubble up to whoever listens to ResultPage.StatusMessageChanged
+                StatusMessageChanged?.Invoke(message);
+            };
+        }
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public void SetData(string model, string lotNo, string userId)
+        {
+            txtModel.Text = model;
+            txtLotNo.Text = lotNo;
+            txtUserId.Text = userId;
+        }
+
+        private void NotifyStatus(string message)
+        {
+            StatusMessageChanged?.Invoke(message);
+        }
+        private void MasterService_CalculatedValuesReady(object? sender, Dictionary<string, double> calculatedValues)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                UpdateProgressBarsWithCalculatedValues(calculatedValues);
+                // You may also call your pass/fail comparison method here if needed
+            });
+        }
+
+        private async void ResultPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            InitializeValveDataAndUI();
+
+            //// Optional: Show connecting status immediately
+            //NotifyStatus("Connecting to PLC and Probe...");
+
+            //try
+            //{
+            //    // Wait for connection with a 3-second timeout
+            //    bool connected = await EnsureConnectionWithTimeoutAsync(3000);
+
+            //    if (connected)
+            //    {
+            //        NotifyStatus("PLC and Probe Connected Successfully");
+            //    }
+            //    else
+            //    {
+            //        NotifyStatus("Failed to connect to PLC and Probe");
+            //        // Optionally show a message box without freezing UI
+            //        // Dispatcher.BeginInvoke(() => 
+            //        //     MessageBox.Show("Failed to connect to PLC and Probe", "Error", MessageBoxButton.OK, MessageBoxImage.Error));
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    NotifyStatus($"Error during connection: {ex.Message}");
+            //    // Dispatcher.BeginInvoke(() =>
+            //    //     MessageBox.Show($"Error during connection: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error));
+            //}
+        }
+
+        // Helper method to add timeout to PLC connection
+        private async Task<bool> EnsureConnectionWithTimeoutAsync(int timeoutMilliseconds)
+        {
+            try
+            {
+                // Run the blocking PLC connection on a background thread
+                var openTask = Task.Run(() => _masterService.EnsureConnectionAsync());
+
+                // Wait for either connection or timeout
+                var completedTask = await Task.WhenAny(openTask, Task.Delay(timeoutMilliseconds));
+
+                if (completedTask == openTask)
+                {
+                    return await openTask; // PLC connected successfully
+                }
+                else
+                {
+                    // Timeout occurred
+                    return false;
+                }
+            }
+            catch
+            {
+                return false; // Error during connection
+            }
+        }
+
+
+
+
+        private void ResultPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            _masterService.Dispose();
+        }
+
+
+        private void InitializeValveDataAndUI()
+        {
+            try
+            {
+                var activeParts = dataStorageService.GetActiveParts();
+                if (activeParts == null || activeParts.Count == 0)
+                {
+                    MessageBox.Show("No active parts found.");
+                    return;
+                }
+
+                activePartNumber = activeParts[0].Para_No ?? string.Empty;
+                parameterData = dataStorageService.GetPartConfigByPartNumber(activePartNumber);
+
+                if (parameterData == null || parameterData.Count == 0)
+                {
+                    MessageBox.Show($"No parameters found for active part {activePartNumber}");
+                    return;
+                }
+
+                LoadDataGrid();
+                LoadProgressBars();
+                SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading data: {ex.Message}");
+            }
+        }
+
+        private void ValveReadingsGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        {
+            // Set all generated columns to star sizing so they share available width evenly
+            e.Column.Width = new DataGridLength(1, DataGridLengthUnitType.Star);
+
+            // Center align the header text
+            var headerStyle = new Style(typeof(DataGridColumnHeader));
+            headerStyle.Setters.Add(new Setter(HorizontalContentAlignmentProperty, HorizontalAlignment.Center));
+            e.Column.HeaderStyle = headerStyle;
+        }
+
+        private void LoadDataGrid()
+        {
+            ValveReadingsGrid.Columns.Clear();
+
+            DataTable dt = new();
+
+            foreach (var param in parameterData)
+            {
+                dt.Columns.Add(param.Parameter, typeof(double));
+            }
+
+            ValveReadingsGrid.ItemsSource = dt.DefaultView;
+        }
+
+
+
+        // Dictionary to hold references to dynamically created progress bar controls keyed by parameter name
+
+        /// <summary>
+        /// Dynamically load progress bars into ProgressBarContainer based on parameterData.
+        /// Tracks controls in _progressBarControls dictionary for later value updates.
+        /// </summary>
+        private void LoadProgressBars()
+        {
+            ProgressBarContainer.Children.Clear();
+            _progressBarControls.Clear();
+
+            foreach (var param in parameterData)
+            {
+                UserControl progressBar;
+
+                double min = param.Nominal - param.RTolMinus;
+                double max = param.Nominal + param.RTolPlus;
+                double mean = param.Nominal;
+
+
+                if (useFirstDesign)
+                {
+                    var pb = new ResultProgressBar { Margin = new Thickness(5) };
+                    pb.ParameterName = param.Parameter;
+                    pb.MinValue = min;
+                    pb.MaxValue = max;
+                    pb.MeanValue = mean;
+
+                    pb.Value = 0; // Initialize with zero or default
+                    progressBar = pb;
+                }
+                else
+                {
+                    var pb = new ProgresBarControl { Margin = new Thickness(5) };
+                    pb.Min = min;
+                    pb.Mean = mean;
+                    pb.Max = max;
+                    pb.Value = 0; // Initialize with zero or default
+                    pb.Title = param.Parameter;
+                    progressBar = pb;
+                }
+
+                ProgressBarContainer.Children.Add(progressBar);
+                _progressBarControls[param.Parameter] = progressBar;
+            }
+        }
+
+        /// <summary>
+        /// Update the progress bars with mastered values after mastering completes.
+        /// Input dictionary keys must match Parameter names used when loading progress bars.
+        /// </summary>
+        /// <param name="masteredValues">Dictionary of parameter name to mastered reference value</param>
+        private void UpdateProgressBarsWithCalculatedValues(Dictionary<string, double> calculatedValues)
+        {
+            foreach (var kvp in calculatedValues)
+            {
+                if (_progressBarControls.TryGetValue(kvp.Key, out var control))
+                {
+                    if (control is ResultProgressBar pb1)
+                    {
+                        pb1.Value = kvp.Value;  // You might need to add an ActualValue property in your control
+                    }
+                    else if (control is ProgresBarControl pb2)
+                    {
+                        pb2.Value = kvp.Value;  // Likewise
+                    }
+                }
+            }
+        }
+
+
+
+
+        private void ToggleBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_showLeft)
+            {
+                LeftColumn.Width = new GridLength(0);
+                RightColumn.Width = new GridLength(1, GridUnitType.Star);
+            }
+            else
+            {
+                LeftColumn.Width = new GridLength(1, GridUnitType.Star);
+                RightColumn.Width = new GridLength(0);
+            }
+            _showLeft = !_showLeft;
+        }
+
+        private void SwitchProgressBar_Click(object sender, RoutedEventArgs e)
+        {
+            useFirstDesign = !useFirstDesign;
+            LoadProgressBars();
+            SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
+        }
+
+        // Mastering toggle
+        private async void MasterToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            ToggleButton? toggleButton = sender as ToggleButton;
+            if (toggleButton == null) return;
+
+            toggleButton.IsEnabled = false;
+
+            try
+            {
+                _masterService.IsMasteringStage = true;
+
+                // Run mastering procedure
+                await _masterService.MasterCheckProcedureAsync();
+
+                // Mastering complete → automatically turn off the toggle
+                _masterService.IsMasteringStage = false;
+                toggleButton.IsChecked = false;
+
+                //MessageBox.Show("Mastering completed. You can now perform Master Inspection.",
+                //                "Mastering Completed", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error starting mastering: {ex.Message}");
+                toggleButton.IsChecked = false;
+            }
+            finally
+            {
+                toggleButton.IsEnabled = true;
+            }
+        }
+
+        // Master Inspection toggle
+        private async void MasterInspectionToggleButton_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!(sender is ToggleButton inspectionToggle)) return;
+
+            if (!_masterService.IsConnected)
+            {
+                MessageBox.Show("PLC not connected. Cannot perform inspection.");
+                inspectionToggle.IsChecked = false;
+                return;
+            }
+
+            if (!_masterService.MasterComplete)
+            {
+                MessageBox.Show("Mastering not complete. Please complete mastering first.");
+                inspectionToggle.IsChecked = false;
+                return;
+            }
+
+            inspectionToggle.IsEnabled = false;
+
+            try
+            {
+                _masterService.IsMasteringStage = false;
+
+                // Run the inspection procedure
+                await _masterService.MasterCheckProcedureAsync();
+
+                // Inspection complete → turn off toggle automatically
+                inspectionToggle.IsChecked = false;
+                //MessageBox.Show("Master Inspection completed.", "Inspection Completed",
+                //                MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during inspection: {ex.Message}");
+                inspectionToggle.IsChecked = false;
+            }
+            finally
+            {
+                inspectionToggle.IsEnabled = true;
+            }
+        }
+
+
+
+
+
+
+
+        //private void MasterToggleButton_Unchecked(object sender, RoutedEventArgs e)
+        //{
+        //    // Called when toggle is switched OFF
+        //    try
+        //    {
+        //        // Stop mastering or cleanup resources here
+        //        // For example, stop live reading or reset UI
+        //        _masterService.StopLiveReading(ProbeReadingHandler);
+
+        //        MessageBox.Show("Mastering stopped.");
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        MessageBox.Show($"Error stopping mastering: {ex.Message}");
+        //    }
+        //}
+
+        // Example probe reading event handler (pass to master service)
+        private void ProbeReadingHandler(object? sender, ProbeReadingEventArgs e)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                MessageBox.Show($"Probe {e.ModuleId}: {e.Value:0.000}");
+            });
+        }
+
+
+
+
+        private int _inspectionQty;
+        public int InspectionQty
+        {
+            get => _inspectionQty;
+            set { _inspectionQty = value; OnPropertyChanged(nameof(InspectionQty)); }
+        }
+
+        private int _okCount;
+        public int OkCount
+        {
+            get => _okCount;
+            set { _okCount = value; OnPropertyChanged(nameof(OkCount)); }
+        }
+
+        private int _ngCount;
+        public int NgCount
+        {
+            get => _ngCount;
+            set { _ngCount = value; OnPropertyChanged(nameof(NgCount)); }
+        }
+
+        public void AddPartInspectionResults(Dictionary<string, ParameterResult> parameterResults)
+        {
+            InspectionQty++; // increment total parts inspected
+
+            bool partIsOk = parameterResults.All(r => r.Value.IsOk);
+            if (partIsOk)
+                OkCount++;
+            else
+                NgCount++;
+        }
+
+
+    }
+}
+---------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+using EVMS.Service;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Configuration;
+using System.Data;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using static EVMS.Service.MasterService;
+
+namespace EVMS
+{
+    public partial class ResultPage : UserControl
+    {
+        public event Action<string>? StatusMessageChanged;
+
+        private Dictionary<string, UserControl> _progressBarControls = new Dictionary<string, UserControl>();
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private bool useFirstDesign = true;
+        private bool _showLeft = true;
+        private List<PartReadingDataModel> parameterData;
+        private string activePartNumber = string.Empty;
+
+        private PlcProbeService plcProbeService;
+        private DataStorageService dataStorageService;
+        private MasterService _masterService;
+
+        private string _model;
+        private string _lotNo;
+        private string _userId;
+
+
+        public ResultPage(string model, string lotNo, string userId)
+        {
+            InitializeComponent();
+            _model = model;
+            _lotNo = lotNo;
+            _userId = userId;
+
+            SetData(_model, _lotNo, _userId);
+            this.Loaded += ResultPage_Loaded;
+            this.Unloaded += ResultPage_Unloaded;
+
+            dataStorageService = new DataStorageService();
+            _masterService = new MasterService();
+            plcProbeService = new PlcProbeService();
+
+            _masterService.CalculatedValuesWithStatusReady += MasterService_CalculatedValuesWithStatusReady;
+
+            _masterService.StatusMessageUpdated += (message) =>
+            {
+                StatusMessageChanged?.Invoke(message);
+            };
+
+            // Set DataContext for data binding
+            this.DataContext = this;
+
+            // Initialize counts to zero to display correctly on UI load
+            InspectionQty = 0;
+            OkCount = 0;
+            NgCount = 0;
+        }
+
+     
+
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public void SetData(string model, string lotNo, string userId)
+        {
+            txtModel.Text = model;
+            txtLotNo.Text = lotNo;
+            txtUserId.Text = userId;
+        }
+
+        private void NotifyStatus(string message)
+        {
+            StatusMessageChanged?.Invoke(message);
+        }
+
+        private async void MasterService_CalculatedValuesWithStatusReady(object? sender, Dictionary<string, ParameterResult> resultsWithStatus)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                UpdateProgressBarsWithStatus(resultsWithStatus);
+
+                int okCount = resultsWithStatus.Count(r => r.Value.IsOk);
+                int ngCount = resultsWithStatus.Count - okCount;
+                int totalCount = resultsWithStatus.Count;
+
+                InspectionQty = totalCount;
+                OkCount = okCount;
+                NgCount = ngCount;
+
+                string status = okCount == totalCount ? "OK" : "NG";
+                //NotifyStatus($"Inspection Completed. OK: {okCount}, NG: {ngCount}");
+
+                // Save inspection asynchronously
+                _ = Task.Run(async () =>
+                {
+                    float GetValue(string key)
+                    {
+                        if (resultsWithStatus.TryGetValue(key, out var p))
+                        {
+                            // Log found key and value
+                            Debug.WriteLine($"Key found: {key}, Value: {p.Value}");
+                            return (float)p.Value;
+                        }
+                        else
+                        {
+                            Debug.WriteLine($"Key NOT found: {key}");
+                            return 0f;
+                        }
+                    }
+
+                    await dataStorageService.InsertMasterInspectionAsync(
+                        _model,
+                        _userId,
+                        _lotNo,
+                        GetValue("OL"),
+                        GetValue("DE"),
+                        GetValue("HD"),
+                        GetValue("GP"),
+                        GetValue("STDG"),
+                        GetValue("STDU"),
+                        GetValue("GIR DIA"),
+                        GetValue("STN"),
+                        GetValue("EFRO"),
+                        GetValue("SH"),
+                        GetValue("S R/O"),
+                        GetValue("DG"),
+                        status
+                    );
+                });
+            });
+        }
+
+
+
+
+     
+        private async void ResultPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            InitializeValveDataAndUI();
+            try
+            {
+                // Ensure PLC and Probe Connection asynchronously when page loads
+                bool connected = await _masterService.EnsureConnectionAsync();
+                if (connected)
+                {
+                    NotifyStatus("PLC and Probe Connected Successfully");
+                }
+                else
+                {
+                    MessageBox.Show("Failed to connect to PLC and Probe", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during connection: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // Helper method to add timeout to PLC connection
+        
+
+
+
+        private void ResultPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+            _masterService.Dispose();
+        }
+
+
+        private void InitializeValveDataAndUI()
+        {
+            try
+            {
+                var activeParts = dataStorageService.GetActiveParts();
+                if (activeParts == null || activeParts.Count == 0)
+                {
+                    MessageBox.Show("No active parts found.");
+                    return;
+                }
+
+                activePartNumber = activeParts[0].Para_No ?? string.Empty;
+                parameterData = dataStorageService.GetPartConfigByPartNumber(activePartNumber);
+
+                if (parameterData == null || parameterData.Count == 0)
+                {
+                    MessageBox.Show($"No parameters found for active part {activePartNumber}");
+                    return;
+                }
+
+                LoadDataGrid();
+                LoadProgressBars();
+                SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading data: {ex.Message}");
+            }
+        }
+
+        private void ValveReadingsGrid_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        {
+            // Set all generated columns to star sizing so they share available width evenly
+            e.Column.Width = new DataGridLength(1, DataGridLengthUnitType.Star);
+
+            // Center align the header text
+            var headerStyle = new Style(typeof(DataGridColumnHeader));
+            headerStyle.Setters.Add(new Setter(HorizontalContentAlignmentProperty, HorizontalAlignment.Center));
+            e.Column.HeaderStyle = headerStyle;
+        }
+
+        private void LoadDataGrid()
+        {
+            ValveReadingsGrid.Columns.Clear();
+
+            DataTable dt = new();
+
+            foreach (var param in parameterData)
+            {
+                dt.Columns.Add(param.Parameter, typeof(double));
+            }
+
+            ValveReadingsGrid.ItemsSource = dt.DefaultView;
+        }
+
+
+
+        // Dictionary to hold references to dynamically created progress bar controls keyed by parameter name
+
+        /// <summary>
+        /// Dynamically load progress bars into ProgressBarContainer based on parameterData.
+        /// Tracks controls in _progressBarControls dictionary for later value updates.
+        /// </summary>
+        private void LoadProgressBars()
+        {
+            ProgressBarContainer.Children.Clear();
+            _progressBarControls.Clear();
+
+            foreach (var param in parameterData)
+            {
+                UserControl progressBar;
+
+                double min = param.Nominal - param.RTolMinus;
+                double max = param.Nominal + param.RTolPlus;
+                double mean = param.Nominal;
+
+
+                if (useFirstDesign)
+                {
+                    var pb = new ResultProgressBar { Margin = new Thickness(5) };
+                    pb.ParameterName = param.Parameter;
+                    pb.MinValue = min;
+                    pb.MaxValue = max;
+                    pb.MeanValue = mean;
+
+                    pb.Value = 0; // Initialize with zero or default
+                    progressBar = pb;
+                }
+                else
+                {
+                    var pb = new ProgresBarControl { Margin = new Thickness(5) };
+                    pb.Min = min;
+                    pb.Mean = mean;
+                    pb.Max = max;
+                    pb.Value = 0; // Initialize with zero or default
+                    pb.Title = param.Parameter;
+                    progressBar = pb;
+                }
+
+                ProgressBarContainer.Children.Add(progressBar);
+                _progressBarControls[param.Parameter] = progressBar;
+            }
+        }
+
+        /// <summary>
+        /// Update the progress bars with mastered values after mastering completes.
+        /// Input dictionary keys must match Parameter names used when loading progress bars.
+        /// </summary>
+        /// <param name="masteredValues">Dictionary of parameter name to mastered reference value</param>
+        //private void UpdateProgressBarsWithCalculatedValues(Dictionary<string, double> calculatedValues)
+        //{
+        //    foreach (var kvp in calculatedValues)
+        //    {
+        //        if (_progressBarControls.TryGetValue(kvp.Key, out var control))
+        //        {
+        //            if (control is ResultProgressBar pb1)
+        //            {
+        //                pb1.Value = kvp.Value;  // You might need to add an ActualValue property in your control
+        //            }
+        //            else if (control is ProgresBarControl pb2)
+        //            {
+        //                pb2.Value = kvp.Value;  // Likewise
+        //            }
+        //        }
+        //    }
+        //}
+
+        private void UpdateProgressBarsWithStatus(Dictionary<string, ParameterResult> resultsWithStatus)
+        {
+            foreach (var kvp in resultsWithStatus)
+            {
+                if (_progressBarControls.TryGetValue(kvp.Key, out var control))
+                {
+                    if (control is ResultProgressBar pb)
+                    {
+                        pb.UpdateValue(kvp.Value.Value, kvp.Value.IsOk);
+                    }
+                    else if (control is ProgresBarControl pb2)
+                    {
+                        pb2.Value = kvp.Value.Value;
+                        // Optional: add IsOk property and color logic to ProgresBarControl if desired
+                    }
+                }
+            }
+        }
+
+
+
+
+
+
+        private void ToggleBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_showLeft)
+            {
+                LeftColumn.Width = new GridLength(0);
+                RightColumn.Width = new GridLength(1, GridUnitType.Star);
+            }
+            else
+            {
+                LeftColumn.Width = new GridLength(1, GridUnitType.Star);
+                RightColumn.Width = new GridLength(0);
+            }
+            _showLeft = !_showLeft;
+        }
+
+        private void SwitchProgressBar_Click(object sender, RoutedEventArgs e)
+        {
+            useFirstDesign = !useFirstDesign;
+            LoadProgressBars();
+            SwitchProgressBarBtn.Content = useFirstDesign ? "Switch to Design 2" : "Switch to Design 1";
+        }
+
+        // Mastering toggle
+        private async void MasterToggle_Checked(object sender, RoutedEventArgs e)
+        {
+            ToggleButton? toggleButton = sender as ToggleButton;
+            if (toggleButton == null) return;
+
+            toggleButton.IsEnabled = false;
+
+            try
+            {
+                _masterService.IsMasteringStage = true;
+
+                // Run mastering procedure
+                await _masterService.MasterCheckProcedureAsync();
+
+                // Mastering complete → automatically turn off the toggle
+                _masterService.IsMasteringStage = false;
+                toggleButton.IsChecked = false;
+
+                //MessageBox.Show("Mastering completed. You can now perform Master Inspection.",
+                //                "Mastering Completed", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error starting mastering: {ex.Message}");
+                toggleButton.IsChecked = false;
+            }
+            finally
+            {
+                toggleButton.IsEnabled = true;
+            }
+        }
+
+        // Master Inspection toggle
+        private async void MasterInspectionToggleButton_Checked(object sender, RoutedEventArgs e)
+        {
+            if (!(sender is ToggleButton inspectionToggle)) return;
+
+            if (!_masterService.IsConnected)
+            {
+                MessageBox.Show("PLC not connected. Cannot perform inspection.");
+                inspectionToggle.IsChecked = false;
+                return;
+            }
+
+            if (!_masterService.MasterComplete)
+            {
+                MessageBox.Show("Mastering not complete. Please complete mastering first.");
+                inspectionToggle.IsChecked = false;
+                return;
+            }
+
+            inspectionToggle.IsEnabled = false;
+
+            try
+            {
+                _masterService.IsMasteringStage = false;
+
+                // Run the inspection procedure
+                await _masterService.MasterCheckProcedureAsync();
+
+                // Inspection complete → turn off toggle automatically
+                inspectionToggle.IsChecked = false;
+                //MessageBox.Show("Master Inspection completed.", "Inspection Completed",
+                //                MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during inspection: {ex.Message}");
+                inspectionToggle.IsChecked = false;
+            }
+            finally
+            {
+                inspectionToggle.IsEnabled = true;
+            }
+        }
+
+        private void ProbeReadingHandler(object? sender, ProbeReadingEventArgs e)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                MessageBox.Show($"Probe {e.ModuleId}: {e.Value:0.000}");
+            });
+        }
+
+
+
+
+        private int _inspectionQty;
+        public int InspectionQty
+        {
+            get => _inspectionQty;
+            set { _inspectionQty = value; OnPropertyChanged(nameof(InspectionQty)); }
+        }
+
+        private int _okCount;
+        public int OkCount
+        {
+            get => _okCount;
+            set { _okCount = value; OnPropertyChanged(nameof(OkCount)); }
+        }
+
+        private int _ngCount;
+        public int NgCount
+        {
+            get => _ngCount;
+            set { _ngCount = value; OnPropertyChanged(nameof(NgCount)); }
+        }
+
+        public void AddPartInspectionResults(Dictionary<string, ParameterResult> parameterResults)
+        {
+            InspectionQty++; // increment total parts inspected
+
+            bool partIsOk = parameterResults.All(r => r.Value.IsOk);
+            if (partIsOk)
+                OkCount++;
+            else
+                NgCount++;
+        }
+
+
+    }
+}

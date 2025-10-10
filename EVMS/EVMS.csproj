@@ -1,100 +1,104 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <UseWPF>true</UseWPF>
-    <ApplicationIcon>MEPL Icon.ico</ApplicationIcon>
-    <PlatformTarget>x86</PlatformTarget>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <None Remove="Resource\1234.jpg" />
-    <None Remove="Resource\4321.jpg" />
-    <None Remove="Resource\7.jpg" />
-    <None Remove="Resource\8765.jpg" />
-    <None Remove="Resource\bg1.jpg" />
-    <None Remove="Resource\bg2.jpg" />
-    <None Remove="Resource\bg3.jpg" />
-    <None Remove="Resource\bg55.jpg" />
-    <None Remove="Resource\generated-image.png" />
-    <None Remove="Resource\Logo_ME.png" />
-    <None Remove="Resource\valve.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <COMReference Include="ActUtlTypeLib">
-      <VersionMinor>0</VersionMinor>
-      <VersionMajor>1</VersionMajor>
-      <Guid>d217e54e-4a26-4a76-b0ab-57166b90f9af</Guid>
-      <Lcid>0</Lcid>
-      <WrapperTool>tlbimp</WrapperTool>
-      <Isolated>false</Isolated>
-      <EmbedInteropTypes>true</EmbedInteropTypes>
-    </COMReference>
-  </ItemGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net8.0-windows10.0.20348.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<UseWPF>true</UseWPF>
+		<ApplicationIcon>MEPL Icon.ico</ApplicationIcon>
+		<PlatformTarget>x86</PlatformTarget>
+		<SupportedOSPlatformVersion>10.0.20348.0</SupportedOSPlatformVersion>
+	</PropertyGroup>
 
 	<ItemGroup>
-    <Content Include="MEPL Icon.ico" />
-  </ItemGroup>
+		<None Remove="Resource\1234.jpg" />
+		<None Remove="Resource\4321.jpg" />
+		<None Remove="Resource\7.jpg" />
+		<None Remove="Resource\8765.jpg" />
+		<None Remove="Resource\bg1.jpg" />
+		<None Remove="Resource\bg2.jpg" />
+		<None Remove="Resource\bg3.jpg" />
+		<None Remove="Resource\bg55.jpg" />
+		<None Remove="Resource\generated-image.png" />
+		<None Remove="Resource\Logo_ME.png" />
+		<None Remove="Resource\valve.png" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="LoadingSpinner.WPF" Version="1.0.0" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
-    <PackageReference Include="PMcProtocol" Version="2.2.0" />
-    <PackageReference Include="System.IO.Ports" Version="9.0.8" />
-    <PackageReference Include="WPF-UI" Version="4.0.3" />
-    <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />
-  </ItemGroup>
+	<ItemGroup>
+		<COMReference Include="ActUtlTypeLib">
+			<VersionMinor>0</VersionMinor>
+			<VersionMajor>1</VersionMajor>
+			<Guid>d217e54e-4a26-4a76-b0ab-57166b90f9af</Guid>
+			<Lcid>0</Lcid>
+			<WrapperTool>tlbimp</WrapperTool>
+			<Isolated>false</Isolated>
+			<EmbedInteropTypes>true</EmbedInteropTypes>
+		</COMReference>
+	</ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="Interop.OrbitCOM">
-      <HintPath>..\..\..\VS_Practice\OrbitTest\Interop.OrbitCOM.dll</HintPath>
-    </Reference>
-    <Reference Include="OrbitLibrary">
-      <HintPath>..\..\..\VS_Practice\Orbit3 CSharp Example\Orbit3CSharpExample\bin\Debug\OrbitLibrary.dll</HintPath>
-    </Reference>
-  </ItemGroup>
+	<ItemGroup>
+		<Content Include="MEPL Icon.ico" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Resource Include="Resource\1234.jpg">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\4321.jpg">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\7.jpg">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\8765.jpg">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\bg1.jpg">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\bg2.jpg">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\bg3.jpg">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\bg55.jpg">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\0987.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\generated-image.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\Logo_ME.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-    <Resource Include="Resource\valve.png">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Resource>
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="ClosedXML" Version="0.105.0" />
+		<PackageReference Include="DocumentFormat.OpenXml" Version="3.3.0" />
+		<PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc6.1" />
+		<PackageReference Include="LoadingSpinner.WPF" Version="1.0.0" />
+		<PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.1" />
+		<PackageReference Include="PMcProtocol" Version="2.2.0" />
+		<PackageReference Include="System.IO.Ports" Version="9.0.8" />
+		<PackageReference Include="WPF-UI" Version="4.0.3" />
+		<PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.3" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="Interop.OrbitCOM">
+			<HintPath>..\..\..\VS_Practice\OrbitTest\Interop.OrbitCOM.dll</HintPath>
+		</Reference>
+		<Reference Include="OrbitLibrary">
+			<HintPath>..\..\..\VS_Practice\Orbit3 CSharp Example\Orbit3CSharpExample\bin\Debug\OrbitLibrary.dll</HintPath>
+		</Reference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Resource Include="Resource\1234.jpg">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\4321.jpg">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\7.jpg">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\8765.jpg">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\bg1.jpg">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\bg2.jpg">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\bg3.jpg">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\bg55.jpg">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\0987.png">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\generated-image.png">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\Logo_ME.png">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+		<Resource Include="Resource\valve.png">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</Resource>
+	</ItemGroup>
 
 </Project>

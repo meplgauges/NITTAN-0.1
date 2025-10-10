@@ -42,14 +42,14 @@ namespace EVMS
                 using (SqlConnection con = new SqlConnection(connectionString))
                 {
                     con.Open();
-                    string query = "SELECT Para_No, Para_Name FROM Part_Entry WHERE ActivePart = 1";
+                    string query = "SELECT Para_No FROM Part_Entry WHERE ActivePart = 1";
 
                     using (SqlCommand cmd = new SqlCommand(query, con))
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
                         {
-                            string model = $"{reader["Para_No"]} - {reader["Para_Name"]}";
+                            string model = $"{reader["Para_No"]}";
                             activeModels.Add(model);
                         }
                     }

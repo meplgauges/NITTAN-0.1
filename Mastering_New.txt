@@ -1,0 +1,754 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using ActUtlTypeLib;
+using Windows.Storage.Streams;
+using Windows.UI.WindowManagement;
+
+namespace EVMS.Service
+{
+    public class ProbeMeasurement
+    {
+        public string? ProbeId { get; set; }
+        public string? Name { get; set; }  // Add this property
+
+        public List<double> Readings { get; set; } = new List<double>();
+        public double ReferenceValue { get; set; } = 0;
+        public double MasterValue { get; set; } = 0;
+        public double TolerancePlus { get; set; }
+        public double ToleranceMinus { get; set; }
+    }
+
+    public class 
+        MasterService : IDisposable
+    {
+        public event EventHandler<MasterCompletedEventArgs>? MasterCompleted;
+        public delegate void CalculatedValuesReadyHandler(object? sender, Dictionary<string, double> calculatedValues);
+        public event CalculatedValuesReadyHandler? CalculatedValuesReady;
+
+        private readonly ActUtlType plc;
+        private readonly DataStorageService _dataStorageService;
+        private readonly PlcProbeService _plcProbeService;
+
+        private Dictionary<string, ProbeMeasurement> _probeMeasurements = new Dictionary<string, ProbeMeasurement>();
+        private const int ArraySize = 200;
+
+        private readonly ConcurrentQueue<(string ProbeId, double Value)> _collectedReadings
+            = new ConcurrentQueue<(string, double)>();
+
+        private int _currentOperationalMode = 1;
+        private string _currentPartCode = "";
+
+        public bool IsMasteringStage { get; set; } = true;
+        public bool MasterComplete { get; set; } = false;
+        public bool MasteringOK { get; set; } = false;
+        public bool Abort { get; set; } = false;
+
+        //private const string MotorOnDevice = "M14";
+        //private const string Auto  = "X14";
+
+        public MasterService()
+        {
+            _dataStorageService = new DataStorageService();
+            _plcProbeService = new PlcProbeService();
+            plc = new ActUtlType { ActLogicalStationNumber = 1 };
+            _plcProbeService.ProbeValueUpdated += ProbeValueUpdatedHandler;
+        }
+
+        public bool IsConnected => _plcProbeService?.IsConnected ?? false;
+
+        public async Task<bool> EnsureConnectionAsync()
+        {
+            if (_plcProbeService == null) return false;
+
+            if (!_plcProbeService.IsConnected)
+            {
+                bool connected = await _plcProbeService.ConnectAsync();
+                if (connected)
+                {
+                    _plcProbeService.ProbeValueUpdated += ProbeValueUpdatedHandler;
+                    int openResult = plc.Open();
+                    if (openResult != 0)
+                    {
+                        MessageBox.Show($"Failed to open PLC connection. Error code: {openResult}", "PLC Init Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return false;
+                    }
+                }
+                return connected;
+            }
+            return true;
+        }
+
+        private void ProbeValueUpdatedHandler(object? sender, ProbeReadingEventArgs e)
+        {
+            _collectedReadings.Enqueue((e.ModuleId, e.Value));
+        }
+
+        private bool SetPlcDevice(string device, int value)
+        {
+            int ret = plc.SetDevice(device, (short)value);
+            if (ret != 0)
+            {
+                MessageBox.Show($"SetDevice failed: Device={device}, Code={ret}", "PLC Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return false;
+            }
+            return true;
+        }
+
+        private int GetPlcDeviceBit(string device)
+        {
+            if (plc.GetDevice(device, out int value) != 0)
+            {
+                MessageBox.Show($"GetDevice failed: Device={device}", "PLC Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return -1; // Indicate failure
+            }
+            return value; // Return the bit value read from PLC device
+        }
+
+
+        private void Cleanup()
+        {
+            _plcProbeService.StopLiveReading();
+            _plcProbeService?.Disconnect();
+            _plcProbeService.ProbeValueUpdated -= ProbeValueUpdatedHandler;
+            plc.Close();
+        }
+
+        public async Task MasterCheckProcedureAsync()
+        {
+            try
+            {
+                var autoList = _dataStorageService.GetActiveBit();
+
+                if (autoList == null || autoList.Count == 0)
+                {
+                    MessageBox.Show("No Settings Found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                var autoControl = autoList.FirstOrDefault(c => string.Equals(c.Description, "Auto/Manual", StringComparison.OrdinalIgnoreCase));
+
+                int bitValue = GetPlcDeviceBit("X14");
+
+                if (bitValue == 1 && autoControl?.Bit == bitValue)
+                {
+                    MessageBox.Show("System is not in Auto mode. Please switch to Auto mode.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                                
+                var activeParts = _dataStorageService.GetActiveParts();
+                if (activeParts == null || activeParts.Count == 0)
+                {
+                    MessageBox.Show("No active parts found.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                _currentPartCode = activeParts[0]?.Para_No ?? "";
+                if (string.IsNullOrEmpty(_currentPartCode))
+                {
+                    MessageBox.Show("Active part code is invalid.", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                if (autoControl?.Bit == 1)
+                {
+                    SetPlcDevice("M400", 1);//vb ready plc 
+                    SetPlcDevice("M300", 0);//Measurmnet Cycle off
+                    SetPlcDevice("M100", 1);//Master Cycle selected
+
+                }
+                SetPlcDevice("M10", 0);// Auto Weight on
+
+
+                LoadProbeConfigurations(_currentPartCode);
+
+                // Sort probe measurements by ProbeId before clearing readings
+                var sortedProbeMeasurements = _probeMeasurements.Values.OrderBy(pm => pm.ProbeId).ToList();
+
+                foreach (var pm in sortedProbeMeasurements)
+                {
+                    pm.Readings.Clear();
+                    pm.ReferenceValue = 0;
+                }
+
+                //bool ok = await EnsureConnectionAsync();
+                //if (!ok) return;
+
+                if (autoControl?.Bit == 0)
+                {
+                    MessageBox.Show("Load Valve in Fixture....");
+
+                    bool hasValidProbeValue = false;
+                    string targetProbeId = "100AY08P42";
+
+                    do
+                    {
+                        _plcProbeService.StartLiveReading();
+
+                        await Task.Delay(100); // wait a short while to gather values
+
+                        // Display current reading of target probe if available
+                        var currentReading = _collectedReadings
+                            .Where(r => r.ProbeId == targetProbeId)
+                            .Select(r => r.Value)
+                            .FirstOrDefault(); // zero if none
+
+                        // Optionally update UI or Console:
+                        MessageBox.Show("Load Valve in Fixture....");
+
+                        hasValidProbeValue = Math.Abs(currentReading) > 0;
+
+                        if (!hasValidProbeValue)
+                        {
+                            await Task.Delay(100); // wait a bit before checking again
+                        }
+
+                    } while (!hasValidProbeValue);
+
+                    MessageBox.Show($"Probe value detected for {targetProbeId}, continuing...");
+                    MessageBox.Show("PRESS START SWITCH TO START MASTRING");
+
+                    do
+                    {
+                        GetPlcDeviceBit("X1");
+                    } while (GetPlcDeviceBit("X1") !=1);
+                    MessageBox.Show("START BUTTON PRESSED");
+
+
+                }
+                else
+                {
+                    MessageBox.Show("Press Robo start button to start mastering.", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    do
+                    {
+                        GetPlcDeviceBit("M20");
+                    } while (GetPlcDeviceBit("M20") != 1);
+
+                    MessageBox.Show("Pressed Robo start button ", "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                    SetPlcDevice("M101", 1);
+                    MessageBox.Show("Load Valve in Fixture....");
+
+                    bool hasValidProbeValue = false;
+                    string targetProbeId = "100AY08P42";
+
+                    do
+                    {
+                        _plcProbeService.StartLiveReading();
+
+                        await Task.Delay(100); // wait a short while to gather values
+
+                        // Display current reading of target probe if available
+                        var currentReading = _collectedReadings
+                            .Where(r => r.ProbeId == targetProbeId)
+                            .Select(r => r.Value)
+                            .FirstOrDefault(); // zero if none
+
+                        // Optionally update UI or Console:
+                        MessageBox.Show("Load Valve in Fixture....");
+
+                        hasValidProbeValue = Math.Abs(currentReading) > 0.0001;
+
+                        if (!hasValidProbeValue)
+                        {
+                            await Task.Delay(100); // wait a bit before checking again
+                        }
+
+                    } while (!hasValidProbeValue);
+
+                    MessageBox.Show($"waiting Safe positiion from Robot");
+                    do
+                    {
+                        GetPlcDeviceBit("M101");
+                    } while (GetPlcDeviceBit("M101") != 0);
+
+               }
+
+                SetPlcDevice("M10", 1); // Motor DOWn
+
+                do
+                {
+                    GetPlcDeviceBit("X0");
+                } while (GetPlcDeviceBit("X0") != 1);
+
+
+                SetPlcDevice("M14", 1); // MOTOR ON
+             
+                // wait for motor to stabilize
+
+                while (_collectedReadings.TryDequeue(out _)) { }
+                _plcProbeService.StartLiveReading();
+
+                for (int i = 0; i < ArraySize; i++)
+                {
+                    if (Abort)
+                    {
+                        MessageBox.Show("Mastering aborted.", "Abort", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        break;
+                    }
+
+                    await Task.Delay(10);
+
+                    foreach (var pm in sortedProbeMeasurements)
+                    {
+                        var latest = _collectedReadings.Reverse().FirstOrDefault(r => r.ProbeId == pm.ProbeId);
+                        pm.Readings.Add(!string.IsNullOrEmpty(latest.ProbeId) ? latest.Value : double.NaN);
+                    }
+                }
+
+                _plcProbeService.StopLiveReading();
+                SetPlcDevice("M14", 0); // MOTOR OFF
+                //if (!ok) return;
+                SetPlcDevice("M10", 0); //Motor UP
+
+                //if (!ok) return;
+
+
+                // 1. Set reference value from measured readings
+                foreach (var pm in sortedProbeMeasurements)
+                {
+                    var validReadings = pm.Readings.Where(r => !double.IsNaN(r)).ToList();
+                    pm.ReferenceValue = (validReadings.Count > 0) ? validReadings.Max() : 0;
+                }
+
+
+
+                // 2. Print all reference values for debug
+                var report = new StringBuilder();
+                report.AppendLine("==== Probe ReferenceValues After Acquisition ====\n");
+                foreach (var pm in sortedProbeMeasurements)
+                {
+                    report.AppendLine($"{pm.Name ?? pm.ProbeId}: ReferenceValue = {pm.ReferenceValue:F3}, ReadingsCount = {pm.Readings.Count}");
+                }
+                MessageBox.Show(report.ToString(), "ReferenceValue Diagnostic", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                if (autoControl?.Bit == 0)
+                {
+                    MessageBox.Show("Remove Valve from Fixture....");
+                    bool hasValidProbeValue = false;
+                    string targetProbeId = "100AY08P42";
+
+                    do
+                    {
+                        _plcProbeService.StartLiveReading();
+
+                        await Task.Delay(100); // wait a short while to gather values
+
+                        // Display current reading of target probe if available
+                        var currentReading = _collectedReadings
+                            .Where(r => r.ProbeId == targetProbeId)
+                            .Select(r => r.Value)
+                            .FirstOrDefault(); // zero if none
+
+                        // Optionally update UI or Console:
+                        MessageBox.Show("Load Valve in Fixture....");
+
+                        hasValidProbeValue = Math.Abs(currentReading) == 0.0000;
+
+                        if (!hasValidProbeValue)
+                        {
+                            await Task.Delay(100); // wait a bit before checking again
+                        }
+
+                    } while (!hasValidProbeValue);
+                    MessageBox.Show($"Remove Valve from ficxture");
+
+
+
+                }
+                else
+                {
+                    SetPlcDevice("M102", 1);
+                    MessageBox.Show("Masterong Comapleted Please choose Master Insepection....");
+                }
+
+                    // 3. Build mapping by logical parameter name (e.g., "DE", "HD")
+                    var probeMeasurementByName = sortedProbeMeasurements
+                        .Where(pm => !string.IsNullOrEmpty(pm.Name))
+                        .ToDictionary(pm => pm.Name!);
+
+                // 4. Proceed as normal
+                if (IsMasteringStage)
+                {
+                    HandleMasteringStage();
+                }
+                else
+                {
+                    HandleMasterInspectionStage(probeMeasurementByName);
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error in MasterCheckProcedure: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void HandleMasteringStage()
+        {
+            if (Abort)
+            {
+                MessageBox.Show("Mastering aborted.", "Abort", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            foreach (var pm in _probeMeasurements.Values)
+            {
+                _dataStorageService.SaveProbeReadings(
+                    _dataStorageService.GetProbeInstallByPartNumber(_currentPartCode),
+                    _currentPartCode,
+                    new Dictionary<string, double> { { pm.ProbeId, pm.ReferenceValue } }
+                );
+            }
+
+            MasterComplete = true;
+            //IsMasteringStage = false;
+            MessageBox.Show("Mastering Completed. Press Enter to Inspect the Master.", "Mastering", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        //private void CompareCalculatedWithMaster(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        //{
+        //    MasteringOK = true;
+        //    var report = new StringBuilder();
+
+        //    string[] dbNames = { "OL", "DE", "HD", "GP", "STDG", "STDU", "GIR DIA", "STN", "EFRO", "SH", "S R/O", "DG" };
+
+        //    foreach (var db in dbNames)
+        //    {
+        //        if (!probeMeasurements.ContainsKey(db)) continue;
+        //        var pm = probeMeasurements[db];
+
+        //        double calculatedValue = CalculateProbeValue(pm.Name!);
+
+        //        double min = pm.MasterValue - pm.ToleranceMinus;
+        //        double max = pm.MasterValue + pm.TolerancePlus;
+
+        //        bool pass = calculatedValue >= min && calculatedValue <= max;
+        //        if (!pass) MasteringOK = false;
+
+        //        report.AppendLine($"{db,-8} | Value={calculatedValue:F3}, Min={min:F3}, Max={max:F3} => {(pass ? "PASS" : "FAIL")}");
+        //    }
+
+        //    MessageBox.Show(
+        //        (MasteringOK ? "✅ Master Inspection Passed\n\n" : "❌ Master Inspection Failed\n\n") + report.ToString(),
+        //        "Master Inspection",
+        //        MessageBoxButton.OK,
+        //        MasteringOK ? MessageBoxImage.Information : MessageBoxImage.Error
+        //    );
+        //}
+
+
+
+
+
+
+
+
+        private void HandleMasterInspectionStage(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            // 1. Get DB reference readings for this part
+            var dbRefList = _dataStorageService.GetMasterProbeRef(_currentPartCode); // List<(Name, Value)>
+            var dbRefDict = dbRefList.ToDictionary(x => x.Name, x => x.Value);
+
+            var calculatedValues = new Dictionary<string, double>();
+            string[] dbNames = { "OL", "DE", "HD", "GP", "STDG", "STDU", "GIR DIA", "STN", "EFRO", "SH", "S R/O", "DG" };
+
+            foreach (var db in dbNames)
+            {
+                if (!probeMeasurements.TryGetValue(db, out var pm))
+                    continue;
+
+                // 2. Get the latest live reference (set by previous steps as max during inspection)
+                double currentRefValue = pm.ReferenceValue;
+
+                // 3. Get the previous master reference value from DB (if missing, use 0)
+                double dbRefValue = dbRefDict.TryGetValue(db, out var val) ? val : 0.0;
+
+                // 4. The nominal/master value (from part config or master table)
+                double masterNominal = pm.MasterValue;
+
+                // 5. Calculate offset and display value as required:
+                double offset = currentRefValue - dbRefValue;
+                double displayValue = masterNominal + offset;
+
+                calculatedValues[db] = Math.Round(displayValue, 3);
+            }
+
+            // 6. Notify listeners/UI
+            OnCalculatedValuesReady(calculatedValues);
+        }
+
+
+        protected virtual void OnCalculatedValuesReady(Dictionary<string, double> calculatedValues)
+        {
+            CalculatedValuesReady?.Invoke(this, calculatedValues);
+        }
+
+
+
+        private double CalculateProbeValue(string dbName, Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            switch (dbName.ToUpper())
+            {
+                case "DE": return CalculateDatumToEnd(probeMeasurements);
+                case "OL": return CalculateOverallLength(probeMeasurements);
+                case "HD": return CalculateHeadDiameter(probeMeasurements);
+                case "GP": return CalculateGroovePosition(probeMeasurements);
+                case "STDG": return CalculateStemDia1(probeMeasurements);
+                case "STDU": return CalculateStemDia2(probeMeasurements);
+                case "GIR DIA": return CalculateGrooveDia(probeMeasurements);
+                case "STN": return CalculateReducedDia(probeMeasurements);
+                case "EFRO": return CalculateEFRO(probeMeasurements);
+                case "SH": return CalculateSeatHeight(probeMeasurements);
+                case "S R/O": return CalculateSeatRunout(probeMeasurements);
+                case "DG": return CalculateDatumToGroove(probeMeasurements);
+                default: throw new Exception($"Unknown probe DB name: {dbName}");
+            }
+        }
+
+        #region Calculation Methods
+
+
+
+        #endregion
+
+        #region Calculation Methods
+
+        const int idxA = ArraySize - 5;
+        const int idxB = 5;
+
+        private double CalculateDatumToEnd(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("DE")) return double.NaN;
+            var pm = probeMeasurements["DE"];
+            var r = pm.Readings;
+            if (r.Count <= Math.Max(idxA, idxB)) return double.NaN;
+
+            double maxReading = Math.Max(Math.Abs(r[idxA]), Math.Abs(r[idxB]));
+            double datumToEnd = Math.Round(maxReading - pm.ReferenceValue, 3);
+            if (maxReading > Math.Abs(pm.ReferenceValue))
+                datumToEnd += (datumToEnd * 33) / 100.0;
+            else if (maxReading < Math.Abs(pm.ReferenceValue))
+                datumToEnd += (datumToEnd * 40) / 100.0;
+
+            return Math.Round(pm.MasterValue - datumToEnd, 4);
+        }
+
+        private double CalculateOverallLength(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("OL")) return double.NaN;
+            var pm = probeMeasurements["OL"];
+            var r = pm.Readings;
+            if (r.Count <= idxA) return double.NaN;
+
+            double maxReading = Math.Abs(r[idxA]);
+            double overallLengthRaw = Math.Round(pm.ReferenceValue - maxReading, 3);
+            return Math.Round(pm.MasterValue - overallLengthRaw, 3);
+        }
+
+        private double CalculateHeadDiameter(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("HD")) return double.NaN;
+            var pm = probeMeasurements["HD"];
+            var r = pm.Readings;
+            if (r.Count <= idxA) return double.NaN;
+
+            double maxReading = Math.Abs(r[idxA]);
+            double diameterRaw = Math.Round(pm.ReferenceValue - maxReading, 3);
+            return Math.Round(pm.MasterValue - diameterRaw, 3);
+        }
+
+        private double CalculateGroovePosition(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("GP")) return double.NaN;
+            var pm = probeMeasurements["GP"];
+            var r = pm.Readings;
+            if (r.Count <= idxA) return double.NaN;
+
+            double maxReading = Math.Abs(r[idxA]);
+            double grooveRaw = Math.Round(pm.ReferenceValue - maxReading, 3);
+            return Math.Round(pm.MasterValue - grooveRaw, 3);
+        }
+
+        private double CalculateStemDia1(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("STDG")) return double.NaN;
+            var pm = probeMeasurements["STDG"];
+            var r = pm.Readings;
+            if (r.Count <= idxA) return double.NaN;
+
+            double maxReading = Math.Abs(r[idxA]);
+            double stemRaw = Math.Round(pm.ReferenceValue - maxReading, 3);
+            return Math.Round(pm.MasterValue - stemRaw, 3);
+        }
+
+        private double CalculateStemDia2(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("STDU")) return double.NaN;
+            var pm = probeMeasurements["STDU"];
+            var r = pm.Readings;
+            if (r.Count <= idxA) return double.NaN;
+
+            double maxReading = Math.Abs(r[idxA]);
+            double stemRaw = Math.Round(pm.ReferenceValue - maxReading, 3);
+            return Math.Round(pm.MasterValue - stemRaw, 3);
+        }
+
+        private double CalculateReducedDia(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("STN")) return double.NaN;
+            var pm = probeMeasurements["STN"];
+            var r = pm.Readings;
+            if (r.Count <= Math.Max(idxA, idxB)) return double.NaN;
+
+            return Math.Round(Math.Abs(r[idxA] - r[idxB]), 3);
+        }
+
+        private double CalculateEFRO(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("EFRO")) return double.NaN;
+            var pm = probeMeasurements["EFRO"];
+            var r = pm.Readings;
+            if (r.Count <= Math.Max(idxA, idxB)) return double.NaN;
+
+            double efro = Math.Abs(r[idxA] - r[idxB]);
+            return Math.Abs(Math.Round(pm.MasterValue - Math.Round(efro, 3), 3));
+        }
+
+        private double CalculateGrooveDia(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("GIR DIA")) return double.NaN;
+            var pm = probeMeasurements["GIR DIA"];
+            var r = pm.Readings;
+            if (r.Count <= Math.Max(idxA, idxB)) return double.NaN;
+
+            double avgReading = (Math.Abs(r[idxA]) + Math.Abs(r[idxB])) / 2.0;
+            double grooveRaw = Math.Round(pm.ReferenceValue - avgReading, 3);
+            return Math.Round(pm.MasterValue - grooveRaw, 3);
+        }
+
+        private double CalculateSeatHeight(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            double ol = CalculateOverallLength(probeMeasurements);
+            double de = CalculateDatumToEnd(probeMeasurements);
+            if (double.IsNaN(ol) || double.IsNaN(de)) return double.NaN;
+            return Math.Round(ol - de, 3);
+        }
+
+        private double CalculateSeatRunout(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            if (!probeMeasurements.ContainsKey("S R/O")) return double.NaN;
+            var pm = probeMeasurements["S R/O"];
+            var r = pm.Readings;
+            if (r.Count <= Math.Max(idxA, idxB)) return double.NaN;
+
+            double seatRunout = Math.Round(Math.Abs(r[idxA] - r[idxB]), 3);
+            return seatRunout == 0 ? 0.001 : seatRunout;
+        }
+
+        private double CalculateDatumToGroove(Dictionary<string, ProbeMeasurement> probeMeasurements)
+        {
+            double de = CalculateDatumToEnd(probeMeasurements);
+            double gp = CalculateGroovePosition(probeMeasurements);
+            if (double.IsNaN(de) || double.IsNaN(gp)) return double.NaN;
+            return Math.Round(de - gp, 3);
+        }
+
+
+
+
+        #endregion
+
+
+        private void LoadProbeConfigurations(string partCode)
+        {
+            _probeMeasurements.Clear();
+            var probeInstalls = _dataStorageService.GetProbeInstallByPartNumber(partCode);
+            var masterVals = _dataStorageService.GetMasterReadingByPart(partCode);
+
+            foreach (var probe in probeInstalls)
+            {
+                var master = masterVals?
+                    .FirstOrDefault(m =>
+                        string.Equals(m.Para_No, probe.ProbeId, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(m.Parameter, probe.Name, StringComparison.OrdinalIgnoreCase)
+                    );
+
+                double masterVal = master?.Nominal ?? 0;
+                double tolPlus = master?.RTolPlus ?? 0;
+                double tolMinus = master?.RTolMinus ?? 0;
+
+                _probeMeasurements[probe.ProbeId] = new ProbeMeasurement
+                {
+                    ProbeId = probe.ProbeId,
+                    Name = probe.Name,
+                    MasterValue = masterVal,
+                    TolerancePlus = tolPlus,
+                    ToleranceMinus = tolMinus
+                };
+            }
+
+            System.Diagnostics.Debug.WriteLine($"[DEBUG] Loaded {_probeMeasurements.Count} probe configs for part {partCode}");
+            foreach (var kv in _probeMeasurements)
+            {
+                System.Diagnostics.Debug.WriteLine($"  Probe {kv.Key} ({kv.Value.Name}): Master={kv.Value.MasterValue}, Tol±={kv.Value.TolerancePlus}/{kv.Value.ToleranceMinus}");
+            }
+        }
+
+
+        public void Dispose()
+        {
+            Cleanup();
+            _dataStorageService?.Dispose();
+        }
+
+        public class MasterCompletedEventArgs : EventArgs
+        {
+            public Dictionary<string, double> MasteredValues { get; }
+            public bool Success { get; }
+
+            public MasterCompletedEventArgs(Dictionary<string, double> values, bool success)
+            {
+                MasteredValues = values;
+                Success = success;
+            }
+        }
+
+        private void OnMasterCompleted(Dictionary<string, double> values, bool success)
+        {
+            MasterCompleted?.Invoke(this, new MasterCompletedEventArgs(values, success));
+        }
+//        public void GenerateSampleMasterValues()
+//        {
+//            // Example: generate sample values that mimic mastered probe readings
+//            var sampleValues = new Dictionary<string, double>
+//{
+//                    { "OL", 93.750 },
+//                    { "DE", 92.435 },
+//                    { "HD", 22.850 },
+//                    { "GP", 6.325 },
+//                    { "STDG", 4.945 },
+//                    { "STDU", 4.900 },
+//                    { "GIR DIA", 4.040 },
+//                    { "STN", 0.008 },
+//                    { "EFRO", 0.043 },
+//                    { "SH", 2.198 },
+//                    { "S R/O", 0.038 },
+//                    { "DG", 86.038 }
+//                };
+
+
+
+//            //            // Raise event notifying listeners (UI) with sample values
+//            OnMasterCompleted(sampleValues, true);
+//            //        }
+//        }
+
+        }
+}

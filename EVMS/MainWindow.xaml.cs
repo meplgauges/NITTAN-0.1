@@ -1,6 +1,11 @@
-﻿using System.Diagnostics;  // ✅ Needed for Process.Start
+﻿using EVMS.Service;
+using System.ComponentModel;
+using System.Diagnostics;  // ✅ Needed for Process.Start
+using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;   // 👈 this is required
+using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
@@ -11,32 +16,130 @@ namespace EVMS
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
 
         // Field to keep track of the current selected MenuItem
+        private DateTime lastExportDate = DateTime.MinValue;
+
+        private readonly DataStorageService _dataService;
+        private readonly MasterService masterService;
         private MenuItem? _currentlySelectedMenuItem;
         private bool isSettingsAuthenticated = false; // global flag
         public MainWindow()
         {
             InitializeComponent();
-            
+            DataContext = this;
+            _dataService = new DataStorageService();
+            Loaded += MainWindow_Loaded;
+            masterService = new MasterService();
+
+            masterService.StatusMessageUpdated += message =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    StatusMessageTextBox.Text = message;
+                });
+            };
+           // GenerateTestExcelReport();
         }
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            await Task.Run(() =>
+            {
+                var activeParts = _dataService.GetActiveParts();
+                bool hasActive = activeParts.Count > 0;
+                string? activeName = hasActive ? activeParts[0].Para_No : "No Active Part";
+
+                Dispatcher.Invoke(() =>
+                {
+                    ActivePartName = activeName;
+                    IsActivePart = hasActive;
+                    ActivePartStatusButton.Content = activeName;
+                });
+                // Run report generation on a background thread
+                try
+                    {
+                    // Do not use Dispatcher here – keeps this background
+                    GenerateYesterdayActivePartDailyReport();                    }
+                    catch (Exception ex)
+                    {
+                        // Only use Dispatcher for showing the error
+                        Dispatcher.Invoke(() =>
+                        {
+                            MessageBox.Show($"Failed to generate Excel report for part: {ex.Message}");
+                        });
+                    }
+              
+            });
+        }
+
+
+
+
+        private string _activePartName = "No Active Part";
+        public string ActivePartName
+        {
+            get => _activePartName;
+            set
+            {
+                _activePartName = value;
+                OnPropertyChanged(nameof(ActivePartName));
+            }
+        }
+
+        private bool _isActivePart;
+        public bool IsActivePart
+        {
+            get => _isActivePart;
+            set
+            {
+                _isActivePart = value;
+                OnPropertyChanged(nameof(IsActivePart));
+
+                // Update button background here (assuming button named ActivePartStatusButton)
+                if (ActivePartStatusButton != null)
+                {
+                    ActivePartStatusButton.Background = _isActivePart
+                        ? new SolidColorBrush(Color.FromRgb(34, 197, 94))  // Green
+                        : new SolidColorBrush(Color.FromRgb(239, 68, 68)); // Red
+                }
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged(string propertyName) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+
+
 
         private void EntryPage_StartClicked(object sender, StartClickedEventArgs e)
         {
             MainContentGrid.Children.Clear();
-            ResultPage resultPage = new ResultPage
+
+            // Create ResultPage using constructor with required parameters
+            ResultPage resultPage = new ResultPage(e.Model, e.LotNo, e.UserId)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
 
-            // Pass entered data to ResultPage
-            //resultPage.SetData(e.Model, e.LotNo, e.UserId);
+            // Subscribe to status message event from ResultPage
+            resultPage.StatusMessageChanged += (message) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    StatusMessageTextBox.Text = message;
+                });
+            };
+
+            // No need to call SetData separately if data is set in constructor
+            // If needed, can still call SetData here
 
             MainContentGrid.Children.Add(resultPage);
         }
+
+
 
         private void HomePage_Click(object sender, RoutedEventArgs e)
         {
@@ -92,16 +195,26 @@ namespace EVMS
             MainContentGrid.Children.Clear();
             AdminControlePage resultPage = new AdminControlePage();
 
+            // Subscribe to status message changes
+            resultPage.StatusMessageChanged += (message) =>
+            {
+                Dispatcher.Invoke(() =>  // Ensure UI thread update
+                {
+                    StatusMessageTextBox.Text = message;
+                });
+            };
+
             resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
             resultPage.VerticalAlignment = VerticalAlignment.Stretch;
 
             MainContentGrid.Children.Add(resultPage);
         }
 
-        private void RoundBar_Click(object sender, RoutedEventArgs e)
+
+        private void Report_Page(object sender, RoutedEventArgs e)
         {
             MainContentGrid.Children.Clear();
-            ResultProgressBar resultPage = new ResultProgressBar();
+            Report_GraphPage resultPage = new Report_GraphPage();
 
             resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
             resultPage.VerticalAlignment = VerticalAlignment.Stretch;
@@ -119,15 +232,24 @@ namespace EVMS
 
             MainContentGrid.Children.Add(resultPage);
         }
-        
+
+        private void CO_Click(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            SettingsPage resultPage = new SettingsPage();
+
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            MainContentGrid.Children.Add(resultPage);
+        }
+
         private async void ProbeInstall_Click(object sender, RoutedEventArgs e)
         {
             // Show message box
             MessageBox.Show("Please wait, initializing...", "Loading", MessageBoxButton.OK, MessageBoxImage.Information);
-
             // Simulate delay (e.g., 2 seconds)
             await Task.Delay(2000);
-
             // Then load your page
             MainContentGrid.Children.Clear();
             var resultPage = new ProbeInstallPage()
@@ -135,8 +257,18 @@ namespace EVMS
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
+            // Subscribe to status message changes
+            resultPage.StatusMessageChanged += (message) =>
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    StatusMessageTextBox.Text = message;
+                });
+            };
+
             MainContentGrid.Children.Add(resultPage);
         }
+
 
 
 
@@ -294,6 +426,49 @@ namespace EVMS
                 LogoPanel.Margin = new Thickness(0);
             }
         }
+
+
+        private void GenerateYesterdayActivePartDailyReport()
+        {
+            Task.Run(() =>
+            {
+                string baseExportFolder = @"D:\";
+                string companyName = "MEPL";
+                DateTime yesterday = DateTime.Today.AddDays(-1);
+
+                // Check if report was already generated for the date
+                if (lastExportDate == yesterday)
+                    return; // Nothing to do since already generated for yesterday
+
+                var activeParts = _dataService.GetActiveParts();
+                if (activeParts == null || activeParts.Count == 0)
+                    return;
+
+                string activePartNo = activeParts[0].Para_No;
+                string folderPath = Path.Combine(baseExportFolder, companyName, activePartNo);
+                Directory.CreateDirectory(folderPath);
+
+                try
+                {
+                    var dataExportService = new DataExportService(_dataService, folderPath);
+                    dataExportService.ExportDailyCumulativeReport(yesterday, activePartNo);
+
+                    // Update the last export date after successful export
+                    lastExportDate = yesterday;
+                }
+                catch (Exception ex)
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                        MessageBox.Show($"Failed to generate Excel report for part {activePartNo} ({yesterday:yyyy-MM-dd}): {ex.Message}")
+                    );
+                }
+            });
+        }
+
+
+
+
+
 
 
     }
