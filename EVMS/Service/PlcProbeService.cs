@@ -141,7 +141,7 @@ internal class PlcProbeService : IDisposable
 
 
 
-    public void StartLiveReading(int intervalMs = 1000)
+    public void StartLiveReading(int intervalMs = 10) // 10 ms = ~100 Hz
     {
         StopLiveReading(); // Ensure only one loop runs
 
@@ -150,18 +150,20 @@ internal class PlcProbeService : IDisposable
 
         Task.Run(async () =>
         {
+            var stopwatch = new System.Diagnostics.Stopwatch();
+
             while (!token.IsCancellationRequested)
             {
+                stopwatch.Restart();
+
                 var moduleIds = orbitService.GetConnectedModuleIds();
                 foreach (var moduleId in moduleIds)
                 {
                     try
                     {
-                        // Get module and its main reading value
                         dynamic module = orbitService.GetModuleById(moduleId);
                         double value = (double)module.ReadingInUnits;
 
-                        // Raise the probe value updated event
                         ProbeValueUpdated?.Invoke(
                             this,
                             new ProbeReadingEventArgs(moduleId, value)
@@ -169,10 +171,15 @@ internal class PlcProbeService : IDisposable
                     }
                     catch
                     {
-                        // If a reading fails, ignore and continue
+                        // Ignore individual module read errors
                     }
                 }
-                await Task.Delay(intervalMs, token).ConfigureAwait(false);
+
+                // Keep the interval accurate even if reading takes time
+                long elapsed = stopwatch.ElapsedMilliseconds;
+                int remaining = (int)(intervalMs - elapsed);
+                if (remaining > 0)
+                    await Task.Delay(remaining, token).ConfigureAwait(false);
             }
         }, token);
     }

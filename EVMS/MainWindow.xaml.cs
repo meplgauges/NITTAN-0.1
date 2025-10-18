@@ -26,12 +26,17 @@ namespace EVMS
         private readonly MasterService masterService;
         private MenuItem? _currentlySelectedMenuItem;
         private bool isSettingsAuthenticated = false; // global flag
+        private bool _isResultPageOpen = false;
+
         public MainWindow()
         {
             InitializeComponent();
+            
+
             DataContext = this;
             _dataService = new DataStorageService();
             Loaded += MainWindow_Loaded;
+           // Loaded += Window_Loaded;
             masterService = new MasterService();
 
             masterService.StatusMessageUpdated += message =>
@@ -43,6 +48,23 @@ namespace EVMS
             };
            // GenerateTestExcelReport();
         }
+        //private void Window_Loaded(object sender, RoutedEventArgs e)
+        //{
+        //    // Set window to cover the entire screen, including taskbar
+        //    this.WindowState = WindowState.Normal;  // start in normal first
+        //    this.Topmost = true;                    // always on top
+        //    this.WindowStyle = WindowStyle.None;    // no border/title
+        //    this.ResizeMode = ResizeMode.NoResize;
+
+        //    this.Left = 0;
+        //    this.Top = 0;
+        //    this.Width = SystemParameters.PrimaryScreenWidth;
+        //    this.Height = SystemParameters.PrimaryScreenHeight;
+        //}
+       //private void CloseButton_Click(object sender, RoutedEventArgs e)
+       // {
+       //     this.Close();
+       // }
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             await Task.Run(() =>
@@ -117,14 +139,12 @@ namespace EVMS
         {
             MainContentGrid.Children.Clear();
 
-            // Create ResultPage using constructor with required parameters
             ResultPage resultPage = new ResultPage(e.Model, e.LotNo, e.UserId)
             {
                 HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Stretch
             };
 
-            // Subscribe to status message event from ResultPage
             resultPage.StatusMessageChanged += (message) =>
             {
                 Dispatcher.Invoke(() =>
@@ -133,12 +153,33 @@ namespace EVMS
                 });
             };
 
-            // No need to call SetData separately if data is set in constructor
-            // If needed, can still call SetData here
+            // ✅ Track when ResultPage is open or closed
+            resultPage.Loaded += (s, args) =>
+            {
+                _isResultPageOpen = true;
+                EnableMenus(false);
+            };
+
+            resultPage.Unloaded += (s, args) =>
+            {
+                _isResultPageOpen = false;
+                EnableMenus(true);
+            };
 
             MainContentGrid.Children.Add(resultPage);
         }
 
+        
+
+
+
+        private void EnableMenus(bool isEnabled)
+        {
+            RunPartMenu.IsEnabled = isEnabled;
+            MastringConfigMenu.IsEnabled = isEnabled;
+            ReportMenu.IsEnabled = isEnabled;
+            SettingsMenu.IsEnabled = isEnabled;
+        }
 
 
         private void HomePage_Click(object sender, RoutedEventArgs e)
@@ -309,9 +350,21 @@ namespace EVMS
             MainContentGrid.Children.Add(resultPage);
         }
 
-        
+
         private void SettingsMenu_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
+            // 🔒 1️⃣ Check if ResultPage is open
+            if (_isResultPageOpen)
+            {
+                e.Handled = true; // prevent menu opening
+                MessageBox.Show("⚠ Please close the Operation before accessing the menu.",
+                                "Action Not Allowed",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+                return;
+            }
+
+            // 🔐 2️⃣ Then check if user is authenticated
             if (!isSettingsAuthenticated)
             {
                 e.Handled = true; // stop default behavior until login succeeds
@@ -323,9 +376,8 @@ namespace EVMS
                 if (result == true && login.IsAuthenticated)
                 {
                     isSettingsAuthenticated = true; // unlock for this session
-                   // MessageBox.Show("✅ Settings unlocked!", "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
-                    // Open Settings menu manually
+                    // ✅ Open Settings menu manually after login success
                     if (sender is MenuItem menu)
                     {
                         Dispatcher.BeginInvoke(new Action(() =>
@@ -336,7 +388,10 @@ namespace EVMS
                 }
                 else
                 {
-                    MessageBox.Show("❌ Access Denied! Wrong Username or Password.", "Restricted", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("❌ Access Denied! Wrong Username or Password.",
+                                    "Restricted",
+                                    MessageBoxButton.OK,
+                                    MessageBoxImage.Warning);
                 }
             }
         }
@@ -432,38 +487,47 @@ namespace EVMS
         {
             Task.Run(() =>
             {
-                string baseExportFolder = @"D:\";
+                string baseExportFolder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                    "EVMS_Exports"
+                );
+
                 string companyName = "MEPL";
                 DateTime yesterday = DateTime.Today.AddDays(-1);
 
-                // Check if report was already generated for the date
-                if (lastExportDate == yesterday)
-                    return; // Nothing to do since already generated for yesterday
-
-                var activeParts = _dataService.GetActiveParts();
-                if (activeParts == null || activeParts.Count == 0)
-                    return;
-
-                string activePartNo = activeParts[0].Para_No;
-                string folderPath = Path.Combine(baseExportFolder, companyName, activePartNo);
-                Directory.CreateDirectory(folderPath);
-
                 try
                 {
+                    if (lastExportDate == yesterday)
+                        return;
+
+                    var activeParts = _dataService.GetActiveParts();
+                    if (activeParts == null || activeParts.Count == 0)
+                        return;
+
+                    string activePartNo = activeParts[0].Para_No;
+                    string folderPath = Path.Combine(baseExportFolder, companyName, activePartNo);
+                    Directory.CreateDirectory(folderPath);
+
                     var dataExportService = new DataExportService(_dataService, folderPath);
                     dataExportService.ExportDailyCumulativeReport(yesterday, activePartNo);
 
-                    // Update the last export date after successful export
                     lastExportDate = yesterday;
                 }
                 catch (Exception ex)
                 {
-                    Application.Current.Dispatcher.Invoke(() =>
-                        MessageBox.Show($"Failed to generate Excel report for part {activePartNo} ({yesterday:yyyy-MM-dd}): {ex.Message}")
-                    );
+                    string logFile = Path.Combine(baseExportFolder, "ExportError.log");
+                    File.AppendAllText(logFile, $"{DateTime.Now}: {ex}\n");
+
+                    if (Application.Current?.Dispatcher != null)
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                            MessageBox.Show($"Failed to generate Excel report: {ex.Message}")
+                        );
+                    }
                 }
             });
         }
+
 
 
 

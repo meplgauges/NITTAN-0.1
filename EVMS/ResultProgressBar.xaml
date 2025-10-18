@@ -29,7 +29,7 @@
                   Width="60" Height="30"
                   IsHitTestVisible="False"
                   RenderTransformOrigin="0.5,0.5">
-                <Rectangle Fill="Black" RadiusX="9" RadiusY="9"/>
+                <Rectangle x:Name="StatusRectangle" Fill="Black" RadiusX="9" RadiusY="9" Stroke="Black" StrokeThickness="5"/>
                 <TextBlock x:Name="CenterValueText"
                Text="0.000"
                FontSize="23"

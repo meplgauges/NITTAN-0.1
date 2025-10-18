@@ -87,8 +87,43 @@ namespace EVMS
             }
         }
 
+        public void ResetVisuals()
+        {
+            AboveFill.Height = 0;
+            AboveFill.Margin = new Thickness(0);
+            BelowFill.Height = 0;
+            BelowFill.Margin = new Thickness(0);
+
+            // Optional: reset the fill color to a neutral or transparent color
+            SolidColorBrush neutralBrush = new SolidColorBrush(Colors.Transparent);
+            AboveFill.Fill = neutralBrush;
+            BelowFill.Fill = neutralBrush;
+
+            // Reset the text display
+            BarValue.Text = "0.000";
+        }
+
+
         private void UpdateFill(double value)
         {
+
+            if (value == 0)
+            {
+                // Reset fills
+                AboveFill.Height = 0;
+                AboveFill.Margin = new Thickness(0);
+                BelowFill.Height = 0;
+                BelowFill.Margin = new Thickness(0);
+
+                // Optional: reset color to transparent or some neutral color
+                //var neutralBrush = new SolidColorBrush(Colors.Transparent); // Or choose another neutral
+                //AboveFill.Fill = neutralBrush;
+                //BelowFill.Fill = neutralBrush;
+
+                // Set value display to zero with appropriate formatting
+                BarValue.Text = "0.000";
+                return;
+            }
             // Validate range
             if (Max <= Min || Mean < Min || Mean > Max)
             {

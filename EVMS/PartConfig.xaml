@@ -48,6 +48,7 @@
                     <!-- Using the reusable label style -->
                     <TextBlock Text="Parameter:" Style="{StaticResource FormLabelStyle}"/>
                     <TextBox x:Name="txtParameter" Style="{StaticResource ModernFilledTextBox}"/>
+                    
                     <TextBlock Text="Nominal:" Style="{StaticResource FormLabelStyle}"/>
                     <TextBox x:Name="txtNominal" Style="{StaticResource ModernFilledTextBox}"/>
                     <TextBlock Text="R_Tol(+):" Style="{StaticResource FormLabelStyle}"/>
@@ -58,6 +59,8 @@
                     <TextBox x:Name="txtYTolPlus" Style="{StaticResource ModernFilledTextBox}"/>
                     <TextBlock Text="Y_Tol(-):" Style="{StaticResource FormLabelStyle}"/>
                     <TextBox x:Name="txtYTolMinus" Style="{StaticResource ModernFilledTextBox}"/>
+                    <TextBlock Text="Display Name:" Style="{StaticResource FormLabelStyle}"/>
+                    <TextBox x:Name="txtShort" Style="{StaticResource ModernFilledTextBox}"/>
                     <CheckBox x:Name="chkProbe"
                               Content="This is Probe ?"
                               Style="{StaticResource PillCheckBox}"/>
@@ -128,6 +131,9 @@
                     <DataGridTextColumn Header="Type" Binding="{Binding ProbeStatus}" Width="*" 
                                 ElementStyle="{StaticResource CenterCellStyle}" 
                                 EditingElementStyle="{StaticResource CenterCellStyle}" />
+                    <DataGridTextColumn Header="Short Names" Binding="{Binding ShortName}" Width="*" 
+                                 ElementStyle="{StaticResource CenterCellStyle}" 
+                                 EditingElementStyle="{StaticResource CenterCellStyle}" />  
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

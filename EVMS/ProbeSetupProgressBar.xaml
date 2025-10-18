@@ -50,7 +50,7 @@
 
                 <!-- Probe info -->
                 <TextBox Text="{Binding Title, RelativeSource={RelativeSource AncestorType=UserControl}}" 
-                         Height="25" Width="110" 
+                         Height="30" Width="119" 
                          Background="#2C2C2C" Foreground="#F5F6FA"
                          BorderBrush="#555" BorderThickness="1"
                          Padding="2" HorizontalAlignment="Center"

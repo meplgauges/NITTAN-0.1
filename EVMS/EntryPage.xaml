@@ -31,7 +31,7 @@
                     Style="{StaticResource ModernComboBoxStyle}" />
                
                 <TextBlock Text="Lot No" Style="{StaticResource FormLabelStyle}"/>
-                <TextBox x:Name="Txt" 
+                <TextBox x:Name="Txt" TextAlignment="Center"
                     Style="{StaticResource ModernFilledTextBox}"
                      ToolTip="Enter lot number"/>
 

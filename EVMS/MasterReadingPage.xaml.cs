@@ -1,4 +1,6 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using DocumentFormat.OpenXml.Wordprocessing;
+using EVMS.Service;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Configuration;
 using System.Data;
@@ -11,12 +13,13 @@ namespace EVMS
     public partial class MasterReadingPage : UserControl
     {
         private readonly string connectionString;
+        private DataStorageService dataStorageService;
+
 
         public MasterReadingPage()
         {
             InitializeComponent();
             connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
-
             btnAdd.Click += BtnAdd_Click;
             btnUpdate.Click += BtnUpdate_Click;
             btnDelete.Click += BtnDelete_Click;
@@ -26,9 +29,40 @@ namespace EVMS
 
             btnUpdate.IsEnabled = false;
             btnDelete.IsEnabled = false;
+            dataStorageService = new DataStorageService();
 
             LoadPartNumbers();
+            LoadMasterExpirationData();  // add this line to load saved data in UI
+
         }
+
+        private void LoadMasterExpirationData()
+        {
+            try
+            {
+                var (mode, setValue, _) = dataStorageService.GetMasterExpiration();
+
+                if (mode == 1) // Count mode
+                {
+                    rbCount.IsChecked = true;
+                    lblInput.Text = "Set Count (1 - 9999)";
+                    txtInput.MaxLength = 4;
+                }
+                else // Time mode
+                {
+                    rbTime.IsChecked = true;
+                    lblInput.Text = "Set Time (1 - 24 Hours)";
+                    txtInput.MaxLength = 2;
+                }
+
+                txtInput.Text = setValue.ToString();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to load master expiration data: " + ex.Message);
+            }
+        }
+
 
         private void LoadPartNumbers()
         {
@@ -357,30 +391,71 @@ namespace EVMS
 
         private void btnSet_Click(object sender, RoutedEventArgs e)
         {
-            if (rbCount.IsChecked == true)
+
+            bool? isCountChecked = rbCount.IsChecked;
+            bool? isTimeChecked = rbTime.IsChecked;
+
+            if (isCountChecked != true && isTimeChecked != true)
             {
-                if (int.TryParse(txtInput.Text, out int count))
-                {
-                    if (count < 1 || count > 9999)
-                    {
-                        MessageBox.Show("Count must be between 1 and 9999.");
-                        return;
-                    }
-                    MessageBox.Show($"Count set to {count}");
-                }
+                MessageBox.Show("Please select Count or Time mode.");
+                return;
             }
-            else if (rbTime.IsChecked == true)
+
+            int value, mode;
+            if (isCountChecked == true)
             {
-                if (int.TryParse(txtInput.Text, out int hours))
+                if (!int.TryParse(txtInput.Text, out value) || value < 1 || value > 9999)
                 {
-                    if (hours < 1 || hours > 24)
-                    {
-                        MessageBox.Show("Time must be between 1 and 24 hours.");
-                        return;
-                    }
-                    MessageBox.Show($"Time set to {hours} hours");
+                    MessageBox.Show("Count must be 1 to 9999.");
+                    return;
                 }
+                mode = 1;
+            }
+            else
+            {
+                if (!int.TryParse(txtInput.Text, out value) || value < 1 || value > 24)
+                {
+                    MessageBox.Show("Time must be 1 to 24 hours.");
+                    return;
+                }
+                mode = 0;
+            }
+
+            try
+            {
+                using var con = new SqlConnection(connectionString);
+                con.Open();
+
+                string updateSql = @"
+            UPDATE MasterExpiration
+            SET Mode = @Mode, SetValue = @SetValue, UpdatedAt = GETDATE()
+            WHERE Id = 1";
+
+                using var cmd = new SqlCommand(updateSql, con);
+                cmd.Parameters.AddWithValue("@Mode", mode);
+                cmd.Parameters.AddWithValue("@SetValue", value);
+
+                int rowsAffected = cmd.ExecuteNonQuery();
+                if (rowsAffected == 0)
+                {
+                    // If row does not exist (maybe first run), insert it
+                    string insertSql = "INSERT INTO MasterExpiration (Id, Mode, SetValue, UpdatedAt) VALUES (1, @Mode, @SetValue, GETDATE())";
+                    using var insertCmd = new SqlCommand(insertSql, con);
+                    insertCmd.Parameters.AddWithValue("@Mode", mode);
+                    insertCmd.Parameters.AddWithValue("@SetValue", value);
+                    insertCmd.ExecuteNonQuery();
+                }
+
+                string modeText = mode == 1 ? "Count" : "Time";
+                string messageValue = mode == 1 ? value.ToString() : $"{value} hours";
+                MessageBox.Show($"{modeText} set to {messageValue}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error saving data: " + ex.Message);
             }
         }
+
+
     }
 }

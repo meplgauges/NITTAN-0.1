@@ -149,9 +149,16 @@ namespace EVMS
         {
             ArcsLayer.Children.Clear();
 
-            Brush brush;
+            // Always draw background arc in light gray
+            DrawArc(MinValue, MaxValue, Brushes.LightGray);
 
-            // Red if value is outside the allowed range, otherwise green
+            // If Value is (close to) zero, skip drawing colored arc
+            if (Math.Abs(Value) < 0.0001)
+            {
+                return; // No colored overlay
+            }
+
+            Brush brush;
             if (Value < MinValue || Value > MaxValue)
                 brush = Brushes.IndianRed;
             else
@@ -159,6 +166,7 @@ namespace EVMS
 
             DrawArc(MinValue, MaxValue, brush);
         }
+
 
 
 
@@ -238,7 +246,7 @@ namespace EVMS
                 if (isMajor)
                 {
                     double fontSize = radius * 0.07;
-                    fontSize = Math.Max(fontSize, 10); // ensure font size is at least 10
+                    fontSize = Math.Max(fontSize, 15); // ensure font size is at least 10
                     var tb = new TextBlock
                     {
                         FontSize = fontSize,
@@ -269,17 +277,54 @@ namespace EVMS
             NeedleRotate.CenterX = cx;
             NeedleRotate.CenterY = cy;
 
-            double hubSize = radius * 0.35;
-            HubContainer.Width = radius * 0.7;
-            HubContainer.Height = radius * 0.2;
+            HubContainer.Width = radius * 2.0;
+            HubContainer.Height = radius * 0.3;
             Canvas.SetLeft(HubContainer, cx - HubContainer.Width / 2);
-            Canvas.SetTop(HubContainer, cy - HubContainer.Height / 2);
+            Canvas.SetTop(HubContainer, cy + radius * 0.1);  // slightly below the center line (cy)
+
+            double hubSize = radius * 0.35;
             Canvas.SetLeft(CenterValueText, cx - hubSize * 0.45);
             Canvas.SetTop(CenterValueText, cy - hubSize * 0.55);
-            LabelID.Text = ParameterName;
-            Canvas.SetLeft(LabelID, cx - hubSize * 0.85);
-            Canvas.SetTop(LabelID, cy + hubSize * 0.7);
+
+            LabelID.FontSize = 20;
+            LabelID.FontWeight = FontWeights.Bold;
+            LabelID.Width = HubContainer.Width;
+            LabelID.TextAlignment = TextAlignment.Center;
+
+            // Position LabelID at very top of canvas, centered horizontally
+            Canvas.SetLeft(LabelID, cx - LabelID.Width / 2);
+            Canvas.SetTop(LabelID, 25); // 25 px margin from top edge
+
+            // Add small round needle hub design at needle base
+            // Remove any existing needle hub ellipse to avoid duplicates
+            for (int i = GaugeCanvas.Children.Count - 1; i >= 0; i--)
+            {
+                if (GaugeCanvas.Children[i] is Ellipse e && e.Tag?.ToString() == "NeedleHub")
+                {
+                    GaugeCanvas.Children.RemoveAt(i);
+                }
+            }
+
+            var needleHub = new Ellipse
+            {
+                Width = radius * 0.1,
+                Height = radius * 0.1,
+                Fill = Brushes.Black,
+                Stroke = Brushes.Gray,
+                StrokeThickness = 1,
+                IsHitTestVisible = false,
+                Tag = "NeedleHub"
+            };
+
+            Canvas.SetLeft(needleHub, cx - needleHub.Width / 2);
+            Canvas.SetTop(needleHub, cy - needleHub.Height / 2);
+
+            GaugeCanvas.Children.Add(needleHub);
         }
+
+
+
+
 
         private void UpdateNeedle(double value)
         {
@@ -314,8 +359,19 @@ namespace EVMS
         public void UpdateValue(double value, bool? isOk = null)
         {
             Value = value;
-            //if (isOk.HasValue)
-            //    IsOk = isOk;
+
+            // Set HubContainer background based on OK status
+            if (StatusRectangle != null)
+            {
+                if (isOk.HasValue)
+                {
+                    StatusRectangle.Fill = isOk.Value ? Brushes.LimeGreen : Brushes.IndianRed;
+                }
+                else
+                {
+                    StatusRectangle.Fill = Brushes.Black; // default black fill
+                }
+            }
 
             if (CenterValueText != null)
                 CenterValueText.Text = value.ToString("0.000");
@@ -323,6 +379,7 @@ namespace EVMS
             UpdateArcColor();
             UpdateNeedle(value);
         }
+
 
 
         private double ValueToTheta(double value)

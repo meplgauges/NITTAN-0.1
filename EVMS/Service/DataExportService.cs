@@ -166,7 +166,7 @@ namespace EVMS.Service
             // === Below: Add Measured Data after LSL row ===
 
             var yesterday = DateTime.Today.AddDays(-1);
-            var measuredData = _dataService.GetAllMeasuredDataDynamic(partNo, yesterday);
+            var measuredData = _dataService.GetAllMeasurementReadingsDynamic(partNo, yesterday);
 
             if (measuredData != null && measuredData.Count > 0)
             {

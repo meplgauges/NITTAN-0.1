@@ -31,6 +31,7 @@ namespace EVMS
             InitializeComponent();
             connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
             LoadActiveModels();
+            ShowShiftInLotNo();
         }
 
         private void LoadActiveModels()
@@ -75,6 +76,35 @@ namespace EVMS
             }
         }
 
+        private string GetShiftCode()
+        {
+            DateTime now = DateTime.Now;
+            TimeSpan current = now.TimeOfDay;
+
+            TimeSpan shiftAStart = new TimeSpan(6, 0, 0);   // 06:00
+            TimeSpan shiftAEnd = new TimeSpan(13, 59, 59);
+            TimeSpan shiftBStart = new TimeSpan(14, 0, 0);  // 14:00
+            TimeSpan shiftBEnd = new TimeSpan(21, 59, 59);
+            TimeSpan shiftCStart = new TimeSpan(22, 0, 0);  // 22:00
+            TimeSpan shiftCEnd = new TimeSpan(5, 59, 59); // next day
+
+            string shift;
+            if (current >= shiftAStart && current <= shiftAEnd)
+                shift = "A";
+            else if (current >= shiftBStart && current <= shiftBEnd)
+                shift = "B";
+            else
+                shift = "C"; // covers 22:00–23:59 and 00:00–05:59
+
+            return shift;
+        }
+
+        private void ShowShiftInLotNo()
+        {
+            string dateShift = DateTime.Now.ToString("yyyyMMdd") + GetShiftCode();
+            Txt.Text = dateShift;  // Show shift data like "20251017A" in LotNo TextBox
+        }
+
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
             if (cmbModels.SelectedItem == null || string.IsNullOrWhiteSpace(Txt.Text) || string.IsNullOrWhiteSpace(LblUserId.Text))
@@ -84,10 +114,15 @@ namespace EVMS
             }
 
             string model = cmbModels.SelectedItem.ToString();
-            string lotNo = Txt.Text.Trim();
+            string lotNo = Txt.Text.Trim(); // This has date-shift prefix + user suffix
+
             string userId = LblUserId.Text.Trim();
 
-            StartClicked?.Invoke(this, new StartClickedEventArgs(model, lotNo, userId));
+            // Since Txt.Text already has date-shift prefix, directly use it without duplicating
+            string finalLot = lotNo; // or if you want to ensure suffix is included, implement logic here.
+
+            StartClicked?.Invoke(this, new StartClickedEventArgs(model, finalLot, userId));
         }
+
     }
 }

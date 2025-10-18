@@ -136,7 +136,7 @@
         <Style x:Key="ValueBoxStyle1" TargetType="TextBox">
             <!-- Remove fixed Width/Height -->
             <Setter Property="MinWidth" Value="8"/>
-            <Setter Property="FontSize" Value="8"/>
+            <Setter Property="FontSize" Value="14"/>
             <Setter Property="MinHeight" Value="20"/>
             <Setter Property="MaxWidth" Value="130"/>
             <!-- prevent too wide on large screen -->
@@ -162,7 +162,7 @@
                     <ControlTemplate TargetType="ToggleButton">
                         <Grid>
                             <Border x:Name="SwitchTrack"
-                                Background="#2196F3"
+                                Background="#FF0000"
                                 CornerRadius="18"
                                 Height="33"
                                 Width="80"/>
@@ -190,7 +190,7 @@
                                             <ColorAnimation
                                             Storyboard.TargetName="SwitchTrack"
                                             Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                            To="#2196F3" Duration="0:0:0.1"/>
+                                            To="#FF0000" Duration="0:0:0.1"/>
                                         </Storyboard>
                                     </VisualState>
 
@@ -271,56 +271,74 @@
             </StackPanel>
 
             <!-- Inspection Qty -->
+            <!-- Inspection Qty -->
             <StackPanel Grid.Column="3" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Inspection Qty" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <TextBox Style="{StaticResource ValueBoxStyle}" Text="{Binding InspectionQty}" IsReadOnly="True"/>
+                <TextBox x:Name="txtInspectionQty" Style="{StaticResource ValueBoxStyle}" Text="0" IsReadOnly="True"/>
             </StackPanel>
 
             <!-- OK Count -->
             <StackPanel Grid.Column="4" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="OK Count" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <TextBox Style="{StaticResource ValueBoxStyle}" Foreground="Green" FontWeight="Bold"
-             Text="{Binding OkCount}" IsReadOnly="True" />
+                <TextBox x:Name="txtOkCount" 
+             Style="{StaticResource ValueBoxStyle}" 
+             Background="LimeGreen" 
+             Foreground="White" 
+             FontWeight="Bold"
+             Text="0" 
+             IsReadOnly="True"
+             Padding="4"/>
             </StackPanel>
 
             <!-- NG Count -->
             <StackPanel Grid.Column="5" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="NG Count" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <TextBox Style="{StaticResource ValueBoxStyle}" Foreground="Red" FontWeight="Bold"
-             Text="{Binding NgCount}" IsReadOnly="True" />
+                <TextBox x:Name="txtNgCount" 
+             Style="{StaticResource ValueBoxStyle}" 
+             Background="IndianRed" 
+             Foreground="White" 
+             FontWeight="Bold"
+             Text="0" 
+             IsReadOnly="True"
+             Padding="4"/>
             </StackPanel>
 
-
             <StackPanel Grid.Column="6" Orientation="Vertical" Margin="8,0">
-                <TextBlock Text="Measurment" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
+                <TextBlock Text="Measurement" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
                 <ToggleButton 
-                       Style="{StaticResource SwitchToggleStyle}"
-                      />
+        x:Name="MeasurementToggle"
+        Style="{StaticResource SwitchToggleStyle}"
+        Checked="MeasurementToggle_Checked"
+        Unchecked="ToggleButton_Unchecked"/>
             </StackPanel>
 
             <StackPanel Grid.Column="7" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Mastering" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
-                <ToggleButton 
-                    Style="{StaticResource SwitchToggleStyle}"
-                    Checked="MasterToggle_Checked"
-                    />
+                <ToggleButton
+        x:Name="MasterToggle"
+        Style="{StaticResource SwitchToggleStyle}"
+        Checked="MasterToggle_Checked"
+        Unchecked="ToggleButton_Unchecked"/>
             </StackPanel>
-
 
             <StackPanel Grid.Column="8" Orientation="Vertical" Margin="8,0">
                 <TextBlock Text="Master Inspection" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
-
                 <ToggleButton 
-                   Style="{StaticResource SwitchToggleStyle}"
-                    Checked="MasterInspectionToggleButton_Checked"
-                  />    
+        x:Name="MasterInspectionToggleButton"
+        Style="{StaticResource SwitchToggleStyle}"
+        Checked="MasterInspectionToggleButton_Checked"
+        Unchecked="ToggleButton_Unchecked"/>
             </StackPanel>
+
             <StackPanel Grid.Column="9" Orientation="Vertical" Margin="8,0">
-                <TextBlock Text="Auto/Manual" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
+                <TextBlock Text="Manual/Auto" HorizontalAlignment="Center" Style="{StaticResource LabelStyle}" Margin="2"/>
 
                 <ToggleButton 
-                       Style="{StaticResource SwitchToggleStyle}"
-                      />    
+        x:Name="AutoManualToggle"
+        Style="{StaticResource SwitchToggleStyle}" 
+        Checked="AutoManualToggle_Checked" 
+        Unchecked="AutoManualToggle_Unchecked" />
+
             </StackPanel>
 
 
@@ -348,87 +366,86 @@
             <Canvas Width="820" Height="400" Background="#F7FAFC">
 
                 <!-- Valve Image -->
-                <Image Source="/Resource/valve.png"
-               Width="700" Height="400"
-               Canvas.Left="43" Canvas.Top="-22"/>
+                <Image Source="/Resource/valve.png" Width="700" Height="400" Canvas.Left="43" Canvas.Top="-22"/>
 
                 <!-- Groove Dia -->
                 <Line X1="90" Y1="162" X2="90" Y2="198" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
                 <Line X1="89" Y1="162" X2="110" Y2="162" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="89" Y1="196" X2="110" Y2="196" Stroke="#5090F9" StrokeThickness="2"/>
-                <TextBlock Text="GROOVE DIA" Style="{StaticResource LabelStyle1}" Canvas.Right="810" Canvas.Top="170"/>
-                <TextBox x:Name="GrooveDiaBox" Text="--" Style="{StaticResource ValueBoxStyle1}"  Canvas.Right="750" Canvas.Top="170"/>
-                <TextBlock Text="GROOVE POSITION" Style="{StaticResource LabelStyle1}" Canvas.Right="760" Canvas.Top="260"/>
-                <TextBox x:Name="GroovePo" Text="00.320" Style="{StaticResource ValueBoxStyle1}"  Canvas.Right="750" Canvas.Top="280"/>
+                <TextBlock x:Name="GrooveDiaLabel" Text="GROOVE DIA" Style="{StaticResource LabelStyle1}" Canvas.Right="810" Canvas.Top="170"/>
+                <TextBox x:Name="GrooveDiaBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Right="750" Canvas.Top="170"/>
+
+                <TextBlock x:Name="GroovePoLabel" Text="GROOVE POSITION" Style="{StaticResource LabelStyle1}" Canvas.Right="760" Canvas.Top="260"/>
+                <TextBox x:Name="GroovePo" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Right="750" Canvas.Top="280"/>
+
                 <!-- Stem Dia -->
-                <!--  <TextBlock Text="STDC" Style="{StaticResource LabelStyle1}" Canvas.Left="190" Canvas.Top="90"/> -->
-                <!--  <TextBox x:Name="stdc" Canvas.Left="130" Canvas.Top="90"/>-->
                 <Line X1="180" Y1="130" X2="180" Y2="165" Stroke="#5090F9" StrokeThickness="2"/>
-                <TextBlock Text="STDG" Style="{StaticResource LabelStyle1}" Canvas.Left="230" Canvas.Top="135"/>
+                <TextBlock x:Name="STDGLabel" Text="STDG" Style="{StaticResource LabelStyle1}" Canvas.Left="270" Canvas.Top="135"/>
                 <TextBox x:Name="STDG" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="190" Canvas.Top="131"/>
-                <!--  <TextBlock Text="STDU" Style="{StaticResource LabelStyle1}" Canvas.Left="450" Canvas.Top="90"/>  -->
-                <!--  <TextBox x:Name="stdu"  Canvas.Left="480" Canvas.Top="90"/> -->
+
                 <Line X1="530" Y1="130" X2="530" Y2="165" Stroke="#5090F9" StrokeThickness="2"/>
-                <TextBlock Text="STEM DIA" Style="{StaticResource LabelStyle1}" Canvas.Left="430" Canvas.Top="135"/>
+                <TextBlock x:Name="StemDiaLabel" Text="STEM DIA" Style="{StaticResource LabelStyle1}" Canvas.Left="430" Canvas.Top="135"/>
                 <TextBox x:Name="StemDiaBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="480" Canvas.Top="131"/>
 
                 <!-- Head Dia -->
                 <Line X1="665" Y1="250" X2="820" Y2="250" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="820" Y1="100" X2="820" Y2="250" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
-                <TextBlock Text="HEAD DIA" Style="{StaticResource LabelStyle1}" Canvas.Left="700" Canvas.Top="120"/>
-                <TextBlock Text="FACE RUNOUT" Style="{StaticResource LabelStyle1}" Canvas.Left="700" Canvas.Top="190"/>
+                <TextBlock x:Name="HeadDiaLabel" Text="HEAD DIA" Style="{StaticResource LabelStyle1}" Canvas.Left="700" Canvas.Top="120"/>
                 <TextBox x:Name="HeadDiaBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="720" Canvas.Top="140"/>
+
+                <TextBlock x:Name="FaceRunoutLabel" Text="FACE RUNOUT" Style="{StaticResource LabelStyle1}" Canvas.Left="700" Canvas.Top="190"/>
                 <TextBox x:Name="FaceRunout" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="720" Canvas.Top="210"/>
-
-
 
                 <!-- Seat Height -->
                 <Line X1="700" Y1="70" X2="665" Y2="70" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
                 <Line X1="663" Y1="98" X2="663" Y2="70" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="665" Y1="100" X2="820" Y2="100" Stroke="#5090F9" StrokeThickness="2"/>
-                <TextBlock Text="SEAT HEIGHT" Style="{StaticResource LabelStyle1}" Canvas.Left="670" Canvas.Top="40"/>
-                <TextBox x:Name="SeatHeightBox" Text="--" Style="{StaticResource ValueBoxStyle1}"  Canvas.Left="735" Canvas.Top="35"/>
-                <TextBlock Text="SEAT RUNOUT" Style="{StaticResource LabelStyle1}" Canvas.Left="730" Canvas.Top="70"/>
-                <TextBox x:Name="SeatRunout" Text="--" Style="{StaticResource ValueBoxStyle1}"  Canvas.Left="799" Canvas.Top="65"/>
-
+                <TextBlock x:Name="SeatHeightLabel" Text="SEAT HEIGHT" Style="{StaticResource LabelStyle1}" Canvas.Left="670" Canvas.Top="40"/>
+                <TextBox x:Name="SeatHeightBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="735" Canvas.Top="35"/>
+                <TextBlock x:Name="SeatRunoutLabel" Text="SEAT RUNOUT" Style="{StaticResource LabelStyle1}" Canvas.Left="730" Canvas.Top="70"/>
+                <TextBox x:Name="SeatRunout" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="799" Canvas.Top="65"/>
 
                 <!-- Datum to End -->
                 <Line X1="648" Y1="300" X2="648" Y2="240" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="645" Y1="120" X2="645" Y2="50" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="110" Y1="50" X2="110" Y2="161" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="110" Y1="50" X2="645" Y2="50" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
-                <TextBlock Text="DATUM TO END" Style="{StaticResource LabelStyle1}" Canvas.Left="350" Canvas.Top="30"/>
-                <TextBox x:Name="DatumToEndBox" Text="" 
-                 Style="{StaticResource ValueBoxStyle1}" 
-                 Canvas.Left="430" Canvas.Top="20"/>
+                <TextBlock x:Name="DatumToEndLabel" Text="DATUM TO END" Style="{StaticResource LabelStyle1}" Canvas.Left="350" Canvas.Top="30"/>
+                <TextBox x:Name="DatumToEndBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="430" Canvas.Top="20"/>
 
                 <!-- Datum to Groove -->
                 <Line X1="665" Y1="340" X2="665" Y2="250" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="140" Y1="300" X2="140" Y2="195" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="140" Y1="300" X2="650" Y2="300" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
-                <TextBlock Text="DATUM TO GROOVE" Style="{StaticResource LabelStyle1}" Canvas.Left="300" Canvas.Top="310"/>
-                <TextBox x:Name="DatumToEndBo" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="430" Canvas.Top="20"/>
-                <TextBlock Text="STEM TAPER" Style="{StaticResource LabelStyle1}" Canvas.Left="310" Canvas.Top="70"/>
-                <TextBox x:Name="StemTaper" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="400" Canvas.Top="205"/>
-                <TextBlock Text="STRAIGHTNESS" Style="{StaticResource LabelStyle1}" Canvas.Left="320" Canvas.Top="210"/>
-                <TextBox x:Name="Strait" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="370" Canvas.Top="70"/>
+                <TextBlock x:Name="DatumToGrooveLabel" Text="DATUM TO GROOVE" Style="{StaticResource LabelStyle1}" Canvas.Left="300" Canvas.Top="310"/>
+                <TextBox x:Name="DatumToGrooveBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="430" Canvas.Top="300"/>
 
+                <!-- Stem Taper -->
+                <TextBlock x:Name="StemTaperLabel" Text="STEM TAPER" Style="{StaticResource LabelStyle1}" Canvas.Left="310" Canvas.Top="70"/>
+                <TextBox x:Name="StemTaper" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="400" Canvas.Top="205"/>
+
+                <!-- Straightness -->
+                <TextBlock x:Name="StraightnessLabel" Text="STRAIGHTNESS" Style="{StaticResource LabelStyle1}" Canvas.Left="320" Canvas.Top="210"/>
+                <TextBox x:Name="Straightness" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="370" Canvas.Top="70"/>
 
                 <!-- Overall Length -->
                 <Line X1="110" Y1="340" X2="110" Y2="195" Stroke="#5090F9" StrokeThickness="2"/>
                 <Line X1="110" Y1="340" X2="665" Y2="340" Stroke="#5090F9" StrokeDashArray="4 2" StrokeThickness="2"/>
-                <TextBlock Text="OVERALL LENGTH" Style="{StaticResource LabelStyle1}" Canvas.Left="310" Canvas.Top="360"/>
+                <TextBlock x:Name="OverallLengthLabel" Text="OVERALL LENGTH" Style="{StaticResource LabelStyle1}" Canvas.Left="310" Canvas.Top="360"/>
                 <TextBox x:Name="OverallLengthBox" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="400" Canvas.Top="350"/>
 
-
-                <TextBlock Text="HEAD RUNOUT" Style="{StaticResource LabelStyle1}" Canvas.Left="700" Canvas.Top="310"/>
+                <!-- Head Runout -->
+                <TextBlock x:Name="HeadRunoutLabel" Text="HEAD RUNOUT" Style="{StaticResource LabelStyle1}" Canvas.Left="700" Canvas.Top="310"/>
                 <TextBox x:Name="HeadRunout" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="780" Canvas.Top="305"/>
 
-                <TextBlock Text="HEAD OVER" Style="{StaticResource LabelStyle1}" Canvas.Left="710" Canvas.Top="280"/>
+                <!-- Head Over -->
+                <TextBlock x:Name="HeadOverLabel" Text="HEAD OVER" Style="{StaticResource LabelStyle1}" Canvas.Left="710" Canvas.Top="280"/>
                 <TextBox x:Name="HeadOver" Text="--" Style="{StaticResource ValueBoxStyle1}" Canvas.Left="780" Canvas.Top="275"/>
 
             </Canvas>
-        </Viewbox>                   
+        </Viewbox>
+
+
 
         <!-- Right Panel -->
         <Grid Grid.Row="1" Grid.Column="1" Margin="0" >
@@ -450,80 +467,87 @@
 
         <!-- Row 2: DataGrid spanning both columns -->
         <Border Style="{StaticResource CardBox}"
-                Grid.Row="2" Grid.ColumnSpan="4"
-                Margin="20,5,20,10" Padding="3"
-                HorizontalAlignment="Stretch"
-                VerticalAlignment="Stretch">
+        Grid.Row="2" Grid.ColumnSpan="4"
+        Margin="20,5,20,10" Padding="3"
+        HorizontalAlignment="Stretch"
+        VerticalAlignment="Stretch">
 
             <DataGrid x:Name="ValveReadingsGrid"
-                      AutoGenerateColumns="True"
-                      AutoGeneratingColumn="ValveReadingsGrid_AutoGeneratingColumn"
-                      CanUserAddRows="False"
-                      CanUserDeleteRows="False"
-                      IsReadOnly="True"
-                      GridLinesVisibility="None"
-                      Background="#1E1E1E"
-                      Foreground="Black"
-                      BorderBrush="#333"
-                      RowBackground="#1E1E1E"
-                      AlternatingRowBackground="#2A2A2A"
-                      HorizontalGridLinesBrush="#444"
-                      VerticalGridLinesBrush="#444"
-                      RowHeight="25"
-                      ColumnHeaderHeight="35"
-                      FontSize="14"
-                      FontFamily="Segoe UI"
-                      HorizontalAlignment="Stretch"
-                      VerticalAlignment="Stretch"
-                      ColumnWidth="*"
-                      MinHeight="100"
-                      MinWidth="100">
-
-         
-
+              AutoGenerateColumns="True"
+              AutoGeneratingColumn="ValveReadingsGrid_AutoGeneratingColumn"
+              CanUserAddRows="False"
+              CanUserDeleteRows="False"
+              IsReadOnly="True"
+              GridLinesVisibility="None"
+              Background="White"
+              Foreground="Black"
+              BorderBrush="#DDD"
+              RowBackground="White"
+              AlternatingRowBackground="#F2F2F2"
+              HorizontalGridLinesBrush="#E0E0E0"
+              VerticalGridLinesBrush="#E0E0E0"
+              RowHeight="26"
+              ColumnHeaderHeight="40"
+              FontSize="14"
+              FontFamily="Segoe UI"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch"
+              ColumnWidth="*"
+              MinHeight="100"
+              MinWidth="100">
 
                 <!-- Modern Styles -->
                 <DataGrid.Resources>
-                    <!-- Header Style -->
+
+                    <!-- ✅ Modern Header Style -->
                     <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="#2D2D2D"/>
-                        <Setter Property="Foreground" Value="Black"/>
+                        <Setter Property="Background" Value="#1F2937"/>
+                        <!-- Dark gray-blue -->
+                        <Setter Property="Foreground" Value="White"/>
                         <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="BorderBrush" Value="#444"/>
+                        <Setter Property="FontSize" Value="14"/>
+                        <Setter Property="BorderBrush" Value="#374151"/>
                         <Setter Property="BorderThickness" Value="0,0,1,1"/>
                         <Setter Property="HorizontalContentAlignment" Value="Center"/>
-                        <Setter Property="Padding" Value="5"/>
+                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="6"/>
+                        <Setter Property="Height" Value="40"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
                     </Style>
 
-                    <!-- Row Style -->
+                    <!-- ✅ Modern Row Style -->
                     <Style TargetType="DataGridRow">
-                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="Background" Value="White"/>
                         <Setter Property="Foreground" Value="Black"/>
                         <Setter Property="FontSize" Value="13"/>
                         <Setter Property="BorderBrush" Value="Transparent"/>
                         <Setter Property="SnapsToDevicePixels" Value="True"/>
                         <Setter Property="Margin" Value="0,1,0,1"/>
+
                         <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#3A3A3A"/>
+                                <Setter Property="Background" Value="#E5E7EB"/>
+                                <!-- light hover -->
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#007ACC"/>
+                                <Setter Property="Background" Value="#3B82F6"/>
+                                <!-- blue highlight -->
                                 <Setter Property="Foreground" Value="White"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
 
-                    <!-- Cell Style -->
+                    <!-- ✅ Centered Cell Style -->
                     <Style TargetType="DataGridCell">
                         <Setter Property="TextBlock.TextAlignment" Value="Center"/>
                         <Setter Property="HorizontalContentAlignment" Value="Center"/>
                         <Setter Property="VerticalContentAlignment" Value="Center"/>
+                        <Setter Property="Padding" Value="4,2"/>
                     </Style>
+
                 </DataGrid.Resources>
             </DataGrid>
         </Border>
-
 
     </Grid>
 </UserControl>

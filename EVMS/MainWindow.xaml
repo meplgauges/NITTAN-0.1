@@ -10,9 +10,10 @@
         MinWidth="600" MinHeight="600"
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI"
+        Background="#F9FAFB"
         WindowState="Maximized"
-        Background="#F9FAFB">
-
+        ResizeMode="CanResize"
+        WindowStyle="SingleBorderWindow">
     <Window.Resources>
             <!-- Your existing resources -->
 
@@ -207,27 +208,23 @@
                     </Style>
                 </Menu.Resources>
 
-                <MenuItem Header="_Run Part" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
+                <MenuItem x:Name="RunPartMenu" Header="_Run Part" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
                     <MenuItem Header="Home..." Click="HomePage_Click" />
                     <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
                     <Separator />
                     <MenuItem Header="Exit" Click="Exit_Click"/>
                 </MenuItem>
 
-                <MenuItem Header="_Mastring Configuration" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
+                <MenuItem x:Name="MastringConfigMenu" Header="_Mastring Configuration" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
                     <MenuItem Header="Master Configuration" Click="MasterPage_Click"/>
                 </MenuItem>
 
-                <MenuItem Header="Repeatibility" Click="MenuItem_Click">
-                    <MenuItem />
-                </MenuItem>
-
-                <MenuItem Header="_Report" Click="MenuItem_Click" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
+                <MenuItem x:Name="ReportMenu" Header="_Report" Click="MenuItem_Click" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
                     <MenuItem Header="SPC Graph" Click="Report_Page"/>
                     <MenuItem Header="Report"/>
                 </MenuItem>
 
-                <MenuItem Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
+                <MenuItem x:Name="SettingsMenu" Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
                     <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
                     <MenuItem Header="Part Manager" Click="PartManager_Click"/>
                     <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
@@ -236,6 +233,7 @@
                     <MenuItem Header="Controls" Click="CO_Click"/>
                     <MenuItem Header="Login Setup" Click="LoginSetup_Click"/>
                 </MenuItem>
+
             </Menu>
 
             <TextBox x:Name="StatusMessageTextBox"
@@ -260,14 +258,27 @@
 
 
 
-                <!-- Button docked right -->
             <Button x:Name="ActivePartStatusButton"
-        DockPanel.Dock="Right"
-        Margin="0,4,12,0"
-        Style="{StaticResource ActivePartStatusButtonStyle}"/>
+            DockPanel.Dock="Left"
+            Width="100" Height="30"
+            Margin="490,0,0,0" 
+                    VerticalAlignment="Center"
+                Style="{StaticResource ActivePartStatusButtonStyle}"
+            Content="Active Part"/>
 
+                <!-- Close Button at the far right
+                <Button x:Name="CloseButton"
+            DockPanel.Dock="Right"
+            Width="40" Height="30"
+            Margin="0,0,0,0"  
+            Background="Red"
+            Foreground="White"
+            FontWeight="Bold"
+            Content="X"
+            Click="CloseButton_Click"/> -->
         </DockPanel>
 
+        
 
         <!-- Optional ScrollViewer for very small window sizes -->
         <!--

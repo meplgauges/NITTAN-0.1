@@ -1,7 +1,8 @@
-﻿using System;
+﻿using DocumentFormat.OpenXml.VariantTypes;
+using Microsoft.Data.SqlClient;
+using System;
 using System.Configuration;
 using System.Data;
-using Microsoft.Data.SqlClient;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -87,7 +88,8 @@ namespace EVMS
                             RTolMinus, 
                             YTolPlus, 
                             YTolMinus, 
-                            ProbeStatus
+                            ProbeStatus,
+                            ShortName
                         FROM PartConfig
                         ORDER BY SrNo";
                     SqlDataAdapter da = new SqlDataAdapter(query, con);
@@ -122,7 +124,8 @@ namespace EVMS
                             RTolMinus, 
                             YTolPlus, 
                             YTolMinus, 
-                            ProbeStatus
+                            ProbeStatus,
+                            ShortName
                         FROM PartConfig
                         WHERE Para_No = @Para_No
                         ORDER BY SrNo";
@@ -179,6 +182,7 @@ namespace EVMS
 
                 string? Para_No = cmbPartNo.SelectedItem?.ToString() ?? "";
                 string? parameter = txtParameter.Text.Trim();
+                string? ShortName = txtShort.Text.Trim();
 
                 if (IsParameterExists(parameter))
                 {
@@ -198,8 +202,8 @@ namespace EVMS
                 {
                     con.Open();
                     string query = @"INSERT INTO PartConfig 
-                                    (Para_No, Parameter, Nominal, RTolPlus, RTolMinus, YTolPlus, YTolMinus, ProbeStatus)
-                                    VALUES (@Para_No, @Parameter, @Nominal, @RTolPlus, @RTolMinus, @YTolPlus, @YTolMinus, @ProbeStatus)";
+                                    (Para_No, Parameter, Nominal, RTolPlus, RTolMinus, YTolPlus, YTolMinus, ProbeStatus,ShortName)
+                                    VALUES (@Para_No, @Parameter, @Nominal, @RTolPlus, @RTolMinus, @YTolPlus, @YTolMinus, @ProbeStatus,@ShortName)";
                     using (SqlCommand cmd = new SqlCommand(query, con))
                     {
                         cmd.Parameters.AddWithValue("@Para_No", Para_No);
@@ -210,6 +214,8 @@ namespace EVMS
                         cmd.Parameters.AddWithValue("@YTolPlus", yTolPlus);
                         cmd.Parameters.AddWithValue("@YTolMinus", yTolMinus);
                         cmd.Parameters.AddWithValue("@ProbeStatus", probeStatus);
+                        cmd.Parameters.AddWithValue("@ShortName", ShortName);
+
                         cmd.ExecuteNonQuery();
                     }
                 }
@@ -241,6 +247,8 @@ namespace EVMS
                 int srNo = Convert.ToInt32(row["SrNo"]);
                 string Para_No = cmbPartNo.SelectedItem?.ToString() ?? "";
                 string parameter = txtParameter.Text.Trim();
+                string? ShortName = txtShort.Text.Trim();
+
 
                 decimal nominal = ParseDecimal(txtNominal.Text);
                 decimal rTolPlus = ParseDecimal(txtRTolPlus.Text);
@@ -260,7 +268,8 @@ namespace EVMS
                                         RTolMinus=@RTolMinus, 
                                         YTolPlus=@YTolPlus, 
                                         YTolMinus=@YTolMinus, 
-                                        ProbeStatus=@ProbeStatus
+                                        ProbeStatus=@ProbeStatus,
+                                        ShortName=@ShortName
                                     WHERE SrNo=@SrNo";
                     using (SqlCommand cmd = new SqlCommand(query, con))
                     {
@@ -272,6 +281,8 @@ namespace EVMS
                         cmd.Parameters.AddWithValue("@YTolPlus", yTolPlus);
                         cmd.Parameters.AddWithValue("@YTolMinus", yTolMinus);
                         cmd.Parameters.AddWithValue("@ProbeStatus", probeStatus);
+                        cmd.Parameters.AddWithValue("@ShortName", ShortName);
+
                         cmd.Parameters.AddWithValue("@SrNo", srNo);
                         int rows = cmd.ExecuteNonQuery();
                         if (rows == 0)
@@ -337,6 +348,7 @@ namespace EVMS
         private void ClearInputs()
         {
             txtParameter.Clear();
+            txtShort.Clear();
             txtNominal.Clear();
             txtRTolPlus.Clear();
             txtRTolMinus.Clear();
@@ -391,6 +403,8 @@ namespace EVMS
                 txtYTolPlus.Text = row["YTolPlus"].ToString();
                 txtYTolMinus.Text = row["YTolMinus"].ToString();
                 chkProbe.IsChecked = row["ProbeStatus"].ToString() == "Probe";
+                txtShort.Text = row["ShortName"].ToString();
+
 
                 btnUpdate.IsEnabled = true;
                 btnDelete.IsEnabled = true;

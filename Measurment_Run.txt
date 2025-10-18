@@ -1,0 +1,187 @@
+public async Task RunMeasurementCycleAsync()
+{
+    try
+    {
+        var autoList = _dataStorageService.GetActiveBit();
+        var autoControl = autoList?.FirstOrDefault(c => string.Equals(c.Description, "Auto/Manual", StringComparison.OrdinalIgnoreCase));
+        int bitValue = GetPlcDeviceBit("X14"); // Auto/Manual PLC bit
+
+        // Validate mode consistency
+        if (!(autoControl != null && (autoControl.Bit == bitValue)))
+        {
+            if (autoControl?.Bit == 0 && bitValue == 1)
+            {
+                await NotifyOnUIAsync("Software is in Manual mode. Please switch PLC to Manual mode.");
+            }
+            else if (autoControl?.Bit == 1 && bitValue == 0)
+            {
+                await NotifyOnUIAsync("Software is in Auto mode. Change PLC to Auto mode.");
+            }
+            return;
+        }
+
+        var sortedProbeMeasurements = _orderedProbeMeasurements;
+        bool firstCycle = true;
+
+        do
+        {
+            if (!_continueMeasurement) break; // Stop gracefully
+
+            // Clear previous readings for new cycle
+            if (!firstCycle)
+            {
+                foreach (var probe in sortedProbeMeasurements)
+                {
+                    probe.Readings.Clear();
+                }
+            }
+
+            if (autoControl?.Bit == 0) // Manual Mode
+            {
+                if (firstCycle)
+                {
+                    await NotifyOnUIAsync("Place part for measurement...");
+                    await WaitForValidProbeReadingAsync("100AY08P42");
+
+                    await NotifyOnUIAsync("PRESS START SWITCH TO START MEASUREMENT");
+                    while (GetPlcDeviceBit("X1") != 1) await Task.Delay(100);
+
+                    await NotifyOnUIAsync("START BUTTON PRESSED");
+                }
+                else
+                {
+                    await NotifyOnUIAsync("REMOVE PART FROM MACHINE...");
+                    await WaitForPartRemovedAsync("100AY08P42");
+
+                    await NotifyOnUIAsync("LOAD NEW PART FOR MEASUREMENT...");
+                    await WaitForValidProbeReadingAsync("100AY08P42");
+
+                    await NotifyOnUIAsync("PRESS START SWITCH TO BEGIN MEASUREMENT...");
+                    while (GetPlcDeviceBit("X1") != 1) await Task.Delay(100);
+
+                    await NotifyOnUIAsync("START BUTTON PRESSED. Running measurement...");
+                }
+            }
+            else // Auto Mode
+            {
+                if (!firstCycle)
+                {
+                    await NotifyOnUIAsync("Waiting for robot to reach safe position...");
+                    while (GetPlcDeviceBit("M301") != 0) await Task.Delay(100);
+                    await NotifyOnUIAsync("Robot is in safe position. Ready to load next part.");
+                }
+
+                await NotifyOnUIAsync("Press Robo start button to start measurement.");
+                while (GetPlcDeviceBit("M20") != 1) await Task.Delay(100);
+
+                await NotifyOnUIAsync("Robo start button Pressed");
+                SetPlcDevice("M301", 1);
+
+                await NotifyOnUIAsync("Waiting Robot to Load Part...");
+                await WaitForValidProbeReadingAsync("100AY08P42");
+
+                await NotifyOnUIAsync("Waiting Robot for Safe Position...");
+                while (GetPlcDeviceBit("M301") != 0) await Task.Delay(100);
+            }
+
+            // Run measurement
+            await RunMotorAndCollectReadingsAsync(sortedProbeMeasurements, ProcedureMode.Measurement);
+
+            // Handle measurement results
+            var probeMeasurementByName = sortedProbeMeasurements
+                .Where(pm => !string.IsNullOrEmpty(pm.Name))
+                .ToDictionary(pm => pm.Name!);
+
+            HandleMeasurementStage(probeMeasurementByName, _currentPartCode);
+
+            // Display summary
+            var readingsSummary = string.Join("; ",
+                sortedProbeMeasurements.Select(p =>
+                    $"{p.Name}: {string.Join(",", p.Readings)}"));
+            await NotifyOnUIAsync($"Cycle completed. Probe readings: {readingsSummary}");
+
+            firstCycle = false;
+            await NotifyOnUIAsync("Ready for next cycle.");
+
+        } while (ShouldContinueMeasurement());
+
+        await NotifyOnUIAsync("Measurement cycle stopped by user.");
+        SetPlcDevice("M300", 0);
+        MeasurementStopped?.Invoke();
+    }
+    catch (Exception ex)
+    {
+        await NotifyOnUIAsync($"Error occurred: {ex.Message}");
+    }
+}
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+private async Task HandleMasteringStageAsync()
+{
+    if (Abort)
+    {
+        MessageBox.Show("Mastering aborted.", "Abort", MessageBoxButton.OK, MessageBoxImage.Warning);
+        return;
+    }
+
+    foreach (var pm in _probeMeasurements.Values)
+    {
+        _dataStorageService.SaveProbeReadings(
+            _dataStorageService.GetProbeInstallByPartNumber(_currentPartCode),
+            _currentPartCode,
+            new Dictionary<string, double> { { pm.ProbeId, pm.ReferenceValue } }
+        );
+    }
+
+    MasterComplete = true;
+    var resultsWithStatus = _probeMeasurements.Values
+        .Where(pm => !string.IsNullOrEmpty(pm.Name))
+        .ToDictionary(
+            pm => pm.Name!,
+            pm => new ParameterResult { Value = pm.ReferenceValue, IsOk = true } // assuming OK on mastering
+        );
+    OnCalculatedValuesWithStatusReady(resultsWithStatus);
+
+    // Determine current mode
+    var autoList = _dataStorageService.GetActiveBit();
+    var autoControl = autoList?.FirstOrDefault(c => string.Equals(c.Description, "Auto/Manual", StringComparison.OrdinalIgnoreCase));
+    int bitValue = GetPlcDeviceBit("X14"); // PLC Auto/Manual bit
+
+    bool isAuto = autoControl != null && autoControl.Bit == 1 && bitValue == 1;
+
+    if (isAuto)
+    {
+        SetPlcDevice("M102", 1); // trigger robot to move to safe position
+        await NotifyOnUIAsync("Waiting Safe position from Robot...");
+        while (GetPlcDeviceBit("M102") != 0)
+            await Task.Delay(100);
+    }
+
+    // Mastering complete message
+    await NotifyOnUIAsync("Mastering Completed. Press Enter to Inspect the Master");
+}
+----------------------------------------------------------------------------------------------------------------------
+
+case ProcedureMode.MasterInspection:
+{
+    var probeMeasurementByName = probeMeasurements
+        .Where(pm => !string.IsNullOrEmpty(pm.Name))
+        .ToDictionary(pm => pm.Name!);
+
+    HandleMasterInspectionStage(probeMeasurementByName, _currentPartCode);
+
+    // Simplified Auto/Manual check
+    bool isAuto = GetPlcDeviceBit("X14") == 1;
+
+    if (isAuto)
+    {
+        SetPlcDevice("M102", 1); // trigger robot to move to safe position
+        await NotifyOnUIAsync("Waiting Safe position from Robot...");
+        while (GetPlcDeviceBit("M102") != 0)
+            await Task.Delay(100);
+    }
+
+    await NotifyOnUIAsync("Master Inspection Completed");
+    break;
+}
