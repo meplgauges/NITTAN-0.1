@@ -1,8 +1,9 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using DocumentFormat.OpenXml.EMMA;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Configuration;
-using System.Diagnostics;
 using System.Data;
+using System.Diagnostics;
 using System.Windows;
 
 
@@ -469,6 +470,74 @@ namespace EVMS.Service
         }
 
 
+        public async Task<InspectionData?> SelectInspectionDataAsync(string _model, string _lotNo, string _userId)
+        {
+            string sql = @"SELECT PartNo, LotNo, OperatorID, InspectionQty, OkCount 
+                       FROM InspectionData
+                       WHERE PartNo = @PartNo AND LotNo = @LotNo AND OperatorID = @OperatorID";
+
+            using var con = new SqlConnection(_connectionString);
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand(sql, con);
+            cmd.Parameters.AddWithValue("@PartNo", _model);
+            cmd.Parameters.AddWithValue("@LotNo", _lotNo);
+            cmd.Parameters.AddWithValue("@OperatorID", _userId);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new InspectionData
+                {
+                    PartNo = reader.GetString(0),
+                    LotNo = reader.GetString(1),
+                    OperatorID = reader.GetString(2),
+                    InspectionQty = reader.GetInt32(3),
+                    OkCount = reader.GetInt32(4)
+                };
+            }
+            return null;
+        }
+
+        public async Task InsertInspectionDataAsync(string _model, string _lotNo, string _userId)
+        {
+            string sql = @"INSERT INTO InspectionData (PartNo, LotNo, OperatorID, InspectionQty, OkCount)
+                       VALUES (@PartNo, @LotNo, @OperatorID, 0, 0)";
+
+            using var con = new SqlConnection(_connectionString);
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand(sql, con);
+            cmd.Parameters.AddWithValue("@PartNo", _model);   // The name @PartNo in SQL must be exactly "@PartNo" here
+            cmd.Parameters.AddWithValue("@LotNo", _lotNo);
+            cmd.Parameters.AddWithValue("@OperatorID", _userId);
+
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task UpdateInspectionCountsAsync(string _model, string _lotNo, string _userId, int inspectionQty, int okCount)
+        {
+            const string sql = @"
+            UPDATE InspectionData
+            SET InspectionQty = @InspectionQty, OkCount = @OkCount
+            WHERE PartNo = @PartNo AND LotNo = @LotNo AND OperatorID = @OperatorID";
+
+            using var con = new SqlConnection(_connectionString);
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand(sql, con);
+            cmd.Parameters.AddWithValue("@InspectionQty", inspectionQty);
+            cmd.Parameters.AddWithValue("@OkCount", okCount);
+            cmd.Parameters.AddWithValue("@PartNo", _model);
+            cmd.Parameters.AddWithValue("@LotNo", _lotNo);
+            cmd.Parameters.AddWithValue("@OperatorID", _userId);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+
+
         public void Dispose()
         {
             // Cleanup if needed
@@ -540,5 +609,14 @@ namespace EVMS.Service
         public string ? Description { get; set; }
 
         public int Bit { get; set; }
+    }
+
+    public class InspectionData
+    {
+        public string PartNo { get; set; }
+        public string LotNo { get; set; }
+        public string OperatorID { get; set; }
+        public int InspectionQty { get; set; }
+        public int OkCount { get; set; }
     }
 }

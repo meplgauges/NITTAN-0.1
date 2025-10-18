@@ -1,7 +1,10 @@
 ﻿using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
 
 namespace EVMS
@@ -41,21 +44,28 @@ namespace EVMS
         {
             InitializeComponent();
 
-            Labels = new List<string>();
-            for (int i = 1; i <= 17; i++) Labels.Add(i.ToString());
-
-            SelectedDate = DateTime.Today;
-            SelectedTime = DateTime.Now.TimeOfDay;
-
-            Series = new ObservableCollection<ISeries>
+            try
             {
-                new LineSeries<double>
-                {
-                    Values = new double[] {4,6,5,7,3,4,6,5,7,3,4,6,5,7,3,4,6}
-                }
-            };
+                Labels = new List<string>();
+                for (int i = 1; i <= 17; i++) Labels.Add(i.ToString());
 
-            DataContext = this;
+                SelectedDate = DateTime.Today;
+                SelectedTime = DateTime.Now.TimeOfDay;
+
+                Series = new ObservableCollection<ISeries>
+                {
+                    new LineSeries<double>
+                    {
+                        Values = new double[] {4,6,5,7,3,4,6,5,7,3,4,6,5,7,3,4,6}
+                    }
+                };
+
+                DataContext = this;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to load graph page. Error: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         protected void OnPropertyChanged(string propertyName) =>

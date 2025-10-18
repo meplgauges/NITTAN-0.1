@@ -344,13 +344,13 @@ namespace EVMS.Service
                 {
                     if (autoControl?.Bit == 0)
                     {
-                        await NotifyOnUIAsync("Place part for measurement...");
-                        await WaitForValidProbeReadingAsync("100AY08P42");
+                        //await NotifyOnUIAsync("Place part for measurement...");
+                        //await WaitForValidProbeReadingAsync("100AY08P42");
 
-                        await NotifyOnUIAsync("PRESS START SWITCH TO START MEASUREMENT");
-                        while (GetPlcDeviceBit("X1") != 1) await Task.Delay(100);
+                        //await NotifyOnUIAsync("PRESS START SWITCH TO START MEASUREMENT");
+                        //while (GetPlcDeviceBit("X1") != 1) await Task.Delay(100);
 
-                        await NotifyOnUIAsync("START BUTTON PRESSED");
+                        //await NotifyOnUIAsync("START BUTTON PRESSED");
                     }
                     else
                     {

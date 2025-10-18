@@ -44,6 +44,11 @@ namespace EVMS
         private DataStorageService dataStorageService;
         private MasterService _masterService;
 
+
+        public string PartNo { get; set; }
+        public string LotNo { get; set; }
+        public string OperatorID { get; set; }
+
         private string _model;
         private string _lotNo;
         private string _userId;
@@ -64,6 +69,8 @@ namespace EVMS
 
             this.Loaded += ResultPage_Loaded;
             this.Unloaded += ResultPage_Unloaded;
+            this.Loaded += UserControl_Loaded;
+
 
             dataStorageService = new DataStorageService();
             _masterService = new MasterService();
@@ -82,9 +89,9 @@ namespace EVMS
             this.DataContext = this;
 
             // Initialize counts to zero to display correctly on UI load
-            InspectionQty = 0;
-            OkCount = 0;
-            NgCount = 0;
+            //InspectionQty = 0;
+            //OkCount = 0;
+            //NgCount = 0;
         }
         //public class ParameterResult
         //{
@@ -101,7 +108,54 @@ namespace EVMS
             });
         }
 
+        private async Task LoadAndDisplayInspectionDataAsync()
+        {
+            var existingRecord = await dataStorageService.SelectInspectionDataAsync(_model, _lotNo, _userId);
 
+            if (existingRecord != null)
+            {
+                txtModel.Text = existingRecord.PartNo;
+                txtLotNo.Text = existingRecord.LotNo;
+                txtUserId.Text = existingRecord.OperatorID;
+                txtInspectionQty.Text = existingRecord.InspectionQty.ToString();
+                txtOkCount.Text = existingRecord.OkCount.ToString();
+
+                int ngCount = existingRecord.InspectionQty - existingRecord.OkCount;
+                txtNgCount.Text = ngCount.ToString();
+            }
+            else
+            {
+                // Insert a new record with zero counts if not exists
+                await dataStorageService.InsertInspectionDataAsync(_model, _lotNo, _userId);
+
+                // Display initial zero data
+                txtModel.Text = _model;
+                txtLotNo.Text = _lotNo;
+                txtUserId.Text = _userId;
+                txtInspectionQty.Text = "0";
+                txtOkCount.Text = "0";
+                txtNgCount.Text = "0";
+            }
+        }
+
+        private async Task UpdateInspectionDataAsync()
+        {
+            if (int.TryParse(txtInspectionQty.Text, out int inspectionQty)
+                && int.TryParse(txtOkCount.Text, out int okCount))
+            {
+                await dataStorageService.UpdateInspectionCountsAsync(_model, _lotNo, _userId, inspectionQty, okCount);
+            }
+            else
+            {
+                // Handle parse error if necessary
+            }
+        }
+
+
+        private async void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            await LoadAndDisplayInspectionDataAsync();
+        }
         protected void OnPropertyChanged(string propertyName)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
@@ -192,6 +246,11 @@ namespace EVMS
 
         private void UpdateInspectionCounts(Dictionary<string, ParameterResult> resultsWithStatus)
         {
+            if (_currentMode == ProcedureMode.MasterInspection)
+            {
+                // Skip incrementing counts during Master Inspection
+                return;
+            }
             Dispatcher.Invoke(() =>
             {
                 // Increment InspectionQty correctly
@@ -252,23 +311,23 @@ namespace EVMS
             this.PreviewKeyDown += ResultPage_PreviewKeyDown;
             InitializeValveDataAndUI();
             InitializeDataGrid();
-            //try
-            //{
-            //    // Ensure PLC and Probe Connection asynchronously when page loads
-            //    bool connected = await _masterService.EnsureConnectionAsync();
-            //    if (connected)
-            //    {
-            //        NotifyStatus("PLC and Probe Connected Successfully");
-            //    }
-            //    else
-            //    {
-            //        MessageBox.Show("Failed to connect to PLC and Probe", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            //    }
-            //}
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show($"Error during connection: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            //}
+            try
+            {
+                // Ensure PLC and Probe Connection asynchronously when page loads
+                bool connected = await _masterService.EnsureConnectionAsync();
+                if (connected)
+                {
+                    NotifyStatus("PLC and Probe Connected Successfully");
+                }
+                else
+                {
+                    MessageBox.Show("Failed to connect to PLC and Probe", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during connection: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // Helper method to add timeout to PLC connection
@@ -729,12 +788,7 @@ namespace EVMS
                 {
                     _measurementDataTable?.Clear();
                     _globalSerialCounter = 1;
-                    InspectionQty = 0;
-                    OkCount = 0;
-                    NgCount = 0;
-                    txtInspectionQty.Text = "0";
-                    txtOkCount.Text = "0";
-                    txtNgCount.Text = "0";
+                    
                 });
 
                 _currentMode = ProcedureMode.Measurement;
@@ -770,11 +824,12 @@ namespace EVMS
 
                 _masterService._continueMeasurement = false;
 
+                UpdateInspectionDataAsync();
 
                 //ResetAllPlcBits();
             }
 
-            bitMatchCheckTimer?.Stop();
+    bitMatchCheckTimer?.Stop();
 
             try
             {
@@ -1095,7 +1150,7 @@ namespace EVMS
             var (mode, masterCount, _) = dataStorageService.GetMasterExpiration();
 
             // Only check for count mode expiration
-            if (mode == 1 && MasterToggle.IsChecked == true)
+            if (mode == 1 )
             {
                 if (currentMasterCount >= masterCount)
                 {
