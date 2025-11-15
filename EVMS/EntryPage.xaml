@@ -37,7 +37,7 @@
 
                 <!-- Replacing User ID input with labels -->
                 <TextBlock Text="User ID" Style="{StaticResource FormLabelStyle}"/>
-                <TextBox x:Name="LblUserId" 
+                <TextBox x:Name="LblUserId" TextAlignment="Center"
                        Style="{StaticResource ModernFilledTextBox}"
                        VerticalAlignment="Center" />
 

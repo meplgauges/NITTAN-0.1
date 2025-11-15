@@ -3,16 +3,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:md="http://materialdesigninxaml.net/winfx/xaml/themes"
     xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     MinWidth="900" MinHeight="600"
-    Background="Black"
+    Background="White"
     mc:Ignorable="d">
 
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <!-- Updated to use relative pack URI, assuming Style folder in your project -->
                 <ResourceDictionary Source="/EVMS;component/Style/ReportPageDesign.xaml"/>
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
@@ -21,18 +20,17 @@
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="50"/>
-            <RowDefinition Height="90"/>
-            <RowDefinition Height="90"/>
+            <RowDefinition Height="100"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
         <!-- Header -->
         <Border Grid.Row="0" Background="#2C3E50" CornerRadius="12" Padding="12" VerticalAlignment="Center">
-            <TextBlock Text="Graphs" Foreground="White" FontSize="20" FontWeight="DemiBold" HorizontalAlignment="Center"/>
+            <TextBlock Text="Graphs" Foreground="White" FontSize="20" FontWeight="DemiBold" HorizontalAlignment="Center" />
         </Border>
 
-        <!-- First Row: DatePickers and ComboBoxes -->
-        <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="10" Margin="0,15,0,0" BorderBrush="#D1D9E6" BorderThickness="1">
+        <!-- Filters Row -->
+        <Border Grid.Row="1"         Background="{StaticResource PageBackgroundBrush}" CornerRadius="12" Padding="10" Margin="0,15,0,0" BorderBrush="#D1D9E6" BorderThickness="1">
             <Grid HorizontalAlignment="Stretch" VerticalAlignment="Center">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -46,71 +44,111 @@
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <DatePicker Grid.Column="0" Margin="5" BorderBrush="#1976D2" BorderThickness="1" Padding="4"/>
-                <TextBlock Text="TO" Grid.Column="1" Margin="1,0" VerticalAlignment="Center" FontWeight="Bold"/>
-                <DatePicker Grid.Column="2" Margin="4" BorderBrush="#1976D2" BorderThickness="1" Padding="4"/>
-
-                <ComboBox Grid.Column="3" Margin="4" Style="{DynamicResource ModernComboBoxStyle}" VerticalContentAlignment="Center">
-                    <ComboBoxItem Content="Admin"/>
-                    <ComboBoxItem Content="Operator"/>
-                </ComboBox>
-                <ComboBox Grid.Column="4" Margin="4" Style="{DynamicResource ModernComboBoxStyle}" VerticalContentAlignment="Center"/>
-                <ComboBox Grid.Column="5" Margin="4" Style="{DynamicResource ModernComboBoxStyle}" VerticalContentAlignment="Center"/>
-                <ComboBox Grid.Column="6" Margin="4" Style="{DynamicResource ModernComboBoxStyle}" VerticalContentAlignment="Center"/>
-                <ComboBox Grid.Column="7" Margin="4" Style="{DynamicResource ModernComboBoxStyle}" VerticalContentAlignment="Center"/>
-
-                <Button Grid.Column="8" Width="90" Margin="4" Content="Submit" Background="#1976D2" Foreground="White" FontWeight="Bold" Cursor="Hand" Style="{DynamicResource ModernButtonStyle1}"/>
-            </Grid>
-        </Border>
-
-        <!-- Third Row: Labels -->
-        <Border Grid.Row="2" Background="White" CornerRadius="12" Padding="20 15" Margin="0,15,0,0" BorderBrush="#D1D9E6" BorderThickness="1">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
+                <!-- DateTimePicker From -->
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="Part No" FontWeight="Bold" Foreground="#555"/>
-                    <TextBlock Text="Value 1" FontSize="16" Foreground="#222"/>
+                    <TextBlock Text="Date From" Margin="2,0,2,2" FontWeight="Bold"/>
+                    <xctk:DateTimePicker Margin="5" Width="200"
+        BorderBrush="#1976D2" BorderThickness="1" Padding="4"
+        Value="{Binding SelectedDateTimeFrom, Mode=TwoWay}" 
+        Format="Custom" FormatString="MM/dd/yyyy HH:mm:ss"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="1">
-                    <TextBlock Text="Lot No" FontWeight="Bold" Foreground="#555"/>
-                    <TextBlock Text="Value 2" FontSize="16" Foreground="#222"/>
-                </StackPanel>
+                <TextBlock Text="TO" Grid.Column="1" Margin="1,15,1,1" 
+        VerticalAlignment="Center" FontWeight="Bold" HorizontalAlignment="Center"/>
 
+                <!-- DateTimePicker To -->
                 <StackPanel Grid.Column="2">
-                    <TextBlock Text="Parameter" FontWeight="Bold" Foreground="#555"/>
-                    <TextBlock Text="Value 3" FontSize="16" Foreground="#222"/>
+                    <TextBlock Text="Date To" Margin="30,0,2,2" FontWeight="Bold"/>
+                    <xctk:DateTimePicker Margin="4" Width="200"
+        BorderBrush="#1976D2" BorderThickness="1" Padding="4"
+        Value="{Binding SelectedDateTimeTo, Mode=TwoWay}" 
+        Format="Custom" FormatString="MM/dd/yyyy HH:mm:ss"/>
                 </StackPanel>
 
+                <!-- Part No -->
                 <StackPanel Grid.Column="3">
-                    <TextBlock Text="Shift" FontWeight="Bold" Foreground="#555"/>
-                    <TextBlock Text="Value 4" FontSize="16" Foreground="#222"/>
+                    <TextBlock Text="Part Number" FontWeight="Bold" Margin="30,0,0,2"/>
+                    <ComboBox x:Name="PartNo"
+                      Margin="4"
+                      ItemsSource="{Binding ActiveParts}"
+                      SelectedItem="{Binding SelectedPartNo, Mode=TwoWay}"
+                      Background="White"
+                      Foreground="Black"
+                      Style="{DynamicResource ModernComboBoxStyle}"
+                      VerticalContentAlignment="Center" />
                 </StackPanel>
 
+                <!-- Lot No -->
                 <StackPanel Grid.Column="4">
-                    <TextBlock Text="Date" FontWeight="Bold" Foreground="#555"/>
-                    <TextBlock Text="Value 4" FontSize="16" Foreground="#222"/>
+                    <TextBlock Text="Lot Number" FontWeight="Bold" Margin="30,0,0,2"/>
+                    <ComboBox x:Name="LotNo"
+                      Margin="4"
+                      ItemsSource="{Binding LotNumbers}"
+                      SelectedItem="{Binding SelectedLotNo, Mode=TwoWay}"
+                      Style="{DynamicResource ModernComboBoxStyle}"
+                      VerticalContentAlignment="Center" />
                 </StackPanel>
 
+                <!-- Parameter -->
                 <StackPanel Grid.Column="5">
-                    <TextBlock Text="Shift" FontWeight="Bold" Foreground="#555"/>
-                    <TextBlock Text="Value 4" FontSize="16" Foreground="#222"/>
+                    <TextBlock Text="Parameter" FontWeight="Bold" Margin="30,0,0,2"/>
+                    <ComboBox x:Name="Parameter"
+                      Margin="4"
+                      Style="{DynamicResource ModernComboBoxStyle}"
+                      VerticalContentAlignment="Center"
+                      ItemsSource="{Binding ParametersOptions}"
+                      SelectedItem="{Binding SelectedParameter, Mode=TwoWay}" />
                 </StackPanel>
+
+                <!-- Design -->
+                <StackPanel Grid.Column="6">
+                    <TextBlock Text="Design" FontWeight="Bold" Margin="30,0,0,2"/>
+                    <ComboBox x:Name="Designe"
+                      Margin="4"
+                      ItemsSource="{Binding DesignOptions}"
+                      SelectedItem="{Binding SelectedDesign, Mode=TwoWay}"
+                      Style="{DynamicResource ModernComboBoxStyle}"
+                      VerticalContentAlignment="Center"
+                      SelectionChanged="Designe_SelectionChanged" />
+                </StackPanel>
+
+                <!-- Operator -->
+                <StackPanel Grid.Column="7">
+                    <TextBlock Text="Operator" FontWeight="Bold" Margin="30,0,0,2"/>
+                    <ComboBox x:Name="Operator"
+                      Margin="4"
+                      ItemsSource="{Binding Operators}"
+                      SelectedItem="{Binding SelectedOperator, Mode=TwoWay}"
+                      Style="{DynamicResource ModernComboBoxStyle}" />
+                </StackPanel>
+
+                <!-- Submit Button -->
+                <Button Grid.Column="8"
+                Width="90"
+                Margin="4,20,4,0"
+                Content="Submit"
+                Background="#1976D2"
+                Foreground="White"
+                FontWeight="Bold"
+                Cursor="Hand"
+                Click="OnSubmitClicked"
+                Style="{DynamicResource ModernButtonStyle1}" />
             </Grid>
         </Border>
 
-        <!-- Main content area with Chart -->
-        <Border Grid.Row="3" Background="White" CornerRadius="12" Padding="15" Margin="0,15,0,0" BorderBrush="#D1D9E6" BorderThickness="1">
-            <lvc:CartesianChart Series="{Binding Series}" ZoomMode="X" LegendPosition="Bottom" />
-        </Border>
+        <!-- Labels Row -->
+        <!-- Chart Area -->
+        <Border Grid.Row="3" Background="{StaticResource PageBackgroundBrush}"  CornerRadius="12" Padding="15" Margin="0,15,0,0" BorderBrush="#D1D9E6" BorderThickness="1">
+            <Grid>
+                <!-- Line Chart -->
+                <lvc:CartesianChart x:Name="LineChart" Series="{Binding LineSeries}" ZoomMode="X" LegendPosition="Bottom" Visibility="Collapsed" />
 
+                <!-- Bar Chart -->
+                <lvc:CartesianChart x:Name="BarChart" Series="{Binding BarSeries}" ZoomMode="X" LegendPosition="Right" Visibility="Collapsed" />
+
+                <!-- Pie Chart -->
+                <lvc:PieChart x:Name="PieChart" Series="{Binding PieSeries}" LegendPosition="Right" Visibility="Collapsed" />
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>

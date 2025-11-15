@@ -64,7 +64,7 @@ namespace EVMS.Service
 
             // Merge and style headers across columns A to E for modern centered look
             ws.Range("J1:M1").Merge();
-            ws.Cell("J1").Value = "Company Name: Nittan Valves";
+            ws.Cell("J1").Value = "Company Name: SPRL";
             ws.Cell("J1").Style.Font.Bold = true;
             ws.Cell("J1").Style.Font.FontSize = 14;
             ws.Cell("J1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;

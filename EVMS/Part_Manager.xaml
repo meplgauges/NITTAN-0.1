@@ -69,7 +69,7 @@
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" Margin="10,0">
                             <CheckBox x:Name="chkActivePart" Content="Active Part" Style="{StaticResource PillCheckBox}"/>
 
-                            <Button Content="add" x:Name="btnAdd" Style="{StaticResource AddButtonStyle}" Click="BtnAdd_Click"/>
+                            <Button Content="Add" x:Name="btnAdd" Style="{StaticResource AddButtonStyle}" Click="BtnAdd_Click"/>
                             <Button Content="Update" x:Name="btnUpdate" Style="{StaticResource UpdateButtonStyle}"/>
                             <Button Content="Delete" x:Name="btnDelete" Style="{StaticResource DeleteButtonStyle}"/>
                         </StackPanel>

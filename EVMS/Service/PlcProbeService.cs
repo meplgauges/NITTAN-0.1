@@ -15,7 +15,9 @@ internal class PlcProbeService : IDisposable
     public PlcProbeService()
     {
         plc = new ActUtlType();
+
         orbitService = new OrbitService();
+
     }
 
     public bool IsConnected => isConnected && orbitService.IsConnected;

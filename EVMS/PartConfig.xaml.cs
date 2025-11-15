@@ -1,10 +1,12 @@
 ﻿using DocumentFormat.OpenXml.VariantTypes;
+using EVMS.Service;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Configuration;
 using System.Data;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace EVMS
 {
@@ -23,14 +25,59 @@ namespace EVMS
 
             cmbPartNo.SelectionChanged += CmbPartNo_SelectionChanged;
 
+
             btnUpdate.IsEnabled = false;
             btnDelete.IsEnabled = false;
 
+            this.Loaded += SettingsPage_Loaded;
+
+            // ✅ Register ESC key handler
+            this.PreviewKeyDown += SettingsPage_PreviewKeyDown;
             LoadPartNumbers();   // Load PartNo values into ComboBox
             LoadData();          // Initial load: load all or first part number's data
             ClearInputs();
         }
+        private void SettingsPage_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                HandleEscKeyAction();
+                e.Handled = true;
+            }
+        }
 
+
+        private void SettingsPage_Loaded(object? sender, RoutedEventArgs e)
+        {
+            // Ask WPF to focus this control (deferred)
+            this.Focusable = true;
+            this.IsTabStop = true;
+
+            // Try several ways to set keyboard focus
+            Keyboard.Focus(this);                                  // set logical focus
+            FocusManager.SetFocusedElement(Window.GetWindow(this)!, this); // set focused element on window
+        }
+        // ✅ Handles ESC key press to go back to HomePage
+        private void HandleEscKeyAction()
+        {
+            Window currentWindow = Window.GetWindow(this);
+            if (currentWindow != null)
+            {
+                var mainContentGrid = currentWindow.FindName("MainContentGrid") as Grid;
+                if (mainContentGrid != null)
+                {
+                    mainContentGrid.Children.Clear();
+
+                    var resultPage = new Dashboard
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
+                    };
+
+                    mainContentGrid.Children.Add(resultPage);
+                }
+            }
+        }
         // Load distinct PartNo for ComboBox
         private void LoadPartNumbers()
         {
@@ -89,7 +136,9 @@ namespace EVMS
                             YTolPlus, 
                             YTolMinus, 
                             ProbeStatus,
-                            ShortName
+                            ShortName,
+                            D_Name,
+                            IsEnabled        
                         FROM PartConfig
                         ORDER BY SrNo";
                     SqlDataAdapter da = new SqlDataAdapter(query, con);
@@ -125,7 +174,9 @@ namespace EVMS
                             YTolPlus, 
                             YTolMinus, 
                             ProbeStatus,
-                            ShortName
+                            ShortName,
+                            D_Name,
+                            IsEnabled
                         FROM PartConfig
                         WHERE Para_No = @Para_No
                         ORDER BY SrNo";
@@ -183,6 +234,7 @@ namespace EVMS
                 string? Para_No = cmbPartNo.SelectedItem?.ToString() ?? "";
                 string? parameter = txtParameter.Text.Trim();
                 string? ShortName = txtShort.Text.Trim();
+                string? ShowPara = txtViewPara.Text.Trim();
 
                 if (IsParameterExists(parameter))
                 {
@@ -202,8 +254,8 @@ namespace EVMS
                 {
                     con.Open();
                     string query = @"INSERT INTO PartConfig 
-                                    (Para_No, Parameter, Nominal, RTolPlus, RTolMinus, YTolPlus, YTolMinus, ProbeStatus,ShortName)
-                                    VALUES (@Para_No, @Parameter, @Nominal, @RTolPlus, @RTolMinus, @YTolPlus, @YTolMinus, @ProbeStatus,@ShortName)";
+                                    (Para_No, Parameter, Nominal, RTolPlus, RTolMinus, YTolPlus, YTolMinus, ProbeStatus,ShortName,D_Name)
+                                    VALUES (@Para_No, @Parameter, @Nominal, @RTolPlus, @RTolMinus, @YTolPlus, @YTolMinus, @ProbeStatus,@ShortName,@D_Name)";
                     using (SqlCommand cmd = new SqlCommand(query, con))
                     {
                         cmd.Parameters.AddWithValue("@Para_No", Para_No);
@@ -215,6 +267,8 @@ namespace EVMS
                         cmd.Parameters.AddWithValue("@YTolMinus", yTolMinus);
                         cmd.Parameters.AddWithValue("@ProbeStatus", probeStatus);
                         cmd.Parameters.AddWithValue("@ShortName", ShortName);
+                        cmd.Parameters.AddWithValue("@D_Name", ShowPara);
+
 
                         cmd.ExecuteNonQuery();
                     }
@@ -248,7 +302,7 @@ namespace EVMS
                 string Para_No = cmbPartNo.SelectedItem?.ToString() ?? "";
                 string parameter = txtParameter.Text.Trim();
                 string? ShortName = txtShort.Text.Trim();
-
+                string? ShowPara  = txtViewPara.Text.Trim();
 
                 decimal nominal = ParseDecimal(txtNominal.Text);
                 decimal rTolPlus = ParseDecimal(txtRTolPlus.Text);
@@ -269,7 +323,8 @@ namespace EVMS
                                         YTolPlus=@YTolPlus, 
                                         YTolMinus=@YTolMinus, 
                                         ProbeStatus=@ProbeStatus,
-                                        ShortName=@ShortName
+                                        ShortName=@ShortName,
+                                        D_Name=@D_Name
                                     WHERE SrNo=@SrNo";
                     using (SqlCommand cmd = new SqlCommand(query, con))
                     {
@@ -282,6 +337,8 @@ namespace EVMS
                         cmd.Parameters.AddWithValue("@YTolMinus", yTolMinus);
                         cmd.Parameters.AddWithValue("@ProbeStatus", probeStatus);
                         cmd.Parameters.AddWithValue("@ShortName", ShortName);
+                        cmd.Parameters.AddWithValue("@D_Name", ShowPara);
+
 
                         cmd.Parameters.AddWithValue("@SrNo", srNo);
                         int rows = cmd.ExecuteNonQuery();
@@ -349,6 +406,7 @@ namespace EVMS
         {
             txtParameter.Clear();
             txtShort.Clear();
+            txtViewPara.Clear();
             txtNominal.Clear();
             txtRTolPlus.Clear();
             txtRTolMinus.Clear();
@@ -356,9 +414,12 @@ namespace EVMS
             txtYTolMinus.Clear();
             chkProbe.IsChecked = false;
 
+            txtParameter.IsEnabled = true;   // Enable for new inserts
+
             btnUpdate.IsEnabled = false;
             btnDelete.IsEnabled = false;
         }
+
 
         private decimal ParseDecimal(string input)
         {
@@ -382,9 +443,9 @@ namespace EVMS
             return true;
         }
         private void dataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
-{
-    e.Row.Header = (e.Row.GetIndex() + 1).ToString();
-}
+            {
+                e.Row.Header = (e.Row.GetIndex() + 1).ToString();
+            }
 
         private void dataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -404,11 +465,74 @@ namespace EVMS
                 txtYTolMinus.Text = row["YTolMinus"].ToString();
                 chkProbe.IsChecked = row["ProbeStatus"].ToString() == "Probe";
                 txtShort.Text = row["ShortName"].ToString();
-
+                txtViewPara.Text = row["D_Name"].ToString();
 
                 btnUpdate.IsEnabled = true;
                 btnDelete.IsEnabled = true;
+
+                // Disable txtParameter textbox to prevent editing during update
+                txtParameter.IsEnabled = false;
+            }
+            else
+            {
+                // If no selection, enable the txtParameter for inserting new entries
+                txtParameter.IsEnabled = true;
+                btnUpdate.IsEnabled = false;
+                btnDelete.IsEnabled = false;
             }
         }
+
+
+
+        private void EnableCheckBox_Checked(object sender, RoutedEventArgs e) => HandleEnableChange(sender, true);
+        private void EnableCheckBox_Unchecked(object sender, RoutedEventArgs e) => HandleEnableChange(sender, false);
+
+        private void HandleEnableChange(object sender, bool isChecked)
+        {
+            try
+            {
+                if (sender is CheckBox cb && cb.DataContext is DataRowView row)
+                {
+                    int srNo = Convert.ToInt32(row["SrNo"]);
+                    UpdateIsEnabledOnly(srNo, isChecked);
+                    row["IsEnabled"] = isChecked ? 1 : 0; // keep UI in sync
+                    row.EndEdit();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error updating IsEnabled: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+
+        // Updated DB update logic without reloading entire grid after each checkbox change
+        private void UpdateIsEnabledOnly(int srNo, bool isChecked)
+        {
+            try
+            {
+                using (SqlConnection con = new SqlConnection(connectionString))
+                {
+                    con.Open();
+                    string query = "UPDATE PartConfig SET IsEnabled = @IsEnabled WHERE SrNo = @SrNo";
+                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@IsEnabled", isChecked ? 1 : 0);
+                        cmd.Parameters.AddWithValue("@SrNo", srNo);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error updating IsEnabled: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
+
     }
 }

@@ -1,4 +1,5 @@
 ﻿
+using ClosedXML.Excel;
 using EVMS.Service;
 using System;
 using System.Collections.Concurrent;
@@ -7,6 +8,7 @@ using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -58,7 +60,6 @@ namespace EVMS
         {
             InitializeComponent();
 
-            StartShiftTimer();
 
             _model = model;
             _lotNo = lotNo;
@@ -75,9 +76,12 @@ namespace EVMS
             dataStorageService = new DataStorageService();
             _masterService = new MasterService();
             plcProbeService = new PlcProbeService();
+            StartShiftTimer();
 
             _masterService.CalculatedValuesWithStatusReady += MasterService_CalculatedValuesWithStatusReady;
             //_masterService.MeasurementCycleReset += OnCycleReset;
+
+            ValveReadingsGrid.PreviewKeyDown += ValveReadingsGrid_PreviewKeyDown;
 
 
             _masterService.StatusMessageUpdated += (message) =>
@@ -88,16 +92,33 @@ namespace EVMS
             // Set DataContext for data binding
             this.DataContext = this;
 
-            // Initialize counts to zero to display correctly on UI load
-            //InspectionQty = 0;
-            //OkCount = 0;
-            //NgCount = 0;
+
         }
         //public class ParameterResult
         //{
         //    public double Value { get; set; }
         //    public bool IsOk { get; set; }
         //}
+
+        public class MeasurementDataModel
+        {
+            public string PartNo { get; set; }
+            public string LotNo { get; set; }
+            public string Operator { get; set; }
+            public string Date { get; set; }
+            public Dictionary<string, double> Parameters { get; set; } = new Dictionary<string, double>();
+            public string Status { get; set; } = string.Empty;
+        }
+
+
+        private void ValveReadingsGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Delete)
+            {
+                HandleDeleteLatestMeasurementRowAndCounts();
+                e.Handled = true;
+            }
+        }
 
         private void OnCycleReset()
         {
@@ -111,6 +132,7 @@ namespace EVMS
         private async Task LoadAndDisplayInspectionDataAsync()
         {
             var existingRecord = await dataStorageService.SelectInspectionDataAsync(_model, _lotNo, _userId);
+            // dataStorageService.GetMasterReadingByPart(_model);
 
             if (existingRecord != null)
             {
@@ -170,35 +192,65 @@ namespace EVMS
 
         private void NotifyStatus(string message)
         {
-            StatusMessageChanged?.Invoke(message);
+            MainWindow.ShowStatusMessage(message);
         }
+
 
 
         private void MasterService_CalculatedValuesWithStatusReady(object? sender, Dictionary<string, ParameterResult> resultsWithStatus)
         {
             Dispatcher.Invoke(() =>
             {
-                // --- Update UI immediately with the latest inspection data ---
+                // --- Update UI ---
                 UpdateProgressBarsWithStatus(resultsWithStatus);
                 UpdateMeasurementFields(resultsWithStatus);
 
                 var latestValues = resultsWithStatus.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Value);
-                LoadDataGrid(latestValues, resultsWithStatus); // 👈 new method with NG coloring
-
-                // ✅ Count per part
+                LoadDataGrid(latestValues, resultsWithStatus);
                 UpdateInspectionCounts(resultsWithStatus);
 
-
                 string status = resultsWithStatus.All(r => r.Value.IsOk) ? "OK" : "NG";
-                Debug.WriteLine($"Parts inspected: {InspectionQty}, OK: {OkCount}, NG: {NgCount}");
+                // Build MeasurementDataModel from current data
+                var measurement = new MeasurementDataModel
+                {
+                    PartNo = _model,
+                    LotNo = _lotNo,
+                    Operator = _userId,
+                    Date = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    Status = status,
+                    Parameters = resultsWithStatus.ToDictionary(kvp => kvp.Key, kvp => (double)kvp.Value.Value)
+                };
+
+                // Export to Excel asynchronously without blocking UI
+                // Export to Excel asynchronously without blocking UI
+                if (_currentMode == ProcedureMode.Measurement && status == "OK")
+                {
+                    _ = Task.Run(() =>
+                    {
+                        ExportOrAppendMeasurementToExcel(measurement);
+                    });
+                }
+
 
                 // --- Save data asynchronously ---
-                // --- Save data asynchronously with exclusive branching ---
                 _ = Task.Run(async () =>
                 {
                     try
                     {
-                        float GetValue(string key) => resultsWithStatus.TryGetValue(key, out var param) ? (float)param.Value : 0f;
+                        // ✅ Get only enabled parameters directly from DB (already filtered)
+                        var enabledParams = dataStorageService
+                            .GetPartConfig(_model) // query already has IsEnabled = 1
+                            .Select(p => p.Parameter.ToLower())
+                            .ToHashSet();
+
+                        // ✅ Safe getter: returns 0 for missing or disabled parameters
+                        float GetValue(string key)
+                        {
+                            string lowerKey = key.ToLower();
+                            return enabledParams.Contains(lowerKey)
+                                ? resultsWithStatus.TryGetValue(key, out var param) ? (float)param.Value : 0f
+                                : 0f;
+                        }
 
                         if (_currentMode == ProcedureMode.MasterInspection)
                         {
@@ -222,7 +274,6 @@ namespace EVMS
                                 GetValue("End Face Runout"), GetValue("Face Runout"), GetValue("Seat Height"),
                                 GetValue("Seat Runout"), GetValue("Datum to Groove"), status);
                         }
-                        // No save if neither mode is active
                     }
                     catch (Exception ex)
                     {
@@ -230,27 +281,215 @@ namespace EVMS
                     }
                 });
 
-
-                // ✅ NEW: Clear values automatically after 1 second
+                // --- Reset UI after delay ---
                 _ = Task.Run(async () =>
                 {
-                    await Task.Delay(1500); // wait 1 second
-                    Dispatcher.Invoke(() =>
-                    {
-                        ResetMeasurementFieldsAndProgressBars();
-                    });
+                    await Task.Delay(1500);
+                    Dispatcher.Invoke(ResetMeasurementFieldsAndProgressBars);
                 });
             });
         }
 
 
+
+        private void ExportOrAppendMeasurementToExcel(MeasurementDataModel measurement)
+        {
+
+            if (_currentMode != ProcedureMode.Measurement)
+                return;
+
+                string baseFolder = @"E:\MEPL\Excel Report\Ok Parts";
+
+            //string baseFolder = Path.Combine(
+            //        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            //        "MEPL", "Excel Report");
+            Directory.CreateDirectory(baseFolder);
+            if (!Directory.Exists(baseFolder))
+                Directory.CreateDirectory(baseFolder);
+
+            // ✅ Sanitize file name parts (remove invalid characters)
+            string safePart = string.Concat((measurement.PartNo ?? "UnknownPart").Split(Path.GetInvalidFileNameChars())).Trim();
+            string safeLot = string.Concat((measurement.LotNo ?? "UnknownLot").Split(Path.GetInvalidFileNameChars())).Trim();
+            string safeOperator = string.Concat((measurement.Operator ?? "UnknownOperator").Split(Path.GetInvalidFileNameChars())).Trim();
+
+            // ✅ Include PartNo, LotNo, Operator in file name
+            string fileName = $"EVMS_Report_{safePart}_{safeLot}_{safeOperator}.xlsx";
+            string filePath = Path.Combine(baseFolder, fileName);
+
+            bool fileExists = File.Exists(filePath);
+
+            using (var wb = fileExists ? new XLWorkbook(filePath) : new XLWorkbook())
+            {
+                var ws = wb.Worksheets.Contains("Measurement")
+                    ? wb.Worksheet("Measurement")
+                    : wb.AddWorksheet("Measurement");
+
+                var partConfig = dataStorageService.GetPartConfigByPartNumber(measurement.PartNo).ToList();
+
+                // 🔹 Company / Part info header (top right)
+                ws.Range("J1:M1").Merge();
+                ws.Cell("J1").Value = "Company Name:";
+                ws.Cell("J1").Style.Font.Bold = true;
+                ws.Cell("J1").Style.Font.FontSize = 14;
+                ws.Cell("J1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                ws.Range("J2:M2").Merge();
+                ws.Cell("J2").Value = $"Date: {DateTime.Today:dd-MMM-yyyy}";
+                ws.Cell("J2").Style.Font.Bold = true;
+                ws.Cell("J2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                ws.Range("J3:M3").Merge();
+                ws.Cell("J3").Value = $"Part Number: {measurement.PartNo}";
+                ws.Cell("J3").Style.Font.Bold = true;
+                ws.Cell("J3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                // 🔹 Calculate USL / MEAN / LSL
+                var USL = partConfig.Select(p => new ParameterValue { Parameter = p.Parameter, Value = p.Nominal - p.RTolMinus }).ToList();
+                var MEAN = partConfig.Select(p => new ParameterValue { Parameter = p.Parameter, Value = p.Nominal }).ToList();
+                var LSL = partConfig.Select(p => new ParameterValue { Parameter = p.Parameter, Value = p.Nominal + p.RTolPlus }).ToList();
+
+                // 🔹 If file new → add layout and headers
+                if (!fileExists)
+                {
+                    int headerStartCol = 4; // Column D
+                    ws.Cell(5, 3).Value = "Parameter";
+                    ws.Cell(5, 3).Style.Font.Bold = true;
+                    ws.Cell(5, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    // Parameter headers
+                    for (int i = 0; i < partConfig.Count; i++)
+                    {
+                        var cell = ws.Cell(5, headerStartCol + i);
+                        string shortName = string.IsNullOrWhiteSpace(partConfig[i].ShortName)
+                            ? partConfig[i].Parameter
+                            : partConfig[i].ShortName;
+                        cell.Value = shortName;
+                        cell.Style.Font.Bold = true;
+                        cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#D4E6F1");
+                        cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    }
+
+                    // USL, MEAN, LSL rows
+                    var labelFormats = new (string Label, XLColor Color)[]
+                    {
+                ("USL", XLColor.Red),
+                ("MEAN", XLColor.ForestGreen),
+                ("LSL", XLColor.Red)
+                    };
+
+                    for (int idx = 0; idx < labelFormats.Length; idx++)
+                    {
+                        var labelCell = ws.Cell(6 + idx, 3);
+                        labelCell.Value = labelFormats[idx].Label;
+                        labelCell.Style.Font.Bold = true;
+                        labelCell.Style.Font.FontColor = labelFormats[idx].Color;
+                    }
+
+                    // Fill USL/MEAN/LSL values
+                    for (int i = 0; i < partConfig.Count; i++)
+                    {
+                        ws.Cell(6, headerStartCol + i).Value = USL[i].Value;
+                        ws.Cell(6, headerStartCol + i).Style.Font.FontColor = XLColor.Red;
+
+                        ws.Cell(7, headerStartCol + i).Value = MEAN[i].Value;
+                        ws.Cell(7, headerStartCol + i).Style.Font.FontColor = XLColor.ForestGreen;
+
+                        ws.Cell(8, headerStartCol + i).Value = LSL[i].Value;
+                        ws.Cell(8, headerStartCol + i).Style.Font.FontColor = XLColor.Red;
+
+                        for (int r = 6; r <= 8; r++)
+                        {
+                            ws.Cell(r, headerStartCol + i).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                            ws.Cell(r, headerStartCol + i).Style.NumberFormat.Format = "0.000";
+                        }
+                    }
+
+                    int lastCol = headerStartCol + partConfig.Count - 1;
+                    var borderRange = ws.Range(5, 3, 8, lastCol);
+                    borderRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    borderRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+                    // Measurement table headers
+                    int startTableRow = 10;
+                    int col = 1;
+                    ws.Cell(startTableRow, col++).Value = "S.No";
+                    ws.Cell(startTableRow, col++).Value = "Part No";
+                    ws.Cell(startTableRow, col++).Value = "Lot No";
+                    ws.Cell(startTableRow, col++).Value = "Operator";
+                    ws.Cell(startTableRow, col++).Value = "Date";
+
+                    foreach (var p in partConfig)
+                        ws.Cell(startTableRow, col++).Value = string.IsNullOrWhiteSpace(p.ShortName)
+                            ? p.Parameter
+                            : p.ShortName;
+
+                    var headerRange = ws.Range(startTableRow, 1, startTableRow, col - 1);
+                    headerRange.Style.Font.Bold = true;
+                    headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+                    headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                }
+
+                // 🔹 Find next row for new measurement
+                int lastRow = ws.LastRowUsed()?.RowNumber() ?? 10;
+                int newRow = lastRow + 1;
+
+                // Continue serial numbering
+                int nextSerial = 1;
+                if (lastRow > 10)
+                {
+                    var lastSerialCell = ws.Cell(lastRow, 1);
+                    if (lastSerialCell.TryGetValue<int>(out int val))
+                        nextSerial = val + 1;
+                }
+
+                // Write new measurement
+                int cIndex = 1;
+                ws.Cell(newRow, cIndex++).Value = nextSerial;
+                ws.Cell(newRow, cIndex++).Value = measurement.PartNo;
+                ws.Cell(newRow, cIndex++).Value = measurement.LotNo;
+                ws.Cell(newRow, cIndex++).Value = measurement.Operator;
+                ws.Cell(newRow, cIndex++).Value = measurement.Date;
+
+                foreach (var param in partConfig)
+                {
+                    var cell = ws.Cell(newRow, cIndex++);
+                    if (measurement.Parameters.TryGetValue(param.Parameter, out double val))
+                    {
+                        cell.Value = val;
+                        double usl = param.Nominal - param.RTolMinus;
+                        double lsl = param.Nominal + param.RTolPlus;
+                        cell.Style.Font.FontColor = (val < usl || val > lsl)
+                            ? XLColor.Red
+                            : XLColor.Black;
+                    }
+                    else
+                    {
+                        cell.Value = "";
+                    }
+
+                    cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    cell.Style.NumberFormat.Format = "0.000";
+                }
+
+                ws.Columns().AdjustToContents();
+                wb.SaveAs(filePath);
+            }
+
+            // 🟢 No UI message here — runs silently in background
+        }
+
+
+
+
         private void UpdateInspectionCounts(Dictionary<string, ParameterResult> resultsWithStatus)
         {
-            if (_currentMode == ProcedureMode.MasterInspection)
-            {
-                // Skip incrementing counts during Master Inspection
+            if (_currentMode != ProcedureMode.Measurement)
                 return;
-            }
+            
+               // Skip incrementing counts during Master Inspection
             Dispatcher.Invoke(() =>
             {
                 // Increment InspectionQty correctly
@@ -288,10 +527,47 @@ namespace EVMS
                 // After incrementing counts, call master expiration check
                 CheckMasterExpirationDuringMeasurement();
             });
+
+           
         }
 
 
 
+        private void LoadMasterInspectionProgressBars(string partNumber)
+        {
+            try
+            {
+                // 1️⃣ Get merged data from SQL
+                var masterReadings = dataStorageService.GetMasterReadingByPart(partNumber);
+
+                if (masterReadings == null || masterReadings.Count == 0)
+                {
+                    MessageBox.Show("No master inspection parameters found for this part.",
+                                    "Master Inspection", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // 2️⃣ Convert to PartReadingDataModel (so LoadProgressBars can use it)
+                parameterData = masterReadings.Select(m => new PartReadingDataModel
+                {
+                    Para_No = m.Para_No,
+                    Parameter = m.Parameter,
+                    Nominal = m.Nominal,
+                    RTolPlus = m.RTolPlus,
+                    RTolMinus = m.RTolMinus,
+                    D_Name=m.D_Name
+                    
+                }).ToList();
+
+                // 3️⃣ Call your existing progress bar loader
+                LoadProgressBars();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading master inspection progress bars: {ex.Message}",
+                                "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
 
 
@@ -311,6 +587,7 @@ namespace EVMS
             this.PreviewKeyDown += ResultPage_PreviewKeyDown;
             InitializeValveDataAndUI();
             InitializeDataGrid();
+            NotifyStatus("Initialization....");
             try
             {
                 // Ensure PLC and Probe Connection asynchronously when page loads
@@ -561,7 +838,7 @@ namespace EVMS
                 if (useFirstDesign)
                 {
                     var pb = new ResultProgressBar { Margin = new Thickness(5) };
-                    pb.ParameterName = param.Parameter;
+                    pb.ParameterName = param.D_Name;
                     pb.MinValue = min;
                     pb.MaxValue = max;
                     pb.MeanValue = mean;
@@ -685,6 +962,8 @@ namespace EVMS
                 _masterService._continueMeasurement = false;
                 ResetMeasurementFieldsAndProgressBars();
 
+                _currentMode = ProcedureMode.Mastering;
+
                 await _masterService.MasterCheckProcedureAsync(ProcedureMode.Mastering);
             }
             catch (Exception ex)
@@ -719,24 +998,28 @@ namespace EVMS
                 toggleButton.IsChecked = false;
                 return;
             }
-           
-            StartBitMatchCheck(); // Start monitoring Auto/Manual bit after starting measurement
 
             _activeToggleButton = toggleButton;
             DisableOtherToggles(toggleButton);
 
             try
             {
+                LoadMasterInspectionProgressBars(activePartNumber);
+
+
                 ResetAllResult();
                 _masterService.IsMasteringStage = false;
                 _masterService._continueMeasurement = false;
                 ResetMeasurementFieldsAndProgressBars();
+                _currentMode = ProcedureMode.MasterInspection;
+
+                StartBitMatchCheck();
 
                 await _masterService.MasterCheckProcedureAsync(ProcedureMode.MasterInspection);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Error during inspection: {ex.Message}");
+                MessageBox.Show($"Error during master inspection: {ex.Message}");
             }
             finally
             {
@@ -746,6 +1029,7 @@ namespace EVMS
                 EnableAllToggles();
             }
         }
+
 
         // ========================= MEASUREMENT TOGGLE =========================
         private async void MeasurementToggle_Checked(object sender, RoutedEventArgs e)
@@ -777,6 +1061,7 @@ namespace EVMS
 
             try
             {
+                InitializeValveDataAndUI();
                 _masterService.SetPlcDevice("M101", 0);
                 _masterService.SetPlcDevice("M102", 0); // General rejection
 
@@ -1026,7 +1311,7 @@ namespace EVMS
                 if (mainContentGrid != null)
                 {
                     mainContentGrid.Children.Clear();
-                    var resultPage = new HomePage();
+                    var resultPage = new Dashboard();
 
                     resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
                     resultPage.VerticalAlignment = VerticalAlignment.Stretch;
@@ -1044,9 +1329,6 @@ namespace EVMS
             _masterService.SetPlcDevice("M304", 0); // Seat Height rejection
             _masterService.SetPlcDevice("M305", 0); // Groove Diameter/Position rejection
             _masterService.SetPlcDevice("M306", 0); // Groove Diameter/Position rejection
-
-
-
 
         }
 
@@ -1107,11 +1389,31 @@ namespace EVMS
 
         private void UpdateShiftDisplay()
         {
-            string currentShift = GetShiftCode();
-            string dateShift = DateTime.Now.ToString("yyyyMMdd") + currentShift;
+            try
+            {
+                // 🧠 Get Auto/Manual bit from data storage
+                var autoList = dataStorageService.GetActiveBit();
+                var autoControl = autoList.FirstOrDefault(c =>
+                    string.Equals(c.Code, "L1", StringComparison.OrdinalIgnoreCase));
 
-            // Example: TextBox named TxtShift or Label named LblShift
-            txtLotNo.Text = dateShift;
+                // ✅ If Auto mode is active (bit == 1), generate lot number automatically
+                if (autoControl != null && Convert.ToInt32(autoControl.Bit) == 1)
+                {
+                    string currentShift = GetShiftCode();
+                    string dateShift = DateTime.Now.ToString("ddMMyy") + currentShift;  // Example: 031125A
+                    txtLotNo.Text = dateShift;
+                }
+                else
+                {
+                    // ❌ Manual mode: keep user-entered value, do NOT overwrite
+                    txtLotNo.Text = txtLotNo.Text;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error updating shift display: {ex.Message}",
+                    "Auto/Manual Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private string GetShiftCode()
@@ -1132,6 +1434,7 @@ namespace EVMS
             else
                 return "C";
         }
+
 
 
         private DispatcherTimer expirationTimer1;
@@ -1235,6 +1538,51 @@ namespace EVMS
                 }
             }
         }
+
+
+        private async void HandleDeleteLatestMeasurementRowAndCounts()
+        {
+            // 1. Get the latest row's status before removal
+            if (_measurementDataTable == null || _measurementDataTable.Rows.Count == 0) return;
+
+            var latestRow = _measurementDataTable.Rows[0]; // Top row is latest
+            string status = latestRow["No"]?.ToString();
+
+            // 2. Delete row from DB using DataStorageService
+            bool deleted = await dataStorageService.DeleteLatestMeasurementReadingAsync(_model, _lotNo, int.Parse(_userId));
+            if (!deleted)
+            {
+                MessageBox.Show("No record deleted. No matching data found.", "Delete", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // 3. Remove row from DataTable/UI and refresh
+            _measurementDataTable.Rows.RemoveAt(0);
+            ValveReadingsGrid.Items.Refresh();
+
+            // 4. Decrement counts from UI and DB
+            int qty = 0, okCount = 0, ngCount = 0;
+            int.TryParse(txtInspectionQty.Text, out qty);
+            int.TryParse(txtOkCount.Text, out okCount);
+            int.TryParse(txtNgCount.Text, out ngCount);
+
+            if (qty > 0) qty--;
+            if (status == "OK" && okCount > 0) okCount--;
+            else if (status == "NG" && ngCount > 0) ngCount--;
+
+            txtInspectionQty.Text = qty.ToString();
+            txtOkCount.Text = okCount.ToString();
+            txtNgCount.Text = ngCount.ToString();
+
+            // Call DataStorageService to update counts in database
+            await dataStorageService.UpdateInspectionCountsAsync(_model, _lotNo, _userId, qty, okCount);
+
+            // 5. Optionally decrement global serial counter
+            if (_globalSerialCounter > 1) _globalSerialCounter--;
+
+            ValveReadingsGrid.UpdateLayout();
+        }
+
 
     }
 }

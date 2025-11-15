@@ -10,8 +10,6 @@
         ShowInTaskbar="False">
 
     <Grid>
-        <!-- Dim background to make popup feel modal -->
-
         <!-- Main Card -->
         <Border CornerRadius="12"
                 Background="Black"
@@ -19,11 +17,11 @@
                 Width="320"
                 Height="400"
                 HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                >
+                VerticalAlignment="Center">
 
             <StackPanel HorizontalAlignment="Stretch" VerticalAlignment="Center">
 
+                <!-- Title -->
                 <TextBlock Text="🔐 Login"
                            FontSize="20"
                            Foreground="White"
@@ -31,7 +29,7 @@
                            HorizontalAlignment="Center"
                            Margin="0,0,0,20"/>
 
-                <!-- Email -->
+                <!-- Username -->
                 <TextBlock Text="User Id" Foreground="#aaa" FontSize="12"/>
                 <TextBox x:Name="txtUsername"
                          Height="38"
@@ -40,7 +38,8 @@
                          BorderThickness="0"
                          Margin="0,4,0,12"
                          Padding="8,4"
-                         />
+                         VerticalContentAlignment="Center"
+                         TextAlignment="Center"/>
 
                 <!-- Password -->
                 <TextBlock Text="Password" Foreground="#aaa" FontSize="12"/>
@@ -50,7 +49,9 @@
                              Foreground="White"
                              BorderThickness="0"
                              Margin="0,4,0,20"
-                             Padding="8,4"/>
+                             Padding="8,4"
+                             VerticalContentAlignment="Center"
+                             HorizontalContentAlignment="Center"/>
 
                 <!-- Buttons -->
                 <Button Content="Login"

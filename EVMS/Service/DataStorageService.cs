@@ -25,7 +25,7 @@ namespace EVMS.Service
         public List<PartReadingDataModel> GetPartConfigByPartNumber(string partNumber)
         {
             var list = new List<PartReadingDataModel>();
-            string query = "SELECT * FROM PartConfig WHERE Para_No = @PartNumber";
+            string query = "SELECT * FROM PartConfig WHERE Para_No = @PartNumber AND IsEnabled = 1";
 
             using SqlConnection conn = new(_connectionString);
             using SqlCommand cmd = new(query, conn);
@@ -40,12 +40,66 @@ namespace EVMS.Service
                     Para_No = reader["Para_No"].ToString(),
                     Parameter = reader["Parameter"].ToString(),
                     ShortName = reader["ShortName"].ToString(),
+                    D_Name= reader["D_Name"].ToString(),
                     Nominal = Convert.ToDouble(reader["Nominal"]),
                     RTolPlus = Convert.ToDouble(reader["RTolPlus"]),
                     RTolMinus = Convert.ToDouble(reader["RTolMinus"]),
+                    Sign_Change=Convert.ToInt32(reader["Sign_Change"]),
+                    Compensation = Convert.ToDouble(reader["Compensation"])
+
                 });
             }
             return list;
+        }
+
+        // Update Sign_Change column
+        public bool UpdateSignChange(string paraNo, string Parameter, int signChangeValue)
+        {
+            try
+            {
+                string query = "UPDATE PartConfig SET Sign_Change = @SignChange " +
+                               "WHERE Para_No = @ParaNo AND Parameter = @Parameter";
+
+                using SqlConnection conn = new(_connectionString);
+                using SqlCommand cmd = new(query, conn);
+                cmd.Parameters.AddWithValue("@SignChange", signChangeValue);
+                cmd.Parameters.AddWithValue("@ParaNo", paraNo);
+                cmd.Parameters.AddWithValue("@Parameter", Parameter);
+
+                conn.Open();
+                int rowsAffected = cmd.ExecuteNonQuery();
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating Sign_Change: {ex.Message}");
+                return false;
+            }
+        }
+
+        // Update Compensation column
+        public bool UpdateCompensation(string paraNo, string Parameter, double compensationValue)
+        {
+            try
+            {
+                string query = "UPDATE PartConfig SET Compensation = @Compensation " +
+                               "WHERE Para_No = @ParaNo AND Parameter = @Parameter";
+
+                using SqlConnection conn = new(_connectionString);
+                using SqlCommand cmd = new(query, conn);
+                cmd.Parameters.AddWithValue("@Compensation", compensationValue);
+                cmd.Parameters.AddWithValue("@ParaNo", paraNo);
+                cmd.Parameters.AddWithValue("@Parameter", Parameter);
+
+                conn.Open();
+                int rowsAffected = cmd.ExecuteNonQuery();
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Error updating Compensation: {ex.Message}");
+                return false;
+            }
         }
 
         // Get ProbeInstallationData by part number
@@ -82,9 +136,10 @@ namespace EVMS.Service
         {
             var list = new List<PartConfigModel>();
             string query = @"
-        SELECT Parameter, Nominal, RTolPlus, RTolMinus, YTolPlus, YTolMinus, ProbeStatus, Para_No
-        FROM PartConfig
-        WHERE Para_No = @ParaNo";
+                                SELECT Parameter, Nominal, RTolPlus, RTolMinus, YTolPlus, YTolMinus, ProbeStatus, Para_No, IsEnabled,Sign_Change,Compensation
+                                FROM PartConfig
+                                WHERE Para_No = @ParaNo AND IsEnabled = 1";
+
 
             using SqlConnection conn = new(_connectionString);
             using SqlCommand cmd = new(query, conn);
@@ -102,6 +157,8 @@ namespace EVMS.Service
                     RTolMinus = Convert.ToDouble(reader["RTolMinus"]),
                     YTolPlus = Convert.ToDouble(reader["YTolPlus"]),
                     YTolMinus = Convert.ToDouble(reader["YTolMinus"]),
+                    Sign_Change = Convert.ToInt32(reader["Sign_Change"]),
+                    Compensation = Convert.ToDouble(reader["Compensation"]),
                     Para_No = reader["Para_No"].ToString()
 
 
@@ -116,14 +173,24 @@ namespace EVMS.Service
         public List<MasterReadingModel> GetMasterReadingByPart(string partNumber)
         {
             var list = new List<MasterReadingModel>();
+
             string query = @"
-                SELECT Para_No, Parameter, Nominal, RTolPlus, RTolMinus
-                FROM MasterReadingData
-                WHERE Para_No = @ParaNo";
+        SELECT 
+            p.SrNo,
+            p.Parameter,
+            COALESCE(m.Nominal, p.Nominal) AS Nominal,
+            COALESCE(m.RTolPlus, p.RTolPlus) AS RTolPlus,
+            COALESCE(m.RTolMinus, p.RTolMinus) AS RTolMinus
+        FROM PartConfig p
+        LEFT JOIN MasterReadingData m
+            ON p.Parameter = m.Parameter      -- match by parameter name
+           AND m.Para_No = @PartNumber        -- use master data for this part
+        WHERE p.Para_No = @PartNumber         -- only parameters for this part
+        ORDER BY p.SrNo;                      -- preserve PartConfig order";
 
             using SqlConnection conn = new(_connectionString);
             using SqlCommand cmd = new(query, conn);
-            cmd.Parameters.AddWithValue("@ParaNo", partNumber);
+            cmd.Parameters.AddWithValue("@PartNumber", partNumber);
 
             conn.Open();
             using SqlDataReader reader = cmd.ExecuteReader();
@@ -131,13 +198,15 @@ namespace EVMS.Service
             {
                 list.Add(new MasterReadingModel
                 {
-                    Para_No = reader["Para_No"].ToString(),
+                    Para_No = reader["SrNo"].ToString(),
                     Parameter = reader["Parameter"].ToString(),
+                    D_Name= reader["Parameter"].ToString(),
                     Nominal = Convert.ToDouble(reader["Nominal"]),
                     RTolPlus = Convert.ToDouble(reader["RTolPlus"]),
                     RTolMinus = Convert.ToDouble(reader["RTolMinus"])
                 });
             }
+
             return list;
         }
 
@@ -239,7 +308,7 @@ namespace EVMS.Service
         public List<Controls> GetActiveBit()
         {
             var list = new List<Controls>();
-            string query = "SELECT Description, Bit FROM Controls";
+            string query = "SELECT Description, Bit, code FROM Controls";
 
             using SqlConnection conn = new(_connectionString);
             using SqlCommand cmd = new(query, conn);
@@ -251,7 +320,9 @@ namespace EVMS.Service
                 list.Add(new Controls
                 {
                     Description = reader["Description"]?.ToString() ?? string.Empty,
-                    Bit = reader["Bit"] != DBNull.Value ? Convert.ToInt32(reader["Bit"]) : 0
+                    Bit = reader["Bit"] != DBNull.Value ? Convert.ToInt32(reader["Bit"]) : 0,
+                    Code = reader["Code"]?.ToString() ?? string.Empty,
+
                 });
             }
             return list;
@@ -498,6 +569,129 @@ namespace EVMS.Service
             }
             return null;
         }
+        public async Task<List<string>> GetLotNumbersByPartNoAsync(string partNo)
+        {
+            var lotNumbers = new List<string>();
+            string sql = "SELECT DISTINCT LotNo FROM InspectionData WHERE PartNo = @PartNo";
+
+            using var con = new SqlConnection(_connectionString);
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand(sql, con);
+            cmd.Parameters.AddWithValue("@PartNo", partNo);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                lotNumbers.Add(reader.GetString(0));
+            }
+            return lotNumbers;
+        }
+        public async Task<List<string>> GetOperatorsByPartNoAsync(string partNo)
+        {
+            var operators = new List<string>();
+            string sql = "SELECT DISTINCT OperatorID FROM InspectionData WHERE PartNo = @PartNo";
+
+            using var con = new SqlConnection(_connectionString);
+            await con.OpenAsync();
+
+            using var cmd = new SqlCommand(sql, con);
+            cmd.Parameters.AddWithValue("@PartNo", partNo);
+
+            using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                operators.Add(reader.GetString(0));
+            }
+            return operators;
+        }
+        public async Task<List<string>> GetLotNumbersByPartAndDateRangeAsync(string partNo, DateTime? dateFrom, DateTime? dateTo)
+        {
+            var lotNumbers = new List<string>();
+
+            using (SqlConnection con = new SqlConnection(_connectionString))
+            {
+                await con.OpenAsync();
+
+                string query = @"SELECT DISTINCT LotNo FROM MeasurementReading WHERE 1=1";
+
+                if (!string.IsNullOrEmpty(partNo))
+                    query += " AND PartNo = @PartNo";
+
+                if (dateFrom.HasValue)
+                    query += " AND MeasurementDate >= @DateFrom";
+
+                if (dateTo.HasValue)
+                    query += " AND MeasurementDate <= @DateTo";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    if (!string.IsNullOrEmpty(partNo))
+                        cmd.Parameters.AddWithValue("@PartNo", partNo);
+
+                    if (dateFrom.HasValue)
+                        cmd.Parameters.AddWithValue("@DateFrom", dateFrom.Value);
+
+                    if (dateTo.HasValue)
+                        cmd.Parameters.AddWithValue("@DateTo", dateTo.Value);
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            if (!reader.IsDBNull(reader.GetOrdinal("LotNo")))
+                                lotNumbers.Add(reader.GetString(reader.GetOrdinal("LotNo")));
+                        }
+                    }
+                }
+            }
+
+            return lotNumbers;
+        }
+
+        public async Task<List<string>> GetOperatorsByPartAndDateRangeAsync(string partNo, DateTime? dateFrom, DateTime? dateTo)
+        {
+            var operators = new List<string>();
+
+            using (SqlConnection con = new SqlConnection(_connectionString))
+            {
+                await con.OpenAsync();
+
+                string query = @"SELECT DISTINCT Operator_ID FROM MeasurementReading WHERE 1=1";
+
+                if (!string.IsNullOrEmpty(partNo))
+                    query += " AND PartNo = @PartNo";
+
+                if (dateFrom.HasValue)
+                    query += " AND MeasurementDate >= @DateFrom";
+
+                if (dateTo.HasValue)
+                    query += " AND MeasurementDate <= @DateTo";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    if (!string.IsNullOrEmpty(partNo))
+                        cmd.Parameters.AddWithValue("@PartNo", partNo);
+
+                    if (dateFrom.HasValue)
+                        cmd.Parameters.AddWithValue("@DateFrom", dateFrom.Value);
+
+                    if (dateTo.HasValue)
+                        cmd.Parameters.AddWithValue("@DateTo", dateTo.Value);
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            if (!reader.IsDBNull(reader.GetOrdinal("Operator_ID")))
+                                operators.Add(reader.GetString(reader.GetOrdinal("Operator_ID")));
+                        }
+                    }
+                }
+            }
+
+            return operators;
+        }
 
         public async Task InsertInspectionDataAsync(string _model, string _lotNo, string _userId)
         {
@@ -536,6 +730,272 @@ namespace EVMS.Service
             await cmd.ExecuteNonQueryAsync();
         }
 
+        public List<MeasurementWithConfigModel> GetMasterInspectionWithConfig(string partNo, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var list = new List<MeasurementWithConfigModel>();
+
+            // We’ll dynamically unpivot MasterInspection (OL, DE, HD, etc.) to rows using CROSS APPLY
+            string query = @"
+    SELECT 
+        c.Para_No,
+        c.Parameter,
+        c.Nominal,
+        c.RTolPlus,
+        c.RTolMinus,
+        v.ParameterName AS MeasurementParameter,
+        v.MeasurementValue,
+        mi.InspectionDate
+    FROM MasterInspection mi
+    CROSS APPLY (VALUES
+        ('OL', mi.OL),
+        ('DE', mi.DE),
+        ('HD', mi.HD),
+        ('GP', mi.GP),
+        ('STDG', mi.STDG),
+        ('STDU', mi.STDU),
+        ('GIR_DIA', mi.GIR_DIA),
+        ('STN', mi.STN),
+        ('Ovality_SDG', mi.Ovality_SDG),
+        ('Ovality_SDU', mi.Ovality_SDU),
+        ('Ovality_Head', mi.Ovality_Head),
+        ('Stem_Taper', mi.Stem_Taper),
+        ('EFRO', mi.EFRO),
+        ('Face_Runout', mi.Face_Runout),
+        ('SH', mi.SH),
+        ('S_RO', mi.S_RO),
+        ('DG', mi.DG)
+    ) AS v(ParameterName, MeasurementValue)
+    INNER JOIN PartConfig c ON c.Parameter = v.ParameterName AND c.Para_No = mi.PartNo
+    WHERE mi.PartNo = @PartNo";
+
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                query += " AND mi.InspectionDate >= @StartDate AND mi.InspectionDate < @EndDate";
+            }
+
+            query += " ORDER BY mi.InspectionDate ASC";
+
+            try
+            {
+                using SqlConnection conn = new(_connectionString);
+                using SqlCommand cmd = new(query, conn);
+
+                cmd.Parameters.AddWithValue("@PartNo", partNo);
+
+                if (startDate.HasValue && endDate.HasValue)
+                {
+                    cmd.Parameters.AddWithValue("@StartDate", startDate.Value.Date);
+                    cmd.Parameters.AddWithValue("@EndDate", endDate.Value.Date.AddDays(1));
+                }
+
+                conn.Open();
+                using SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    list.Add(new MeasurementWithConfigModel
+                    {
+                        Para_No = reader["Para_No"].ToString(),
+                        Parameter = reader["Parameter"].ToString(),
+                        Nominal = Convert.ToDouble(reader["Nominal"]),
+                        RTolPlus = Convert.ToDouble(reader["RTolPlus"]),
+                        RTolMinus = Convert.ToDouble(reader["RTolMinus"]),
+                        MeasurementValue = Convert.ToDouble(reader["MeasurementValue"]),
+                        MeasurementDate = Convert.ToDateTime(reader["InspectionDate"])
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("DB Exception: " + ex.Message);
+            }
+
+            return list;
+        }
+
+
+        public async Task<List<MeasurementReading>> GetMeasurementReadingsAsync(
+       string partNo,
+       string lotNo,
+       string operatorId,
+       DateTime? dateFrom,
+       DateTime? dateTo)
+        {
+            var readings = new List<MeasurementReading>();
+
+            using (SqlConnection con = new SqlConnection(_connectionString))
+            {
+                await con.OpenAsync();
+
+                // Adjust query to handle null partNo (means all parts)
+                string query = @"SELECT *, Status FROM MeasurementReading WHERE (@PartNo IS NULL OR PartNo = @PartNo)";
+
+                if (!string.IsNullOrEmpty(lotNo))
+                    query += " AND LotNo = @LotNo";
+
+                if (!string.IsNullOrEmpty(operatorId))
+                    query += " AND Operator_ID = @OperatorId";
+
+                if (dateFrom.HasValue)
+                    query += " AND MeasurementDate >= @DateFrom";
+
+                if (dateTo.HasValue)
+                    query += " AND MeasurementDate <= @DateTo";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    // Pass DBNull.Value if partNo is "All" or null
+                    if (string.IsNullOrEmpty(partNo) || partNo.Equals("All", StringComparison.OrdinalIgnoreCase))
+                        cmd.Parameters.AddWithValue("@PartNo", DBNull.Value);
+                    else
+                        cmd.Parameters.AddWithValue("@PartNo", partNo);
+
+                    if (!string.IsNullOrEmpty(lotNo))
+                        cmd.Parameters.AddWithValue("@LotNo", lotNo);
+
+                    if (!string.IsNullOrEmpty(operatorId))
+                        cmd.Parameters.AddWithValue("@OperatorId", operatorId);
+
+                    if (dateFrom.HasValue)
+                        cmd.Parameters.AddWithValue("@DateFrom", dateFrom.Value);
+
+                    if (dateTo.HasValue)
+                        cmd.Parameters.AddWithValue("@DateTo", dateTo.Value);
+
+                    using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var reading = new MeasurementReading
+                            {
+                                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                                PartNo = reader.GetString(reader.GetOrdinal("PartNo")),
+                                Operator_ID = reader.GetString(reader.GetOrdinal("Operator_ID")),
+                                LotNo = reader.GetString(reader.GetOrdinal("LotNo")),
+                                OL = reader.GetDouble(reader.GetOrdinal("OL")),
+                                DE = reader.GetDouble(reader.GetOrdinal("DE")),
+                                HD = reader.GetDouble(reader.GetOrdinal("HD")),
+                                GP = reader.GetDouble(reader.GetOrdinal("GP")),
+                                STDG = reader.GetDouble(reader.GetOrdinal("STDG")),
+                                STDU = reader.GetDouble(reader.GetOrdinal("STDU")),
+                                GIR_DIA = reader.GetDouble(reader.GetOrdinal("GIR_DIA")),
+                                STN = reader.GetDouble(reader.GetOrdinal("STN")),
+                                Ovality_SDG = reader.GetDouble(reader.GetOrdinal("Ovality_SDG")),
+                                Ovality_SDU = reader.GetDouble(reader.GetOrdinal("Ovality_SDU")),
+                                Ovality_Head = reader.GetDouble(reader.GetOrdinal("Ovality_Head")),
+                                S_RO = reader.GetDouble(reader.GetOrdinal("S_RO")),
+                                Stem_Taper = reader.GetDouble(reader.GetOrdinal("Stem_Taper")),
+                                EFRO = reader.GetDouble(reader.GetOrdinal("EFRO")),
+                                Face_Runout = reader.GetDouble(reader.GetOrdinal("Face_Runout")),
+                                SH = reader.GetDouble(reader.GetOrdinal("SH")),
+                                DG = reader.GetDouble(reader.GetOrdinal("DG")),
+                                MeasurementDate = reader.GetDateTime(reader.GetOrdinal("MeasurementDate")),
+                                Status = reader.IsDBNull(reader.GetOrdinal("Status")) ? "Unknown" : reader.GetString(reader.GetOrdinal("Status"))
+                            };
+
+                            readings.Add(reading);
+                        }
+                    }
+                }
+            }
+
+            return readings;
+        }
+
+
+        public async Task<bool> DeleteMeasurementReadingAsync(int id)
+        {
+            using (SqlConnection con = new SqlConnection(_connectionString))
+            {
+                await con.OpenAsync();
+
+                string query = "DELETE FROM MeasurementReading WHERE Id = @Id";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@Id", id);
+
+                    int rowsAffected = await cmd.ExecuteNonQueryAsync();
+
+                    // Return true if a record was deleted
+                    return rowsAffected > 0;
+                }
+            }
+        }
+
+        public async Task<bool> DeleteLatestMeasurementReadingAsync(string partNo, string lotNo, int operatorId)
+        {
+            using (SqlConnection con = new SqlConnection(_connectionString))
+            {
+                await con.OpenAsync();
+
+                string query = @"
+            DELETE FROM MeasurementReading
+            WHERE Id = (
+                SELECT TOP 1 Id FROM MeasurementReading
+                WHERE PartNo = @PartNo
+                  AND LotNo = @LotNo
+                  AND Operator_ID = @OperatorId
+                ORDER BY MeasurementDate DESC
+            )";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@PartNo", partNo);
+                    cmd.Parameters.AddWithValue("@LotNo", lotNo);
+                    cmd.Parameters.AddWithValue("@OperatorId", operatorId);
+
+                    int rowsAffected = await cmd.ExecuteNonQueryAsync();
+                    return rowsAffected > 0;
+                }
+            }
+        }
+
+
+        public int GetReadingCount()
+        {
+            const string query = "SELECT ReadingCount FROM ReadingCountTable";
+            int readingCount = 0;
+
+            try
+            {
+                using SqlConnection conn = new(_connectionString);
+                using SqlCommand cmd = new(query, conn);
+
+                conn.Open();
+                object? result = cmd.ExecuteScalar();
+
+                if (result != null && result != DBNull.Value)
+                    readingCount = Convert.ToInt32(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error retrieving ReadingCount: {ex.Message}");
+            }
+
+            return readingCount;
+        }
+
+        // ✅ Update the single ReadingCount value (NO INSERT)
+        public void UpdateReadingCount(int newCount)
+        {
+            const string query = "UPDATE ReadingCountTable SET ReadingCount = @count";
+
+            try
+            {
+                using SqlConnection conn = new(_connectionString);
+                using SqlCommand cmd = new(query, conn);
+
+                cmd.Parameters.AddWithValue("@count", newCount);
+
+                conn.Open();
+                cmd.ExecuteNonQuery(); // always updates the existing single row
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating ReadingCount: {ex.Message}");
+            }
+        }
+
 
 
         public void Dispose()
@@ -555,6 +1015,10 @@ namespace EVMS.Service
         public double RTolMinus { get; set; }
         public double YTolPlus { get; set; }
         public double YTolMinus { get; set; }
+        public bool IsEnabled { get; set; }
+        public int Sign_Change { get; set; }
+
+        public double Compensation { get; set; }
         public string? Para_No { get; set; }
 
     }
@@ -568,6 +1032,11 @@ namespace EVMS.Service
         public double Nominal { get; set; }
         public double RTolPlus { get; set; }
         public double RTolMinus { get; set; }
+        public string? D_Name { get; set; }
+
+        public int Sign_Change { get; set; }
+
+        public double Compensation { get; set; }
     }
 
     public class ProbeInstallModel
@@ -586,6 +1055,8 @@ namespace EVMS.Service
         public double Nominal { get; set; }
         public double RTolPlus { get; set; }
         public double RTolMinus { get; set; }
+
+        public string? D_Name { get; set; }
     }
 
     public class PartEntryModel
@@ -609,6 +1080,8 @@ namespace EVMS.Service
         public string ? Description { get; set; }
 
         public int Bit { get; set; }
+        public string? Code { get; set; }
+
     }
 
     public class InspectionData
@@ -618,5 +1091,47 @@ namespace EVMS.Service
         public string OperatorID { get; set; }
         public int InspectionQty { get; set; }
         public int OkCount { get; set; }
+    }
+
+    public class MeasurementWithConfigModel
+    {
+        public string Para_No { get; set; }
+        public string Parameter { get; set; }
+        public double Nominal { get; set; }
+        public double RTolPlus { get; set; }
+        public double RTolMinus { get; set; }
+        public double MeasurementValue { get; set; }
+        public DateTime MeasurementDate { get; set; }
+    }
+
+
+    public class MeasurementReading
+    {
+        public int Id { get; set; }
+        public string PartNo { get; set; }
+        public string Operator_ID { get; set; }
+        public string LotNo { get; set; }
+        public double OL { get; set; }          // Overall Length
+        public double DE { get; set; }          // Datum to End
+        public double HD { get; set; }          // Head Diameter
+        public double GP { get; set; }          // Groove Position
+        public double STDG { get; set; }        // Stem Dia Near Groove
+        public double STDU { get; set; }        // Stem Dia Near Undercut
+        public double GIR_DIA { get; set; }     // Groove Diameter
+        public double STN { get; set; }         // Straightness
+        public double Ovality_SDG { get; set; } // Ovality SDG
+        public double Ovality_SDU { get; set; } // Ovality SDU
+        public double Ovality_Head { get; set; }// Ovality Head
+        public double Stem_Taper { get; set; }  // Stem Taper
+        public double EFRO { get; set; }        // Face Runout
+        public double Face_Runout { get; set; } // Face Runout
+        public double SH { get; set; }           // Seat Height
+        public double DG { get; set; }           // Seat Height
+        public double S_RO { get; set; }           // Seat Height
+
+        public string Status { get; set; }
+
+        public DateTime MeasurementDate { get; set; }
+        // ... add other common columns if needed
     }
 }

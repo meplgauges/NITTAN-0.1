@@ -31,9 +31,56 @@ namespace EVMS
             btnDelete.IsEnabled = false;
             dataStorageService = new DataStorageService();
 
+            this.Loaded += SettingsPage_Loaded;
+
+            // ✅ Register ESC key handler
+            this.PreviewKeyDown += SettingsPage_PreviewKeyDown;
             LoadPartNumbers();
             LoadMasterExpirationData();  // add this line to load saved data in UI
 
+        }
+
+        // ✅ ESC key detection
+        private void SettingsPage_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                HandleEscKeyAction();
+                e.Handled = true;
+            }
+        }
+
+
+        private void SettingsPage_Loaded(object? sender, RoutedEventArgs e)
+        {
+            // Ask WPF to focus this control (deferred)
+            this.Focusable = true;
+            this.IsTabStop = true;
+
+            // Try several ways to set keyboard focus
+            Keyboard.Focus(this);                                  // set logical focus
+            FocusManager.SetFocusedElement(Window.GetWindow(this)!, this); // set focused element on window
+        }
+        // ✅ Handles ESC key press to go back to HomePage
+        private void HandleEscKeyAction()
+        {
+            Window currentWindow = Window.GetWindow(this);
+            if (currentWindow != null)
+            {
+                var mainContentGrid = currentWindow.FindName("MainContentGrid") as Grid;
+                if (mainContentGrid != null)
+                {
+                    mainContentGrid.Children.Clear();
+
+                    var resultPage = new Dashboard
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
+                    };
+
+                    mainContentGrid.Children.Add(resultPage);
+                }
+            }
         }
 
         private void LoadMasterExpirationData()

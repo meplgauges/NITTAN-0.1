@@ -208,52 +208,59 @@
                     </Style>
                 </Menu.Resources>
 
-                <MenuItem x:Name="RunPartMenu" Header="_Run Part" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
-                    <MenuItem Header="Home..." Click="HomePage_Click" />
+                <MenuItem x:Name="RunPartMenu" Header="_Home"  Click="HomeMenu_Click">
+                    <!-- <MenuItem Header="Home..." Click="HomePage_Click" />
                     <MenuItem Header="Mesurment" Click="Mesurment_Click"/>
+                    <MenuItem Header="Dashboard" Click="Dashboard_Click"/>
+
                     <Separator />
-                    <MenuItem Header="Exit" Click="Exit_Click"/>
+                    <MenuItem Header="__Exit" Click="Exit_Click"/>-->
                 </MenuItem>
 
-                <MenuItem x:Name="MastringConfigMenu" Header="_Mastring Configuration" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
+                <!-- <MenuItem x:Name="MastringConfigMenu" Header="_Mastring Configuration" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
                     <MenuItem Header="Master Configuration" Click="MasterPage_Click"/>
-                </MenuItem>
+                </MenuItem>-->
 
-                <MenuItem x:Name="ReportMenu" Header="_Report" Click="MenuItem_Click" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
+                <!--  <MenuItem x:Name="ReportMenu" Header="_Report" Click="MenuItem_Click" PreviewMouseDown="SettingsMenu_PreviewMouseDown">
                     <MenuItem Header="SPC Graph" Click="Report_Page"/>
-                    <MenuItem Header="Report"/>
-                </MenuItem>
+                    <MenuItem Header="Report" Click="Report_View_Page"/>
+                    <MenuItem Header="Repeatbilty" Click="Repeatbilty"/>
+                </MenuItem>-->
 
-                <MenuItem x:Name="SettingsMenu" Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
+                <!--  <MenuItem x:Name="SettingsMenu" Header="_Settings" PreviewMouseDown="SettingsMenu_PreviewMouseDown" Click="MenuItem_Click">
                     <MenuItem Header="Probe Setup" Click="RunMenuItem_Click"/>
                     <MenuItem Header="Part Manager" Click="PartManager_Click"/>
                     <MenuItem Header="Probe Installation" Click="ProbeInstall_Click"/>
                     <MenuItem Header="Part Configuration" Click="PartConfig_Click"/>
                     <MenuItem Header="I/O Configuration" Click="IO_Click"/>
                     <MenuItem Header="Controls" Click="CO_Click"/>
+                    <MenuItem Header="Calcualtion " Click="Cal_Click"/>
                     <MenuItem Header="Login Setup" Click="LoginSetup_Click"/>
-                </MenuItem>
+                </MenuItem>-->
 
             </Menu>
 
-            <TextBox x:Name="StatusMessageTextBox"
+            <TextBox x:Name="StatusMessageTextBlock"
          DockPanel.Dock="Left"
-         Margin="250,4,8,4"
-         Width="500"
-         Height="28"
+         Margin="380,4,8,4"
+         Width="1000"
+         Height="32"
          IsReadOnly="True"
          HorizontalAlignment="Right"
          VerticalAlignment="Center"
-         Background="#1F2937"
-         Foreground="Red"
-         Padding="6,0"
+         Background="#2D3748"       
+                Foreground="#F56565"
+                Padding="10,0"
          FontSize="20"
-         BorderThickness="0"         
-         FontWeight="Bold"
+         BorderThickness="0"
+         FontWeight="SemiBold"
          Text=""
          HorizontalContentAlignment="Center"
          VerticalContentAlignment="Center"
-          />
+         FontFamily="Segoe UI"
+         />
+                <!-- Rounded corners -->
+
                 <!-- Rounded corners for modern look -->
 
 
@@ -261,21 +268,36 @@
             <Button x:Name="ActivePartStatusButton"
             DockPanel.Dock="Left"
             Width="100" Height="30"
-            Margin="490,0,0,0" 
+            Margin="190,0,0,0" 
                     VerticalAlignment="Center"
                 Style="{StaticResource ActivePartStatusButtonStyle}"
             Content="Active Part"/>
 
-                <!-- Close Button at the far right
-                <Button x:Name="CloseButton"
+            <Button x:Name="LogoutButton"
             DockPanel.Dock="Right"
-            Width="40" Height="30"
-            Margin="0,0,0,0"  
+            Width="60" Height="30"
+            Margin="0,0,10,0"
             Background="Red"
             Foreground="White"
             FontWeight="Bold"
-            Content="X"
-            Click="CloseButton_Click"/> -->
+            Content="Logout"
+            ToolTip="Logout from the application"
+            Click="LogoutButton_Click"/>
+
+
+            <Button x:Name="LoginButton"
+                DockPanel.Dock="Right"
+                Width="60"
+                Height="30"
+                Margin="0,0,15,0"
+                Background="Green"
+                Foreground="White"
+                FontWeight="Bold"
+                Content="Login"
+                ToolTip="Login to the application"
+                Click="LoginButton_Click"/>
+
+
         </DockPanel>
 
         

@@ -1,13 +1,14 @@
-﻿using System;
+﻿using ActUtlTypeLib;
+using Microsoft.Data.SqlClient;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
-using Microsoft.Data.SqlClient;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using ActUtlTypeLib;
 
 namespace EVMS
 {
@@ -45,6 +46,11 @@ namespace EVMS
                     return;
                 }
 
+                this.Loaded += SettingsPage_Loaded;
+
+                // ✅ Register ESC key handler
+                this.PreviewKeyDown += SettingsPage_PreviewKeyDown;
+
                 // Initialize database
                 InitializeDatabase();
 
@@ -65,6 +71,50 @@ namespace EVMS
             {
                 MessageBox.Show($"Initialization error: {ex.Message}", "Initialization Error",
                     System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+
+        // ✅ ESC key detection
+        private void SettingsPage_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                HandleEscKeyAction();
+                e.Handled = true;
+            }
+        }
+
+
+        private void SettingsPage_Loaded(object? sender, RoutedEventArgs e)
+        {
+            // Ask WPF to focus this control (deferred)
+            this.Focusable = true;
+            this.IsTabStop = true;
+
+            // Try several ways to set keyboard focus
+            Keyboard.Focus(this);                                  // set logical focus
+            FocusManager.SetFocusedElement(Window.GetWindow(this)!, this); // set focused element on window
+        }
+        // ✅ Handles ESC key press to go back to HomePage
+        private void HandleEscKeyAction()
+        {
+            Window currentWindow = Window.GetWindow(this);
+            if (currentWindow != null)
+            {
+                var mainContentGrid = currentWindow.FindName("MainContentGrid") as Grid;
+                if (mainContentGrid != null)
+                {
+                    mainContentGrid.Children.Clear();
+
+                    var resultPage = new Dashboard
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
+                    };
+
+                    mainContentGrid.Children.Add(resultPage);
+                }
             }
         }
 
@@ -535,7 +585,7 @@ namespace EVMS
 
                         TextBlock deviceLabel = new TextBlock
                         {
-                            Text = $"{device.Bit}\n{device.Description}",
+                            Text = $"{device.Description}",
                             Foreground = Brushes.White,
                             FontWeight = FontWeights.Bold,
                             FontSize = 12,

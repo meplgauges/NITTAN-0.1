@@ -10,8 +10,10 @@
     <!-- ===== Resources MUST be here before using them ===== -->
     <UserControl.Resources>
         <LinearGradientBrush x:Key="TrackGradient" StartPoint="0,0" EndPoint="0,1">
-            <GradientStop Color="#2C2C2C" Offset="0"/>
-            <GradientStop Color="#1E1E1E" Offset="1"/>
+            <GradientStop Color="#E8E8E8" Offset="0"/>
+            <!-- Light gray top -->
+            <GradientStop Color="#D0D0D0" Offset="1"/>
+            <!-- Slightly darker bottom -->
         </LinearGradientBrush>
 
         <LinearGradientBrush x:Key="FillGradientGreen" StartPoint="0,1" EndPoint="0,0">
@@ -39,8 +41,8 @@
         <DropShadowEffect x:Key="InnerShadow"
                           BlurRadius="10"
                           ShadowDepth="0"
-                          Color="#111"
-                          Opacity="0.5" />
+                          Color="#AAA"
+                          Opacity="0.4" />
 
         <TextEffectCollection x:Key="GlowTextEffect">
             <TextEffect PositionStart="0" PositionCount="2147483647">
@@ -56,17 +58,27 @@
     <!-- ===================== DESIGN LAYOUT ===================== -->
     <Viewbox Stretch="Uniform">
         <Border CornerRadius="20"
-                BorderBrush="#00FFFF"
-                BorderThickness="1.2"
-                Padding="15"
-                Background="#101010"
-                Width="113"
-                SnapsToDevicePixels="True"
-                Effect="{StaticResource DropShadow}">
+        BorderThickness="1.2"
+        Padding="15"
+        Width="130"
+        SnapsToDevicePixels="True"
+        Effect="{StaticResource DropShadow}">
+            <Border.BorderBrush>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Color="#5DD1D8" Offset="0"/>
+                    <GradientStop Color="#3FA7D6" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.BorderBrush>
+            <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                    <GradientStop Color="#E6FBFF" Offset="0"/>
+                    <GradientStop Color="#BAFBFD" Offset="1"/>
+                </LinearGradientBrush>
+            </Border.Background>
             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
                 <Grid>
                     <!-- Background track -->
-                    <Border Width="18" Height="150" CornerRadius="6"
+                    <Border Width="15" Height="160" CornerRadius="6"
                             Background="{StaticResource TrackGradient}"
                             BorderThickness="0"
                             Effect="{StaticResource InnerShadow}" />
@@ -78,8 +90,7 @@
                                VerticalAlignment="Bottom"
                                RadiusX="6"
                                RadiusY="6"
-                               Fill="{StaticResource FillGradientGreen}"
-                                />
+                               Fill="{StaticResource FillGradientGreen}" />
 
                     <!-- Above Mean fill -->
                     <Rectangle x:Name="AboveFill"
@@ -88,8 +99,7 @@
                                VerticalAlignment="Bottom"
                                RadiusX="6"
                                RadiusY="6"
-                               Fill="{StaticResource FillGradientGreen}"
-                                />
+                               Fill="{StaticResource FillGradientGreen}" />
 
                     <!-- Ticks and labels -->
                     <Canvas Margin="0,0,0,-6"
@@ -97,34 +107,34 @@
                             Height="150"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Top">
-                        <Line X1="0" X2="30" Y1="150" Y2="150"
-                              Stroke="White"
+                        <Line X1="0" X2="40" Y1="150" Y2="150"
+                              Stroke="Black"
                               StrokeThickness="1"
                               StrokeDashArray="3,2"/>
-                        <TextBlock Foreground="White"
-                                   FontSize="13"
-                                   Canvas.Right="104"
-                                   Canvas.Top="134"
+                        <TextBlock Foreground="Black"
+                                   FontSize="15"
+                                   Canvas.Right="95"
+                                   Canvas.Top="130"
                                    Text="{Binding Min, ElementName=root, StringFormat={}{0:F3}}"/>
 
-                        <Line X1="0" X2="30" Y1="75" Y2="75"
-                              Stroke="White"
+                        <Line X1="0" X2="40" Y1="75" Y2="75"
+                              Stroke="Black"
                               StrokeThickness="1"
                               StrokeDashArray="3,2"/>
-                        <TextBlock Foreground="White"
-                                   FontSize="13"
-                                   Canvas.Right="104"
+                        <TextBlock Foreground="Black"
+                                   FontSize="15"
+                                   Canvas.Right="95"
                                    Canvas.Top="74"
                                    Text="{Binding Mean, ElementName=root, StringFormat={}{0:F3}}"/>
 
-                        <Line X1="0" X2="30" Y1="0" Y2="0"
-                              Stroke="White"
+                        <Line X1="0" X2="40" Y1="0" Y2="0"
+                              Stroke="Black"
                               StrokeThickness="1"
                               StrokeDashArray="3,2"/>
-                        <TextBlock Foreground="White"
-                                   FontSize="13"
+                        <TextBlock Foreground="Black"
+                                   FontSize="15"
                                    Canvas.Top="0"
-                                   Canvas.Right="104"
+                                   Canvas.Right="95"
                                    Text="{Binding Max, ElementName=root, StringFormat={}{0:F3}}"/>
                     </Canvas>
                 </Grid>
@@ -132,22 +142,25 @@
                 <TextBlock x:Name="BarValue"
                            Text="{Binding Value, ElementName=root, StringFormat={}{0:F3}}"
                            HorizontalAlignment="Center"
-                           FontSize="20"
+                           FontSize="23"
                            FontWeight="Bold"
                            Margin="0,10,0,0"
-                           Foreground="White">  
-                   
-                </TextBlock>
+                           Foreground="Black" />
+                <!-- Slightly darker green text -->
 
                 <!-- Title display -->
                 <TextBlock x:Name="TitleBox"
                            Height="25"
-                           Width="60"
-                           Foreground="#C0C0C0"
+                           Width="100"
+                           Foreground="#333333"
                            Padding="2"
                            FontSize="15"
                            Text="{Binding Title, ElementName=root, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                           HorizontalAlignment="Right"/>
+                           HorizontalAlignment="Center"   
+                           FontWeight="Bold"                 
+                           TextAlignment="Center"/>
+                <!-- ✅ Text itself centered -->
+
             </StackPanel>
         </Border>
     </Viewbox>

@@ -1,5 +1,6 @@
-﻿using System;
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
+using Solartron.Orbit3;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Configuration;
@@ -7,7 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using Solartron.Orbit3;
+using System.Windows.Input;
 
 namespace EVMS
 {
@@ -51,6 +52,10 @@ namespace EVMS
             DataContext = this;
             Loaded += ProbeInstallPage_Loaded;
             Unloaded += ProbeInstallPage_Unloaded;
+            this.Loaded += SettingsPage_Loaded;
+
+            // ✅ Register ESC key handler
+            this.PreviewKeyDown += SettingsPage_PreviewKeyDown;
 
             // Initialize as null, assigned later on connect
             _orbServer = null!;
@@ -58,6 +63,53 @@ namespace EVMS
             _orbNets = null!;
             _orbModules = null!;
             _selectedPartNo = string.Empty;
+        }
+
+        // ✅ ESC key detection
+        private void SettingsPage_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                HandleEscKeyAction();
+                e.Handled = true;
+            }
+        }
+
+
+        private void SettingsPage_Loaded(object? sender, RoutedEventArgs e)
+        {
+            // Ask WPF to focus this control (deferred)
+            this.Focusable = true;
+            this.IsTabStop = true;
+
+            // Try several ways to set keyboard focus
+            Keyboard.Focus(this);                                  // set logical focus
+            FocusManager.SetFocusedElement(Window.GetWindow(this)!, this); // set focused element on window
+
+        }
+        // ✅ Handles ESC key press to go back to HomePage
+        private void HandleEscKeyAction()
+        {
+            NotifyStatus(".");
+
+            DisconnectOrbit();
+            Window currentWindow = Window.GetWindow(this);
+            if (currentWindow != null)
+            {
+                var mainContentGrid = currentWindow.FindName("MainContentGrid") as Grid;
+                if (mainContentGrid != null)
+                {
+                    mainContentGrid.Children.Clear();
+
+                    var resultPage = new Dashboard
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
+                    };
+
+                    mainContentGrid.Children.Add(resultPage);
+                }
+            }
         }
 
 

@@ -17,11 +17,12 @@
         
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <!-- Select Part -->
+            <!-- Row 0: Select Part -->
             <RowDefinition Height="*"/>
-            <!-- Progress Bars -->
+            <!-- Row 1: Progress Bars -->
+            <!-- Row 2: New small row -->
             <RowDefinition Height="Auto"/>
-            <!-- Info + Buttons -->
+            <!-- Row 3: Info + Buttons -->
         </Grid.RowDefinitions>
 
         <!-- Row 0: Select Part inside border -->
@@ -55,6 +56,7 @@
 
         <!-- Row 1: Progress Bars -->
         <Border Grid.Row="1" Style="{StaticResource SectionBorder}" Background="{StaticResource PageBackgroundBrush}">
+
             <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" VerticalAlignment="Center">
                 <ItemsControl ItemsSource="{Binding Probes}">
                     <ItemsControl.ItemsPanel>
@@ -76,23 +78,24 @@
                     </ItemsControl.ItemTemplate>
 
                 </ItemsControl>
+
             </ScrollViewer>
-           
+
 
         </Border>
 
+       
         <!-- Row 2: Two bordered columns—info and buttons -->
-        <Grid Grid.Row="2" Margin="0,5,0,0">
+        <Grid Grid.Row="3" Margin="0,5,0,0">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="4*"/>
-                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
 
             <!-- Info border -->
-            <Border Grid.Column="0" Style="{StaticResource SectionBorder}" Margin="0,0,5,0" Padding="10" Background="{StaticResource PageBackgroundBrush}">
-                
-                <!-- Replace with your info UI here, example TextBlock -->
-                <TextBlock Text="Pressure Range should be set beetween 0.200 MM to 1.200 MM" Foreground="Black" FontSize="30" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+            <Border Grid.Column="0" Style="{StaticResource SectionBorder}" Background="{StaticResource PageBackgroundBrush}">
+
+                <WrapPanel x:Name="InputButtonPanel" Grid.Row="3" Margin="0,0,0,0" />
             </Border>
 
             <!-- Buttons border -->
@@ -102,6 +105,10 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+
+
                     </Grid.ColumnDefinitions>
 
                     <Button Grid.Column="0" Content="Start Reading" 
@@ -111,12 +118,29 @@
                                 HorizontalAlignment="Center"
                                 Click="StartBtn_Click"/>        
 
-                    <Button Grid.Column="1" Content="Stop Reading" 
+                    <Button Grid.Column="3" Content="Stop Reading" 
                                 Style="{StaticResource ModernButtonStyle2}" 
                                 Height="40" 
                                 Width="130"
                                 HorizontalAlignment="Center"
-                                Click="StopBtn_Click"/> 
+                                Click="StopBtn_Click"/>
+                    <Button x:Name="MotorUpDownButton"
+                            Grid.Column="1"
+                            Content="Cylinder Up/Down"
+                            Style="{StaticResource ModernButtonStyle2}"
+                            Height="40"
+                            Width="130"
+                            HorizontalAlignment="Center"
+                            Click="MotorUpDownButton_Click"/>
+                    <Button x:Name="MotorRunButton"
+                             Grid.Column="2"
+                             Content="Motor Rotate"
+                             Style="{StaticResource ModernButtonStyle2}"
+                             Height="40"
+                             Width="130"
+                             HorizontalAlignment="Center"
+                             Click="MotorRunButton_Click"/>      
+ 
                 </Grid>
             </Border>
 

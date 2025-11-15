@@ -473,6 +473,8 @@
         VerticalAlignment="Stretch">
 
             <DataGrid x:Name="ValveReadingsGrid"
+            PreviewKeyDown="ValveReadingsGrid_PreviewKeyDown"
+
               AutoGenerateColumns="True"
               AutoGeneratingColumn="ValveReadingsGrid_AutoGeneratingColumn"
               CanUserAddRows="False"

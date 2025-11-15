@@ -1,9 +1,10 @@
 ﻿using Microsoft.Data.SqlClient;
 using System;
-using System.Data;
 using System.Configuration;
+using System.Data;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace EVMS
 {
@@ -28,10 +29,58 @@ namespace EVMS
             btnUpdate.IsEnabled = false;
             btnDelete.IsEnabled = false;
 
+            this.Loaded += SettingsPage_Loaded;
+
+            // ✅ Register ESC key handler
+            this.PreviewKeyDown += SettingsPage_PreviewKeyDown;
             LoadData();
             ClearInputs();
 
         }
+
+        // ✅ ESC key detection
+        private void SettingsPage_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Escape)
+            {
+                HandleEscKeyAction();
+                e.Handled = true;
+            }
+        }
+
+
+        private void SettingsPage_Loaded(object? sender, RoutedEventArgs e)
+        {
+            // Ask WPF to focus this control (deferred)
+            this.Focusable = true;
+            this.IsTabStop = true;
+
+            // Try several ways to set keyboard focus
+            Keyboard.Focus(this);                                  // set logical focus
+            FocusManager.SetFocusedElement(Window.GetWindow(this)!, this); // set focused element on window
+        }
+        // ✅ Handles ESC key press to go back to HomePage
+        private void HandleEscKeyAction()
+        {
+            Window currentWindow = Window.GetWindow(this);
+            if (currentWindow != null)
+            {
+                var mainContentGrid = currentWindow.FindName("MainContentGrid") as Grid;
+                if (mainContentGrid != null)
+                {
+                    mainContentGrid.Children.Clear();
+
+                    var resultPage = new Dashboard
+                    {
+                        HorizontalAlignment = HorizontalAlignment.Stretch,
+                        VerticalAlignment = VerticalAlignment.Stretch
+                    };
+
+                    mainContentGrid.Children.Add(resultPage);
+                }
+            }
+        }
+
         private void UpdateStatus(string message)
         {
             StatusMessageChanged?.Invoke(message);
@@ -47,7 +96,7 @@ namespace EVMS
                 UserType NVARCHAR(50) NOT NULL,
                 UserID NVARCHAR(50) NOT NULL UNIQUE,
                 UserName NVARCHAR(100) NOT NULL,
-                Role NVARCHAR(100) NOT NULL
+                Password NVARCHAR(100) NOT NULL
             )";
 
             using (SqlConnection con = new SqlConnection(connectionString))
@@ -93,13 +142,13 @@ namespace EVMS
                         }
                     }
 
-                    string insertQuery = "INSERT INTO Users (UserType, UserID, UserName, Role) VALUES (@UserType, @UserID, @UserName, @Role)";
+                    string insertQuery = "INSERT INTO Users (UserType, UserID, UserName, Password) VALUES (@UserType, @UserID, @UserName, @Password)";
                     using (SqlCommand cmd = new SqlCommand(insertQuery, con))
                     {
                         cmd.Parameters.AddWithValue("@UserType", userType);
                         cmd.Parameters.AddWithValue("@UserID", userID);
                         cmd.Parameters.AddWithValue("@UserName", userName);
-                        cmd.Parameters.AddWithValue("@Role", role);
+                        cmd.Parameters.AddWithValue("@Password", role);
                         cmd.ExecuteNonQuery();
                     }
                 }
@@ -155,13 +204,13 @@ namespace EVMS
                         }
                     }
 
-                    string updateQuery = "UPDATE Users SET UserType = @UserType, UserID = @UserID, UserName = @UserName, Role = @Role WHERE ID = @ID";
+                    string updateQuery = "UPDATE Users SET UserType = @UserType, UserID = @UserID, UserName = @UserName, Password = @Password WHERE ID = @ID";
                     using (SqlCommand cmd = new SqlCommand(updateQuery, con))
                     {
                         cmd.Parameters.AddWithValue("@UserType", userType);
                         cmd.Parameters.AddWithValue("@UserID", userID);
                         cmd.Parameters.AddWithValue("@UserName", userName);
-                        cmd.Parameters.AddWithValue("@Role", role);
+                        cmd.Parameters.AddWithValue("@Password", role);
                         cmd.Parameters.AddWithValue("@ID", id);
                         cmd.ExecuteNonQuery();
                     }
@@ -230,7 +279,7 @@ namespace EVMS
                     UserType,
                     UserID,
                     UserName,
-                    Role
+                    Password
                 FROM Users
                 ORDER BY ID";
 
@@ -294,7 +343,7 @@ namespace EVMS
 
                 txtID.Text = row["UserID"]?.ToString();
                 txtName.Text = row["UserName"]?.ToString();
-                txtRTolMinus.Text = row["Role"]?.ToString();
+                txtRTolMinus.Text = row["Password"]?.ToString();
 
                 btnUpdate.IsEnabled = true;
                 btnDelete.IsEnabled = true;

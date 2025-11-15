@@ -55,7 +55,7 @@
 
                     <TextBlock Text="Name:" Style="{StaticResource FormLabelStyle}"/>
                     <TextBox x:Name="txtName" Style="{StaticResource ModernFilledTextBox}"/>
-                    <TextBlock Text="Role:" Style="{StaticResource FormLabelStyle}"/>
+                    <TextBlock Text="Password:" Style="{StaticResource FormLabelStyle}"/>
                     <TextBox x:Name="txtRTolMinus" Style="{StaticResource ModernFilledTextBox}"/>
                 </StackPanel>
                 <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top"  >
@@ -111,7 +111,7 @@ LoadingRow="dataGrid_LoadingRow"-->
                     <DataGridTextColumn Header="Name" Binding="{Binding UserName}" Width="*"
                             ElementStyle="{StaticResource CenterCellStyle}"
                             EditingElementStyle="{StaticResource CenterCellStyle}" />
-                    <DataGridTextColumn Header="Role" Binding="{Binding Role}" Width="*"
+                    <DataGridTextColumn Header="Password" Binding="{Binding Password}" Width="*"
                              ElementStyle="{StaticResource CenterCellStyle}"
                              EditingElementStyle="{StaticResource CenterCellStyle}" />  
                 </DataGrid.Columns>

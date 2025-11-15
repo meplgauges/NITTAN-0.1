@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using System.Windows.Threading;
+using static EVMS.Login_Page;
 
 namespace EVMS
 {
@@ -25,8 +26,11 @@ namespace EVMS
         private readonly DataStorageService _dataService;
         private readonly MasterService masterService;
         private MenuItem? _currentlySelectedMenuItem;
-        private bool isSettingsAuthenticated = false; // global flag
+        private bool isSettingsAuthenticated = false; // global flagR
         private bool _isResultPageOpen = false;
+        private string _currentUserType = string.Empty;
+        private static MainWindow _instance;
+
 
         public MainWindow()
         {
@@ -34,6 +38,8 @@ namespace EVMS
             
 
             DataContext = this;
+            _instance = this;
+
             _dataService = new DataStorageService();
             Loaded += MainWindow_Loaded;
            // Loaded += Window_Loaded;
@@ -43,10 +49,12 @@ namespace EVMS
             {
                 Dispatcher.Invoke(() =>
                 {
-                    StatusMessageTextBox.Text = message;
+                    StatusMessageTextBlock.Text = message;
                 });
             };
-           // GenerateTestExcelReport();
+            // GenerateTestExcelReport();
+
+            
         }
         //private void Window_Loaded(object sender, RoutedEventArgs e)
         //{
@@ -61,10 +69,23 @@ namespace EVMS
         //    this.Width = SystemParameters.PrimaryScreenWidth;
         //    this.Height = SystemParameters.PrimaryScreenHeight;
         //}
-       //private void CloseButton_Click(object sender, RoutedEventArgs e)
-       // {
-       //     this.Close();
-       // }
+        //private void CloseButton_Click(object sender, RoutedEventArgs e)
+        // {
+        //     this.Close();
+        // }
+
+
+
+        public static void ShowStatusMessage(string message)
+        {
+            if (_instance != null)
+            {
+                _instance.Dispatcher.Invoke(() =>
+                {
+                    _instance.StatusMessageTextBlock.Text = message;
+                });
+            }
+        }
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             await Task.Run(() =>
@@ -149,7 +170,7 @@ namespace EVMS
             {
                 Dispatcher.Invoke(() =>
                 {
-                    StatusMessageTextBox.Text = message;
+                    StatusMessageTextBlock.Text = message;
                 });
             };
 
@@ -176,9 +197,9 @@ namespace EVMS
         private void EnableMenus(bool isEnabled)
         {
             RunPartMenu.IsEnabled = isEnabled;
-            MastringConfigMenu.IsEnabled = isEnabled;
-            ReportMenu.IsEnabled = isEnabled;
-            SettingsMenu.IsEnabled = isEnabled;
+            //MastringConfigMenu.IsEnabled = isEnabled;
+            //ReportMenu.IsEnabled = isEnabled;
+            //SettingsMenu.IsEnabled = isEnabled;
         }
 
 
@@ -241,7 +262,7 @@ namespace EVMS
             {
                 Dispatcher.Invoke(() =>  // Ensure UI thread update
                 {
-                    StatusMessageTextBox.Text = message;
+                    StatusMessageTextBlock.Text = message;
                 });
             };
 
@@ -251,11 +272,33 @@ namespace EVMS
             MainContentGrid.Children.Add(resultPage);
         }
 
-
+        
         private void Report_Page(object sender, RoutedEventArgs e)
         {
             MainContentGrid.Children.Clear();
             Report_GraphPage resultPage = new Report_GraphPage();
+
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            MainContentGrid.Children.Add(resultPage);
+        }
+
+        private void Report_View_Page(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            Report_View_Page resultPage = new Report_View_Page();
+
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            MainContentGrid.Children.Add(resultPage);
+        }
+
+        private void Repeatbilty(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            Repeatbilty_Page resultPage = new Repeatbilty_Page();
 
             resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
             resultPage.VerticalAlignment = VerticalAlignment.Stretch;
@@ -287,11 +330,11 @@ namespace EVMS
 
         private async void ProbeInstall_Click(object sender, RoutedEventArgs e)
         {
-            // Show message box
-            MessageBox.Show("Please wait, initializing...", "Loading", MessageBoxButton.OK, MessageBoxImage.Information);
-            // Simulate delay (e.g., 2 seconds)
-            await Task.Delay(2000);
-            // Then load your page
+            //// Show message box
+            //MessageBox.Show("Please wait, initializing...", "Loading", MessageBoxButton.OK, MessageBoxImage.Information);
+            //// Simulate delay (e.g., 2 seconds)
+            //await Task.Delay(2000);
+            //// Then load your page
             MainContentGrid.Children.Clear();
             var resultPage = new ProbeInstallPage()
             {
@@ -303,7 +346,7 @@ namespace EVMS
             {
                 Dispatcher.Invoke(() =>
                 {
-                    StatusMessageTextBox.Text = message;
+                    StatusMessageTextBlock.Text = message;
                 });
             };
 
@@ -350,51 +393,151 @@ namespace EVMS
             MainContentGrid.Children.Add(resultPage);
         }
 
-
-        private void SettingsMenu_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        private void Cal_Click(object sender, RoutedEventArgs e)
         {
-            // 🔒 1️⃣ Check if ResultPage is open
-            if (_isResultPageOpen)
+            MainContentGrid.Children.Clear();
+            Calculation_Modification resultPage = new Calculation_Modification();
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+            MainContentGrid.Children.Add(resultPage);
+        }
+
+        private void Dashboard_Click(object sender, RoutedEventArgs e)
+        {
+            MainContentGrid.Children.Clear();
+            Dashboard resultPage = new Dashboard();
+            resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            resultPage.VerticalAlignment = VerticalAlignment.Stretch;
+            MainContentGrid.Children.Add(resultPage);
+        }
+        private void HomeMenu_Click(object sender, RoutedEventArgs e)
+        {
+            if (!SessionManager.IsAuthenticated)
             {
-                e.Handled = true; // prevent menu opening
-                MessageBox.Show("⚠ Please close the Operation before accessing the menu.",
-                                "Action Not Allowed",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Warning);
+                MessageBox.Show("Please log in to access the Dashboard.", "Authentication Required", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // 🔐 2️⃣ Then check if user is authenticated
-            if (!isSettingsAuthenticated)
+            MainContentGrid.Children.Clear();
+
+            var dashboard = new Dashboard();
+            dashboard.HorizontalAlignment = HorizontalAlignment.Stretch;
+            dashboard.VerticalAlignment = VerticalAlignment.Stretch;
+
+            MainContentGrid.Children.Add(dashboard);
+
+            //ApplyMenuPermissions();
+        }
+
+
+
+
+        //private void ApplyMenuPermissions()
+        //{
+        //    if (_currentUserType == "Admin")
+        //    {
+        //        RunPartMenu.IsEnabled = true;
+        //        //MastringConfigMenu.IsEnabled = true;
+        //        //ReportMenu.IsEnabled = true;
+        //        //SettingsMenu.IsEnabled = true;
+        //        // Enable all functionalities
+        //    }
+        //    else if (_currentUserType == "Operator")
+        //    {
+        //        RunPartMenu.IsEnabled = true;      // Only reports and run part
+        //        //ReportMenu.IsEnabled = true;
+        //        //MastringConfigMenu.IsEnabled = false;
+        //        //SettingsMenu.IsEnabled = false;
+        //        // Disable configuration and settings
+        //    }
+        //    else
+        //    {
+        //        // Unknown or unauthenticated
+        //        RunPartMenu.IsEnabled = false;
+        //        //ReportMenu.IsEnabled = false;
+        //        //MastringConfigMenu.IsEnabled = false;
+        //        //SettingsMenu.IsEnabled = false;
+        //    }
+        //}
+
+
+        private void LogoutButton_Click(object sender, RoutedEventArgs e)
+        {
+            // Clear session info
+            SessionManager.IsAuthenticated = false;
+            SessionManager.UserID = null;
+            SessionManager.UserType = null;
+            LoginButton.IsEnabled = true;
+
+            MessageBox.Show("Logout Successful!\nThank you for using the application.",
+                            "Logout",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Information);
+            ShowStatusMessage("");
+            OpenHomePage();
+        }
+
+        private void OpenHomePage()
+        {
+            var currentWindow = Window.GetWindow(this);
+            if (currentWindow == null)
+                return;
+
+            var mainContentGrid = currentWindow.FindName("MainContentGrid") as Grid;
+            if (mainContentGrid == null)
+                return;
+
+            mainContentGrid.Children.Clear();
+
+            // Instantiate your HomePage or Dashboard UserControl
+            var homePage = new HomePage(); // Replace with actual HomePage or Dashboard user control class
+            homePage.HorizontalAlignment = HorizontalAlignment.Stretch;
+            homePage.VerticalAlignment = VerticalAlignment.Stretch;
+
+            mainContentGrid.Children.Add(homePage);
+        }
+
+
+        private void LoginButton_Click(object sender, RoutedEventArgs e)
+        {
+            var loginWindow = new Login_Page();
+            bool? dialogResult = loginWindow.ShowDialog();  // Shows login window modally and waits
+
+            if (dialogResult == true && SessionManager.IsAuthenticated)
             {
-                e.Handled = true; // stop default behavior until login succeeds
-
-                Login_Page login = new Login_Page();
-                login.Owner = this;
-                bool? result = login.ShowDialog();
-
-                if (result == true && login.IsAuthenticated)
-                {
-                    isSettingsAuthenticated = true; // unlock for this session
-
-                    // ✅ Open Settings menu manually after login success
-                    if (sender is MenuItem menu)
-                    {
-                        Dispatcher.BeginInvoke(new Action(() =>
-                        {
-                            menu.IsSubmenuOpen = true;
-                        }));
-                    }
-                }
-                else
-                {
-                    MessageBox.Show("❌ Access Denied! Wrong Username or Password.",
-                                    "Restricted",
-                                    MessageBoxButton.OK,
-                                    MessageBoxImage.Warning);
-                }
+                var userid = SessionManager.UserType;
+                // Disable the login button after successful login
+                LoginButton.IsEnabled = false;
+                ShowStatusMessage(string.Format("Welcome {0}", userid));
+                OpenDashboard();
+            }
+            else
+            {
+                // Login failed or cancelled
+                MessageBox.Show("Login failed or cancelled.", "Login", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
+
+
+        private void OpenDashboard()
+        {
+            var currentWindow = Window.GetWindow(this);
+            if (currentWindow == null)
+                return;
+
+            var mainContentGrid = currentWindow.FindName("MainContentGrid") as Grid;
+            if (mainContentGrid == null)
+                return;
+
+            mainContentGrid.Children.Clear();
+
+            var dashboard = new Dashboard();
+            dashboard.HorizontalAlignment = HorizontalAlignment.Stretch;
+            dashboard.VerticalAlignment = VerticalAlignment.Stretch;
+
+            mainContentGrid.Children.Add(dashboard);
+        }
+
 
 
 
@@ -487,12 +630,9 @@ namespace EVMS
         {
             Task.Run(() =>
             {
-                string baseExportFolder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-                    "EVMS_Exports"
-                );
+                string baseExportFolder = @"E:\MEPL\Excel Report\All Measurements";
 
-                string companyName = "MEPL";
+
                 DateTime yesterday = DateTime.Today.AddDays(-1);
 
                 try
@@ -505,7 +645,7 @@ namespace EVMS
                         return;
 
                     string activePartNo = activeParts[0].Para_No;
-                    string folderPath = Path.Combine(baseExportFolder, companyName, activePartNo);
+                    string folderPath = Path.Combine(baseExportFolder,activePartNo);
                     Directory.CreateDirectory(folderPath);
 
                     var dataExportService = new DataExportService(_dataService, folderPath);

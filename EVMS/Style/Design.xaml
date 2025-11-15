@@ -488,4 +488,9 @@
         <!-- Button pressed background -->
     </Style>
 
+
+    <Style x:Key="CenterCheckBoxStyle" TargetType="CheckBox">
+        <Setter Property="HorizontalAlignment" Value="Center"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
 </ResourceDictionary>

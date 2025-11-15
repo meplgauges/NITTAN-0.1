@@ -1,0 +1,266 @@
+using EVMS.Service;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+
+namespace EVMS
+{
+    public partial class Report_GraphPage : UserControl, INotifyPropertyChanged
+    {
+        private readonly DataStorageService _dataService;
+
+        public ObservableCollection<ISeries> LineSeries { get; set; } = new();
+        public ObservableCollection<ISeries> BarSeries { get; set; } = new();
+        public ObservableCollection<ISeries> PieSeries { get; set; } = new();
+
+        public List<string> Labels { get; set; }
+
+        public ObservableCollection<string> ActiveParts { get; set; }
+        public ObservableCollection<string> LotNumbers { get; set; } = new();
+        public ObservableCollection<string> DesignOptions { get; set; } = new();
+        public ObservableCollection<string> Operators { get; set; } = new();
+
+        private string _selectedPartNo;
+        public string SelectedPartNo
+        {
+            get => _selectedPartNo;
+            set
+            {
+                if (_selectedPartNo != value)
+                {
+                    _selectedPartNo = value;
+                    OnPropertyChanged(nameof(SelectedPartNo));
+                    OnSelectedPartNoChanged();
+                }
+            }
+        }
+
+        private string _selectedLotNo;
+        public string SelectedLotNo
+        {
+            get => _selectedLotNo;
+            set
+            {
+                _selectedLotNo = value;
+                OnPropertyChanged(nameof(SelectedLotNo));
+            }
+        }
+
+        private string _selectedOperator;
+        public string SelectedOperator
+        {
+            get => _selectedOperator;
+            set
+            {
+                if (_selectedOperator != value)
+                {
+                    _selectedOperator = value;
+                    OnPropertyChanged(nameof(SelectedOperator));
+                }
+            }
+        }
+
+        private string _selectedDesign;
+        public string SelectedDesign
+        {
+            get => _selectedDesign;
+            set
+            {
+                if (_selectedDesign != value)
+                {
+                    _selectedDesign = value;
+                    OnPropertyChanged(nameof(SelectedDesign));
+                    OnDesignSelectionChanged();
+                }
+            }
+        }
+
+        private DateTime? _selectedDateFrom;
+        public DateTime? SelectedDateFrom
+        {
+            get => _selectedDateFrom;
+            set
+            {
+                _selectedDateFrom = value;
+                OnPropertyChanged(nameof(SelectedDateFrom));
+            }
+        }
+
+        private DateTime? _selectedDateTo;
+        public DateTime? SelectedDateTo
+        {
+            get => _selectedDateTo;
+            set
+            {
+                _selectedDateTo = value;
+                OnPropertyChanged(nameof(SelectedDateTo));
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public Report_GraphPage()
+        {
+            InitializeComponent();
+
+            _dataService = new DataStorageService();
+            ActiveParts = new ObservableCollection<string>();
+
+            try
+            {
+                Labels = new List<string>();
+                for (int i = 1; i <= 17; i++)
+                    Labels.Add(i.ToString());
+
+                SelectedDateFrom = DateTime.Today.Date.AddDays(-7);
+                SelectedDateTo = DateTime.Today.Date;
+
+                DataContext = this;
+
+                LoadActiveParts();
+                LoadDesignOptions();
+
+                if (ActiveParts.Count > 0)
+                {
+                    SelectedPartNo = ActiveParts[0];
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to load graph page. Error: " + ex.Message,
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void LoadActiveParts()
+        {
+            var parts = _dataService.GetActiveParts();
+
+            ActiveParts.Clear();
+            foreach (var part in parts)
+            {
+                if (!string.IsNullOrWhiteSpace(part.Para_No))
+                    ActiveParts.Add(part.Para_No);
+            }
+
+            if (ActiveParts.Count == 0)
+                MessageBox.Show("No active parts were found in the database.");
+        }
+
+        private async void OnSelectedPartNoChanged()
+        {
+            if (!string.IsNullOrEmpty(SelectedPartNo))
+            {
+                await LoadLotNumbersAsync(SelectedPartNo);
+                await LoadOperatorsAsync(SelectedPartNo);
+                LoadParameters(SelectedPartNo);
+            }
+        }
+
+        public async Task LoadLotNumbersAsync(string partNo)
+        {
+            var lots = await _dataService.GetLotNumbersByPartNoAsync(partNo);
+
+            LotNumbers.Clear();
+            foreach (var lot in lots)
+            {
+                LotNumbers.Add(lot);
+            }
+
+            SelectedLotNo = LotNumbers.Count > 0 ? LotNumbers[0] : null;
+        }
+
+        public async Task LoadOperatorsAsync(string partNo)
+        {
+            var ops = await _dataService.GetOperatorsByPartNoAsync(partNo);
+
+            Operators.Clear();
+            foreach (var op in ops)
+            {
+                Operators.Add(op);
+            }
+
+            SelectedOperator = Operators.Count > 0 ? Operators[0] : null;
+        }
+
+        private void LoadParameters(string partNumber)
+        {
+            try
+            {
+                var configs = _dataService.GetPartConfig(partNumber);
+                var parameters = configs.Select(c => c.Parameter).ToList();
+
+                Parameter.ItemsSource = parameters;
+
+                Parameter.SelectedIndex = parameters.Count > 0 ? 0 : -1;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to load parameters. Error: " + ex.Message,
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void LoadDesignOptions()
+        {
+            DesignOptions.Clear();
+            DesignOptions.Add("Line Chart");
+            DesignOptions.Add("Bar Chart");
+            DesignOptions.Add("Pie Chart");
+
+            if (DesignOptions.Count > 0)
+                SelectedDesign = DesignOptions[0];
+        }
+
+        private void OnDesignSelectionChanged()
+        {
+            // Hide all charts first
+            LineChart.Visibility = Visibility.Collapsed;
+            BarChart.Visibility = Visibility.Collapsed;
+            PieChart.Visibility = Visibility.Collapsed;
+
+            // Clear all series collections before loading new
+            LineSeries.Clear();
+            BarSeries.Clear();
+            PieSeries.Clear();
+
+            switch (SelectedDesign)
+            {
+                case "Line Chart":
+                    LineSeries.Add(new LineSeries<double> { Values = new double[] { 3, 5, 7, 4, 6 } });
+                    LineChart.Visibility = Visibility.Visible;
+                    break;
+
+                case "Bar Chart":
+                    BarSeries.Add(new ColumnSeries<double> { Values = new double[] { 7, 2, 8, 3, 6 } });
+                    BarChart.Visibility = Visibility.Visible;
+                    break;
+
+                case "Pie Chart":
+                    PieSeries.Add(new PieSeries<double> { Values = new double[] { 10 }, Name = "A" });
+                    PieSeries.Add(new PieSeries<double> { Values = new double[] { 20 }, Name = "B" });
+                    PieSeries.Add(new PieSeries<double> { Values = new double[] { 30 }, Name = "C" });
+                    PieChart.Visibility = Visibility.Visible;
+                    break;
+            }
+        }
+
+        private void Designe_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox comboBox && comboBox.SelectedItem is string selectedDesign)
+            {
+                SelectedDesign = selectedDesign; // triggers OnDesignSelectionChanged
+            }
+        }
+
+        protected void OnPropertyChanged(string propertyName) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+}
