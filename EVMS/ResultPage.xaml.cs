@@ -222,7 +222,6 @@ namespace EVMS
                 };
 
                 // Export to Excel asynchronously without blocking UI
-                // Export to Excel asynchronously without blocking UI
                 if (_currentMode == ProcedureMode.Measurement && status == "OK")
                 {
                     _ = Task.Run(() =>
@@ -1315,7 +1314,7 @@ namespace EVMS
 
                     resultPage.HorizontalAlignment = HorizontalAlignment.Stretch;
                     resultPage.VerticalAlignment = VerticalAlignment.Stretch;
-
+                    NotifyStatus(".");
                     mainContentGrid.Children.Add(resultPage);
                 }
             }
@@ -1540,6 +1539,7 @@ namespace EVMS
         }
 
 
+
         private async void HandleDeleteLatestMeasurementRowAndCounts()
         {
             // 1. Get the latest row's status before removal
@@ -1556,7 +1556,7 @@ namespace EVMS
                 return;
             }
 
-            // 3. Remove row from DataTable/UI and refresh
+            // 3. Remove row from DataTable/UI and refresh_measurementDataTable
             _measurementDataTable.Rows.RemoveAt(0);
             ValveReadingsGrid.Items.Refresh();
 

@@ -1,4 +1,4 @@
-﻿using ActUtlTypeLib;
+﻿using ActUtlType64Lib;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,7 @@ namespace EVMS
 {
     public partial class IO_Controle_page : UserControl
     {
-        private ActUtlType plc = new ActUtlType();
+        private IActUtlType64 plc = new ActUtlType64Class();
         private bool isConnected = false;
         private DispatcherTimer monitorTimer = new DispatcherTimer();
         private readonly string? connectionString;

@@ -3,10 +3,12 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
-    xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+xmlns:scottplot="clr-namespace:ScottPlot;assembly=ScottPlot.WPF"
+  xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
     MinWidth="900" MinHeight="600"
     Background="White"
+                          KeyDown="Report_GraphPage_PreviewKeyDown"
+
     mc:Ignorable="d">
 
     <UserControl.Resources>
@@ -42,27 +44,29 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- DateTimePicker From -->
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="Date From" Margin="2,0,2,2" FontWeight="Bold"/>
                     <xctk:DateTimePicker Margin="5" Width="200"
-        BorderBrush="#1976D2" BorderThickness="1" Padding="4"
-        Value="{Binding SelectedDateTimeFrom, Mode=TwoWay}" 
-        Format="Custom" FormatString="MM/dd/yyyy HH:mm:ss"/>
+                    BorderBrush="#1976D2" BorderThickness="1" Padding="4"
+                    Value="{Binding SelectedDateTimeFrom, Mode=TwoWay}" 
+                    Format="Custom" FormatString="MM/dd/yyyy HH:mm:ss"/>
                 </StackPanel>
 
                 <TextBlock Text="TO" Grid.Column="1" Margin="1,15,1,1" 
-        VerticalAlignment="Center" FontWeight="Bold" HorizontalAlignment="Center"/>
+                    VerticalAlignment="Center" FontWeight="Bold" HorizontalAlignment="Center"/>
 
                 <!-- DateTimePicker To -->
                 <StackPanel Grid.Column="2">
                     <TextBlock Text="Date To" Margin="30,0,2,2" FontWeight="Bold"/>
                     <xctk:DateTimePicker Margin="4" Width="200"
-        BorderBrush="#1976D2" BorderThickness="1" Padding="4"
-        Value="{Binding SelectedDateTimeTo, Mode=TwoWay}" 
-        Format="Custom" FormatString="MM/dd/yyyy HH:mm:ss"/>
+                        BorderBrush="#1976D2" BorderThickness="1" Padding="4"
+                        Value="{Binding SelectedDateTimeTo, Mode=TwoWay}" 
+                        Format="Custom" FormatString="MM/dd/yyyy HH:mm:ss"/>
                 </StackPanel>
 
                 <!-- Part No -->
@@ -109,7 +113,7 @@
                       SelectedItem="{Binding SelectedDesign, Mode=TwoWay}"
                       Style="{DynamicResource ModernComboBoxStyle}"
                       VerticalContentAlignment="Center"
-                      SelectionChanged="Designe_SelectionChanged" />
+                       />
                 </StackPanel>
 
                 <!-- Operator -->
@@ -122,10 +126,19 @@
                       Style="{DynamicResource ModernComboBoxStyle}" />
                 </StackPanel>
 
+                <!-- Show NG/OK ComboBox -->
+                <StackPanel Grid.Column="8" Margin="0,0,0,0">
+                    <TextBlock Text="Show NG/OK" Margin="2,0,2,2" FontWeight="Bold" />
+                    <ComboBox x:Name="ReportTypeDropdown"
+                        ItemsSource="{Binding ReportTypeOptions}"
+                        SelectedItem="{Binding SelectedReportType, Mode=TwoWay}"
+                        Style="{DynamicResource ModernComboBoxStyle}"
+                        Margin="2" />
+                </StackPanel>
                 <!-- Submit Button -->
-                <Button Grid.Column="8"
+                <Button Grid.Column="9"
                 Width="90"
-                Margin="4,20,4,0"
+                Margin="30,20,5,0"
                 Content="Submit"
                 Background="#1976D2"
                 Foreground="White"
@@ -138,17 +151,17 @@
 
         <!-- Labels Row -->
         <!-- Chart Area -->
-        <Border Grid.Row="3" Background="{StaticResource PageBackgroundBrush}"  CornerRadius="12" Padding="15" Margin="0,15,0,0" BorderBrush="#D1D9E6" BorderThickness="1">
+        <Border Grid.Row="3" Background="{StaticResource PageBackgroundBrush}"  
+        CornerRadius="12" Padding="15" Margin="0,15,0,0" 
+        BorderBrush="#D1D9E6" BorderThickness="1">
             <Grid>
-                <!-- Line Chart -->
-                <lvc:CartesianChart x:Name="LineChart" Series="{Binding LineSeries}" ZoomMode="X" LegendPosition="Bottom" Visibility="Collapsed" />
+                <Grid>
+                    <scottplot:WpfPlot x:Name="ScottPlotControl" Margin="8"/>
 
-                <!-- Bar Chart -->
-                <lvc:CartesianChart x:Name="BarChart" Series="{Binding BarSeries}" ZoomMode="X" LegendPosition="Right" Visibility="Collapsed" />
+                </Grid>
 
-                <!-- Pie Chart -->
-                <lvc:PieChart x:Name="PieChart" Series="{Binding PieSeries}" LegendPosition="Right" Visibility="Collapsed" />
             </Grid>
         </Border>
+
     </Grid>
 </UserControl>

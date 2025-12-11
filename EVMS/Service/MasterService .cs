@@ -1,4 +1,4 @@
-﻿using ActUtlTypeLib;
+﻿using ActUtlType64Lib;
 using DocumentFormat.OpenXml.EMMA;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System;
@@ -60,7 +60,7 @@ namespace EVMS.Service
         private bool _isMeasurementRunning = true;
 
 
-        private readonly ActUtlType plc;
+        private IActUtlType64 plc;
         private readonly DataStorageService _dataStorageService;
         private readonly PlcProbeService _plcProbeService;
 
@@ -90,7 +90,7 @@ namespace EVMS.Service
 
             _dataStorageService = new DataStorageService();
             _plcProbeService = new PlcProbeService();
-           plc = new ActUtlType { ActLogicalStationNumber = 1 };
+           plc = new ActUtlType64Class { ActLogicalStationNumber = 1 };
             _plcProbeService.ProbeValueUpdated += ProbeValueUpdatedHandler;
             ArraySize = _dataStorageService.GetReadingCount();
 

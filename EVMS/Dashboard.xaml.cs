@@ -161,7 +161,12 @@ namespace EVMS
                     case "Calculation":
                         pageToShow = new Calculation_Modification();
                         break;
+
+                    case "RnR Report":
+                        pageToShow = new RnR_Report_Page();
+                        break;
                 }
+
 
                 if (pageToShow != null)
                 {

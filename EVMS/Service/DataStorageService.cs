@@ -176,17 +176,14 @@ namespace EVMS.Service
 
             string query = @"
         SELECT 
-            p.SrNo,
-            p.Parameter,
-            COALESCE(m.Nominal, p.Nominal) AS Nominal,
-            COALESCE(m.RTolPlus, p.RTolPlus) AS RTolPlus,
-            COALESCE(m.RTolMinus, p.RTolMinus) AS RTolMinus
-        FROM PartConfig p
-        LEFT JOIN MasterReadingData m
-            ON p.Parameter = m.Parameter      -- match by parameter name
-           AND m.Para_No = @PartNumber        -- use master data for this part
-        WHERE p.Para_No = @PartNumber         -- only parameters for this part
-        ORDER BY p.SrNo;                      -- preserve PartConfig order";
+            Id,
+            Parameter,
+            Nominal,
+            RTolPlus,
+            RTolMinus
+        FROM MasterReadingData
+        WHERE Para_No = @PartNumber
+        ORDER BY Id;";
 
             using SqlConnection conn = new(_connectionString);
             using SqlCommand cmd = new(query, conn);
@@ -198,9 +195,9 @@ namespace EVMS.Service
             {
                 list.Add(new MasterReadingModel
                 {
-                    Para_No = reader["SrNo"].ToString(),
+                    Para_No = partNumber,                               // from input, not SrNo
                     Parameter = reader["Parameter"].ToString(),
-                    D_Name= reader["Parameter"].ToString(),
+                    D_Name = reader["Parameter"].ToString(),            // unchanged
                     Nominal = Convert.ToDouble(reader["Nominal"]),
                     RTolPlus = Convert.ToDouble(reader["RTolPlus"]),
                     RTolMinus = Convert.ToDouble(reader["RTolMinus"])

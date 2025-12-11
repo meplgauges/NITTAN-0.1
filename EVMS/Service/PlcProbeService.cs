@@ -1,4 +1,4 @@
-﻿using ActUtlTypeLib;
+﻿using ActUtlType64Lib;
 using DocumentFormat.OpenXml.Drawing.Charts;
 using System;
 using System.Collections.Generic;
@@ -7,17 +7,15 @@ using System.Threading.Tasks;
 
 internal class PlcProbeService : IDisposable
 {
-    private ActUtlType plc;
+    private IActUtlType64 plc;
     private OrbitService orbitService;
     private bool isConnected = false;
     private CancellationTokenSource? _cts;
 
     public PlcProbeService()
     {
-        plc = new ActUtlType();
-
+        plc = new ActUtlType64Class();   // OK
         orbitService = new OrbitService();
-
     }
 
     public bool IsConnected => isConnected && orbitService.IsConnected;

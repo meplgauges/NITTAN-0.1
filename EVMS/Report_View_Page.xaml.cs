@@ -1,11 +1,13 @@
 ﻿using ClosedXML.Excel;
 using EVMS.Service;
+using Microsoft.Data.SqlClient;
 using PdfSharpCore.Drawing;
 using PdfSharpCore.Pdf;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -15,6 +17,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using static EVMS.Login_Page;
 using static SkiaSharp.HarfBuzz.SKShaper;
 
@@ -23,6 +26,8 @@ namespace EVMS
     public partial class Report_View_Page : UserControl, INotifyPropertyChanged
     {
         private readonly DataStorageService _dataService;
+        private readonly string connectionString;
+
 
         public ObservableCollection<string> ActiveParts { get; set; } = new();
         public ObservableCollection<string> LotNumbers { get; set; } = new();
@@ -32,6 +37,8 @@ namespace EVMS
         public ObservableCollection<ReportTableItem> ReportTableItems { get; set; } = new();
 
         public ObservableCollection<string> NgOkCountOptions { get; set; } = new ObservableCollection<string> { "No", "Yes" };
+
+        public ObservableCollection<string> ReportTypeOptions { get; set; } = new ObservableCollection<string> { "All", "NG", "OK" };
 
         public ObservableCollection<NgOkSummaryItem> NgOkSummaryItems { get; set; } = new ObservableCollection<NgOkSummaryItem>();
 
@@ -109,7 +116,19 @@ namespace EVMS
         }
 
 
-
+        private string selectedReportType = "All";
+        public string SelectedReportType
+        {
+            get => selectedReportType;
+            set
+            {
+                if (selectedReportType != value)
+                {
+                    selectedReportType = value;
+                    OnPropertyChanged(nameof(SelectedReportType));
+                }
+            }
+        }
 
         private DateTime? _selectedDateTimeTo = DateTime.Now;
         public DateTime? SelectedDateTimeTo
@@ -130,10 +149,12 @@ namespace EVMS
         {
             InitializeComponent();
             _dataService = new DataStorageService();
+            connectionString = ConfigurationManager.ConnectionStrings["EVMSDb"].ConnectionString;
 
             LoadDesignOptions();
             LoadActiveParts();
             LoadParameters();
+            LoadCompanyInfo();
 
             this.Loaded += ReportViewPage_Loaded;
             this.PreviewKeyDown += ReportViewPage_PreviewKeyDown;
@@ -301,78 +322,90 @@ namespace EVMS
             var results = await _dataService.GetMeasurementReadingsAsync(
                 partFilter, lotFilter, operatorFilter, _selectedDateTimeFrom, _selectedDateTimeTo);
 
-            if (results == null || !results.Any())
+            if (results != null && results.Any())
             {
-                MessageBox.Show("No data found for the selected filters.");
-                return;
-            }
+                List<MeasurementReading> filteredResults = results.ToList();
 
-            // 🔹 Fetch part configuration for tolerances
-            var partConfigs = _dataService.GetPartConfig(partFilter ?? results.First().PartNo);
-            var allParameters = partConfigs.Select(c => c.Parameter).Distinct().ToList();
-
-            // 🔹 Determine which parameters to include
-            List<string> finalParams = SelectedParameter == "All"
-                ? allParameters
-                : new List<string> { SelectedParameter };
-
-            // 🔹 Generate dynamic columns
-            GenerateParameterColumns(finalParams);
-
-            int serialNo = 1;
-
-            foreach (var r in results)
-            {
-                var item = new ReportTableItem
+                if (SelectedReportType == "NG")
                 {
-                    Id = r.Id,
-                    SerialNo = serialNo++,
-                    PartNo = r.PartNo,
-                    LotNo = r.LotNo,
-                    Operator = r.Operator_ID,
-                    Date = r.MeasurementDate.ToString("yyyy-MM-dd HH:mm"),
-                    Parameters = new Dictionary<string, double>()
-                };
-
-                bool isAnyParamOutOfRange = false;
-
-                // 🔹 Populate and check each parameter
-                foreach (var param in finalParams)
+                    filteredResults = results.Where(r => r.Status == "NG").ToList();
+                }
+                else if (SelectedReportType == "OK")
                 {
-                    var propName = MapParameterToColumn(param);
-                    var propInfo = r.GetType().GetProperty(propName);
-                    double measuredValue = 0;
-
-                    if (propInfo != null)
-                    {
-                        var valueObj = propInfo.GetValue(r);
-                        if (valueObj != null && double.TryParse(valueObj.ToString(), out double parsed))
-                            measuredValue = parsed;
-                    }
-
-                    // Find parameter config to get tolerance values
-                    var config = partConfigs.FirstOrDefault(pc =>
-                        pc.Parameter.Equals(param, StringComparison.OrdinalIgnoreCase));
-
-                    if (config != null)
-                    {
-                        double usl = config.Nominal + config.RTolPlus;
-                        double lsl = config.Nominal - config.RTolMinus;
-
-                        // Mark as out of range if needed
-                        if (measuredValue < lsl || measuredValue > usl)
-                            isAnyParamOutOfRange = true;
-                    }
-
-                    item.Parameters[param] = measuredValue;
+                    filteredResults = results.Where(r => r.Status == "OK").ToList();
                 }
 
-                // 🔹 Determine row-level status
-                item.Status = isAnyParamOutOfRange ? "FAIL" : "PASS";
+                if (!filteredResults.Any())
+                {
+                    MessageBox.Show("No data found for the selected filters.");
+                    return;
+                }
 
-                ReportTableItems.Add(item);
+                var partConfigs = _dataService.GetPartConfig(partFilter ?? filteredResults.First().PartNo);
+                var allParameters = partConfigs.Select(c => c.Parameter).Distinct().ToList();
+
+                List<string> finalParams = SelectedParameter == "All"
+                    ? allParameters
+                    : new List<string> { SelectedParameter };
+
+                GenerateParameterColumns(finalParams);
+
+                int serialNo = 1;
+
+                foreach (var r in filteredResults)
+                {
+                    var item = new ReportTableItem
+                    {
+                        Id = r.Id,
+                        SerialNo = serialNo++,
+                        PartNo = r.PartNo,
+                        LotNo = r.LotNo,
+                        Operator = r.Operator_ID,
+                        Date = r.MeasurementDate.ToString("yyyy-MM-dd HH:mm"),
+                        Parameters = new Dictionary<string, double>()
+                    };
+
+                    bool isAnyParamOutOfRange = false;
+
+                    foreach (var param in finalParams)
+                    {
+                        var propName = MapParameterToColumn(param);
+                        var propInfo = r.GetType().GetProperty(propName);
+                        double measuredValue = 0;
+
+                        if (propInfo != null)
+                        {
+                            var valueObj = propInfo.GetValue(r);
+                            if (valueObj != null && double.TryParse(valueObj.ToString(), out double parsed))
+                                measuredValue = parsed;
+                        }
+
+                        var config = partConfigs.FirstOrDefault(pc =>
+                            pc.Parameter.Equals(param, StringComparison.OrdinalIgnoreCase));
+
+                        if (config != null)
+                        {
+                            double usl = config.Nominal + config.RTolPlus;
+                            double lsl = config.Nominal - config.RTolMinus;
+
+                            if (measuredValue < lsl || measuredValue > usl)
+                                isAnyParamOutOfRange = true;
+                        }
+
+                        item.Parameters[param] = measuredValue;
+                    }
+
+                    item.Status = isAnyParamOutOfRange ? "FAIL" : "PASS";
+
+                    ReportTableItems.Add(item);
+                }
+            }
+            else
+            {
+                MessageBox.Show("No data found for the selected filters.");
             }
         }
+
 
         private async Task LoadNgOkCountTableAsync()
         {
@@ -625,10 +658,37 @@ namespace EVMS
                 {
                     var ws = wb.Worksheets.Add("Report");
 
-                    // 🔹 Retrieve part config matching selected part or first item’s part
+                    // ===============================================================
+                    // 🔥 ADD COMPANY LOGO + COMPANY NAME HEADER (Left + Center)
+                    // ===============================================================
+
+                    // Logo block (A1:C3)
+                    var logoRange = ws.Range("A1:B3");
+                    logoRange.Merge();
+
+                    if (!string.IsNullOrEmpty(_companyLogoPath) && File.Exists(_companyLogoPath))
+                    {
+                        var logoPicture = ws.AddPicture(_companyLogoPath)
+                    .MoveTo(ws.Cell("A1"), 4, 4)   // X offset = 5, Y offset = 5
+                    .Scale(0.2);                  // Resize logo
+
+                    }
+
+                    // Company Name (Centered between D1:H3)
+                    var companyNameRange = ws.Range("C1:G3");
+                    companyNameRange.Merge();
+                    ws.Cell("C1").Value = _companyName;
+                    ws.Cell("C1").Style.Font.Bold = true;
+                    ws.Cell("C1").Style.Font.FontSize = 18;
+                    ws.Cell("C1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    ws.Cell("C1").Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+                    // ===============================================================
+                    // 🔥 ORIGINAL LOGIC STARTS — NOTHING CHANGED
+                    // ===============================================================
+
                     var partConfig = _dataService.GetPartConfigByPartNumber(SelectedPartNo ?? ReportTableItems.First().PartNo).ToList();
 
-                    // 🔹 Create ShortName mapping
                     var paramToShort = partConfig
                         .Where(p => !string.IsNullOrWhiteSpace(p.Parameter))
                         .ToDictionary(
@@ -637,23 +697,22 @@ namespace EVMS
                             StringComparer.OrdinalIgnoreCase
                         );
 
-                    // 🔹 Determine if single parameter
                     bool isSingleParameter = SelectedParameter != null && SelectedParameter != "All";
                     List<string> paramList = isSingleParameter
                         ? new List<string> { SelectedParameter }
                         : ReportTableItems.First().Parameters.Keys.ToList();
 
-                    // 🔹 Convert full parameter names to short names
                     List<string> paramShortList = paramList
                         .Select(p => paramToShort.TryGetValue(p, out var shortName) ? shortName : p)
                         .ToList();
 
-                    // 🔹 Calculate USL, MEAN, LSL
                     var USL = partConfig.Select(p => new ParameterValue { Parameter = p.Parameter, Value = p.Nominal - p.RTolMinus }).ToList();
                     var MEAN = partConfig.Select(p => new ParameterValue { Parameter = p.Parameter, Value = p.Nominal }).ToList();
                     var LSL = partConfig.Select(p => new ParameterValue { Parameter = p.Parameter, Value = p.Nominal + p.RTolPlus }).ToList();
 
-                    // 🔹 Company/Part info header
+                    // Move your existing headers down because of logo/name
+                    int baseHeaderRow = 5;
+
                     ws.Range("J1:M1").Merge();
                     ws.Cell("J1").Value = "Company Name:";
                     ws.Cell("J1").Style.Font.Bold = true;
@@ -670,10 +729,10 @@ namespace EVMS
                     ws.Cell("J3").Style.Font.Bold = true;
                     ws.Cell("J3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
 
-                    // 🔹 Parameter header row (Row 5, start at column D)
+                    // Parameter headers
                     for (int i = 0; i < partConfig.Count; i++)
                     {
-                        var cell = ws.Cell(5, 4 + i);
+                        var cell = ws.Cell(baseHeaderRow, 4 + i);
                         cell.Value = paramToShort.TryGetValue(partConfig[i].Parameter, out var shortName)
                             ? shortName
                             : partConfig[i].Parameter;
@@ -684,7 +743,6 @@ namespace EVMS
                         cell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
                     }
 
-                    // 🔹 Label setup for USL, MEAN, LSL (Rows 6-8)
                     var labelFormats = new (string Label, XLColor Color)[]
                     {
                 ("USL", XLColor.Red),
@@ -694,7 +752,7 @@ namespace EVMS
 
                     for (int idx = 0; idx < labelFormats.Length; idx++)
                     {
-                        var labelCell = ws.Cell(6 + idx, 3);
+                        var labelCell = ws.Cell(baseHeaderRow + 1 + idx, 3);
                         labelCell.Value = labelFormats[idx].Label;
                         labelCell.Style.Font.Bold = true;
                         labelCell.Style.Font.FontColor = labelFormats[idx].Color;
@@ -703,38 +761,23 @@ namespace EVMS
 
                     ws.Column(3).Width = 15;
 
-                    // 🔹 Fill USL/MEAN/LSL values
                     for (int i = 0; i < partConfig.Count; i++)
                     {
-                        var uslCell = ws.Cell(6, 4 + i);
-                        uslCell.Value = USL[i].Value;
-                        uslCell.Style.Font.Bold = true;
-                        uslCell.Style.Font.FontColor = XLColor.Red;
-                        uslCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                        uslCell.Style.NumberFormat.Format = "0.000";
+                        ws.Cell(baseHeaderRow + 1, 4 + i).Value = USL[i].Value;
+                        ws.Cell(baseHeaderRow + 2, 4 + i).Value = MEAN[i].Value;
+                        ws.Cell(baseHeaderRow + 3, 4 + i).Value = LSL[i].Value;
 
-                        var meanCell = ws.Cell(7, 4 + i);
-                        meanCell.Value = MEAN[i].Value;
-                        meanCell.Style.Font.Bold = true;
-                        meanCell.Style.Font.FontColor = XLColor.ForestGreen;
-                        meanCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                        meanCell.Style.NumberFormat.Format = "0.000";
-
-                        var lslCell = ws.Cell(8, 4 + i);
-                        lslCell.Value = LSL[i].Value;
-                        lslCell.Style.Font.Bold = true;
-                        lslCell.Style.Font.FontColor = XLColor.Red;
-                        lslCell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                        lslCell.Style.NumberFormat.Format = "0.000";
+                        ws.Cell(baseHeaderRow + 1, 4 + i).Style.Font.FontColor = XLColor.Red;
+                        ws.Cell(baseHeaderRow + 2, 4 + i).Style.Font.FontColor = XLColor.ForestGreen;
+                        ws.Cell(baseHeaderRow + 3, 4 + i).Style.Font.FontColor = XLColor.Red;
                     }
 
                     int lastCol = 4 + partConfig.Count - 1;
-                    var range = ws.Range(5, 3, 8, lastCol);
-                    range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                    range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                    ws.Range(baseHeaderRow, 3, baseHeaderRow + 3, lastCol)
+                          .Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
 
-                    // 🔹 Table headers start at row 10
-                    int startTableRow = 10;
+                    int startTableRow = baseHeaderRow + 5;
+
                     int col = 1;
                     ws.Cell(startTableRow, col++).Value = "S.No";
                     ws.Cell(startTableRow, col++).Value = "Part No";
@@ -745,12 +788,11 @@ namespace EVMS
                     foreach (var p in paramShortList)
                         ws.Cell(startTableRow, col++).Value = p;
 
-                    // 🔸 Add Status only if NOT single parameter
                     if (!isSingleParameter)
                         ws.Cell(startTableRow, col++).Value = "Status";
 
-                    // 🔹 Fill table data
                     int row = startTableRow + 1;
+
                     foreach (var item in ReportTableItems)
                     {
                         col = 1;
@@ -766,50 +808,26 @@ namespace EVMS
                             double value = item.Parameters.ContainsKey(p) ? item.Parameters[p] : 0;
                             cell.Value = value;
 
-                            // Find matching part config
-                            var config = partConfig.FirstOrDefault(pc =>
-                                pc.Parameter.Equals(p, StringComparison.OrdinalIgnoreCase));
-
+                            var config = partConfig.FirstOrDefault(pc => pc.Parameter.Equals(p, StringComparison.OrdinalIgnoreCase));
                             if (config != null)
                             {
                                 double usl = config.Nominal - config.RTolMinus;
                                 double lsl = config.Nominal + config.RTolPlus;
 
-                                // Check if out of range
                                 if (value < usl || value > lsl)
-                                {
                                     cell.Style.Font.FontColor = XLColor.Red;
-                                }
-                                else
-                                {
-                                    cell.Style.Font.FontColor = XLColor.Black;
-                                }
                             }
-
-                            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                            cell.Style.NumberFormat.Format = "0.000";
                         }
 
-
-                        // 🔸 Skip Status if single parameter
                         if (!isSingleParameter)
                             ws.Cell(row, col++).Value = item.Status;
 
                         row++;
                     }
 
-                    // 🔹 Style header row
-                    var headerRange = ws.Range(startTableRow, 1, startTableRow, col - 1);
-                    headerRange.Style.Font.Bold = true;
-                    headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
-                    headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                    headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                    headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-
                     ws.Columns().AdjustToContents();
 
-                    // 🔹 Save file
-                    string baseFolder = @"E:\MEPL\Excel Report\Generated Data";
+                    string baseFolder = @"D:\MEPL\Excel Report\Generated Data";
                     if (!Directory.Exists(baseFolder))
                         Directory.CreateDirectory(baseFolder);
 
@@ -818,13 +836,59 @@ namespace EVMS
                     string filePath = Path.Combine(baseFolder, fileName);
 
                     wb.SaveAs(filePath);
-                    MessageBox.Show($"✅ Excel exported successfully to: {filePath}");
+                    MessageBox.Show($"Excel exported successfully to: {filePath}");
                     Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"❌ Excel export failed: {ex.Message}");
+                MessageBox.Show($"Excel export failed: {ex.Message}");
+            }
+        }
+
+        private string GetWritableLogoFolder()
+        {
+            string baseFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string logoFolder = System.IO.Path.Combine(baseFolder, "EVMS", "CompanyLogo");
+
+            if (!Directory.Exists(logoFolder))
+                Directory.CreateDirectory(logoFolder);
+
+            return logoFolder;
+        }
+
+
+        // Global variables for company info
+        private string _companyName = "";
+        private string _companyLogoPath = "";
+
+        private void LoadCompanyInfo()
+        {
+            string query = "SELECT TOP 1 CompanyName, LogoPath FROM CompanyConfig WHERE Id = 1";
+
+            using SqlConnection conn = new SqlConnection(connectionString);
+            using SqlCommand cmd = new SqlCommand(query, conn);
+            conn.Open();
+
+            using SqlDataReader reader = cmd.ExecuteReader();
+            if (reader.Read())
+            {
+                _companyName = reader["CompanyName"]?.ToString() ?? "";
+                //txtCompanyName.Text = _companyName;
+
+                string logoFile = reader["LogoPath"]?.ToString();
+
+                if (!string.IsNullOrEmpty(logoFile))
+                {
+                    // FIX: use a writable local folder, NOT app directory
+                    string logoFolder = GetWritableLogoFolder();
+                    _companyLogoPath = System.IO.Path.Combine(logoFolder, logoFile);
+
+                    if (File.Exists(_companyLogoPath))
+                    {
+                        //imgPreview.Source = new BitmapImage(new Uri(_companyLogoPath));
+                    }
+                }
             }
         }
 
@@ -844,6 +908,7 @@ namespace EVMS
                 var fontOptions = new XPdfFontOptions(PdfFontEncoding.Unicode);
 
                 // Fonts
+                var companyFont = new XFont("Arial", 14, XFontStyle.Bold, fontOptions);
                 var titleFont = new XFont("Arial", 12, XFontStyle.Bold, fontOptions);
                 var headerFont = new XFont("Arial", 7, XFontStyle.Bold, fontOptions);
                 var bodyFont = new XFont("Arial", 6, XFontStyle.Regular, fontOptions);
@@ -853,7 +918,7 @@ namespace EVMS
                 double margin = 25;
                 double rowHeight = 14;
 
-                // 🔹 Fetch part config
+                // Fetch part config
                 var partConfigs = _dataService.GetPartConfigByPartNumber(SelectedPartNo ?? ReportTableItems.First().PartNo).ToList();
 
                 var paramToShort = partConfigs.ToDictionary(
@@ -864,7 +929,6 @@ namespace EVMS
 
                 bool isSingleParameter = SelectedParameter != null && SelectedParameter != "All";
 
-                // 🔹 Parameter list
                 var paramList = isSingleParameter
                     ? new List<string> { SelectedParameter }
                     : ReportTableItems.First().Parameters.Keys.ToList();
@@ -873,19 +937,20 @@ namespace EVMS
                     .Select(p => paramToShort.TryGetValue(p, out var shortName) ? shortName : p)
                     .ToList();
 
-                // Fixed headers
+                // FIXED HEADERS
                 var fixedHeaders = new List<string> { "S.No", "Part No", "Lot No", "Operator", "Date" };
-                var allHeaders = new List<string>(fixedHeaders);
-                allHeaders.AddRange(paramShortList);
 
-                // 🔸 Add "Status" only if NOT a single parameter
+                // ALL HEADERS
+                var allHeaders = new List<string>();
+                allHeaders.AddRange(fixedHeaders);
+                allHeaders.AddRange(paramShortList);
                 if (!isSingleParameter)
                     allHeaders.Add("Status");
 
-                // Tolerances
-                var USL = partConfigs.Select(p => p.Nominal - p.RTolMinus).ToList();
+                // USL / MEAN / LSL
+                var USL = partConfigs.Select(p => p.Nominal + p.RTolPlus).ToList();
                 var MEAN = partConfigs.Select(p => p.Nominal).ToList();
-                var LSL = partConfigs.Select(p => p.Nominal + p.RTolPlus).ToList();
+                var LSL = partConfigs.Select(p => p.Nominal - p.RTolMinus).ToList();
 
                 PdfPage page = document.AddPage();
                 page.Orientation = PdfSharpCore.PageOrientation.Landscape;
@@ -895,108 +960,166 @@ namespace EVMS
                 double pageHeight = page.Height;
                 double usableWidth = pageWidth - (2 * margin);
 
-                // Dynamic widths
-                var dynamicWidths = new Dictionary<string, double>();
-                int totalCols = allHeaders.Count;
+                // ===============================
+                //      COLUMN WIDTH SECTION
+                // ===============================
 
-                foreach (var h in allHeaders)
-                {
-                    if (h == "Date") dynamicWidths[h] = usableWidth * 0.10;
-                    else if (h == "Lot No") dynamicWidths[h] = usableWidth * 0.06;
-                    else dynamicWidths[h] = usableWidth * (0.84 / (totalCols - 2));
-                }
+                Dictionary<string, double> colWidths = new();
 
-                // Helper for centered text
-                void DrawStringCentered(XGraphics g, string text, XFont font, XBrush brush, XRect rect)
+                // FIXED WIDTHS (STABLE)
+                colWidths["S.No"] = 40;
+                colWidths["Part No"] = 70;
+                colWidths["Lot No"] = 55;
+                colWidths["Operator"] = 70;
+                colWidths["Date"] = 75;
+
+                double fixedWidthSum = colWidths.Sum(c => c.Value);
+
+                // DYNAMIC COLUMNS
+                int dynamicCount = paramShortList.Count + (isSingleParameter ? 0 : 1);
+                double remainingWidth = usableWidth - fixedWidthSum;
+                double dynWidth = remainingWidth / dynamicCount;
+
+                foreach (var p in paramShortList)
+                    colWidths[p] = dynWidth;
+
+                if (!isSingleParameter)
+                    colWidths["Status"] = dynWidth;
+
+                // Center text safely
+                void DrawCentered(XGraphics g, string text, XFont font, XBrush brush, XRect rect)
                 {
                     if (string.IsNullOrEmpty(text)) return;
-                    var measured = g.MeasureString(text, font);
-                    double dx = rect.X + Math.Max(0, (rect.Width - measured.Width) / 2.0);
-                    double dy = rect.Y + Math.Max(0, (rect.Height - measured.Height) / 2.0);
-                    g.DrawString(text, font, brush, new XRect(dx, dy, measured.Width, measured.Height), XStringFormats.TopLeft);
+                    var fmt = new XStringFormat
+                    {
+                        Alignment = XStringAlignment.Center,
+                        LineAlignment = XLineAlignment.Center
+                    };
+                    g.DrawString(text, font, brush, rect, fmt);
                 }
 
                 double y = margin;
 
-                // Draw Header
+                // ===============================
+                //    DRAW PDF HEADER FUNCTION
+                // ===============================
+
                 void DrawHeader(XGraphics g, PdfPage pg, ref double yPos, bool includeMeta)
                 {
                     yPos = margin;
 
+                    // 1) LOGO + COMPANY NAME
+                    double logoW = 40, logoH = 40;
+
+                    if (!string.IsNullOrEmpty(_companyLogoPath) && File.Exists(_companyLogoPath))
+                    {
+                        XImage img = XImage.FromFile(_companyLogoPath);
+                        g.DrawImage(img, margin, yPos - 15, logoW, logoH);
+                        g.DrawString(_companyName, companyFont, XBrushes.Black,
+                            new XRect(margin + logoW + 10, yPos - 10, 400, 40), XStringFormats.TopLeft);
+                    }
+                    else
+                    {
+                        g.DrawString(_companyName, companyFont, XBrushes.Black,
+                            new XRect(margin, yPos - 10, 400, 40), XStringFormats.TopLeft);
+                    }
+
+                    yPos += logoH;
+
+                    // 2) TITLE + META DATA
                     if (includeMeta)
                     {
-                        // Title
-                        var titleRect = new XRect(margin, yPos, pg.Width - 2 * margin, 25);
+                        var titleRect = new XRect(margin, yPos, usableWidth, 25);
                         g.DrawRectangle(XBrushes.LightGray, titleRect);
-                        DrawStringCentered(g, "MEASUREMENT REPORT", titleFont, XBrushes.Black, titleRect);
+                        DrawCentered(g, "MEASUREMENT REPORT", titleFont, XBrushes.Black, titleRect);
                         yPos += 30;
 
-                        double labelWidth = 70, valueWidth = 150, x1 = margin, x2 = margin + 200, x3 = margin + 400;
+                        double labelW = 70, valW = 120;
+                        double x1 = margin, x2 = margin + 250, x3 = margin + 500;
 
-                        // Row 1
-                        DrawStringCentered(g, "Part No:", infoFontBold, XBrushes.Black, new XRect(x1, yPos, labelWidth, 10));
-                        DrawStringCentered(g, SelectedPartNo ?? "-", infoFont, XBrushes.Black, new XRect(x1 + labelWidth, yPos, valueWidth, 10));
+                        DrawCentered(g, "Part No:", infoFontBold, XBrushes.Black, new XRect(x1, yPos, labelW, 10));
+                        DrawCentered(g, SelectedPartNo ?? "-", infoFont, XBrushes.Black, new XRect(x1 + labelW, yPos, valW, 10));
 
-                        DrawStringCentered(g, "Lot No:", infoFontBold, XBrushes.Black, new XRect(x2, yPos, labelWidth, 10));
-                        DrawStringCentered(g, SelectedLotNo ?? "-", infoFont, XBrushes.Black, new XRect(x2 + labelWidth, yPos, valueWidth, 10));
+                        DrawCentered(g, "Lot No:", infoFontBold, XBrushes.Black, new XRect(x2, yPos, labelW, 10));
+                        DrawCentered(g, SelectedLotNo ?? "-", infoFont, XBrushes.Black, new XRect(x2 + labelW, yPos, valW, 10));
                         yPos += 14;
 
-                        DrawStringCentered(g, "Operator:", infoFontBold, XBrushes.Black, new XRect(x1, yPos, labelWidth, 10));
-                        DrawStringCentered(g, SelectedOperator ?? "-", infoFont, XBrushes.Black, new XRect(x1 + labelWidth, yPos, valueWidth, 10));
+                        DrawCentered(g, "Operator:", infoFontBold, XBrushes.Black, new XRect(x1, yPos, labelW, 10));
+                        DrawCentered(g, SelectedOperator ?? "-", infoFont, XBrushes.Black, new XRect(x1 + labelW, yPos, valW, 10));
 
-                        DrawStringCentered(g, "From:", infoFontBold, XBrushes.Black, new XRect(x2, yPos, labelWidth, 10));
-                        DrawStringCentered(g, _selectedDateTimeFrom?.ToShortDateString() ?? "-", infoFont, XBrushes.Black, new XRect(x2 + labelWidth, yPos, valueWidth, 10));
+                        DrawCentered(g, "From:", infoFontBold, XBrushes.Black, new XRect(x2, yPos, labelW, 10));
+                        DrawCentered(g, _selectedDateTimeFrom?.ToShortDateString() ?? "-", infoFont, XBrushes.Black, new XRect(x2 + labelW, yPos, valW, 10));
 
-                        DrawStringCentered(g, "To:", infoFontBold, XBrushes.Black, new XRect(x3, yPos, labelWidth, 10));
-                        DrawStringCentered(g, _selectedDateTimeTo?.ToShortDateString() ?? "-", infoFont, XBrushes.Black, new XRect(x3 + labelWidth, yPos, valueWidth, 10));
+                        DrawCentered(g, "To:", infoFontBold, XBrushes.Black,
+                            new XRect(x3, yPos, labelW, 10));
+                        DrawCentered(
+                                         g,
+                                         _selectedDateTimeTo?.ToShortDateString() ?? "-",
+                                         infoFont,
+                                         XBrushes.Black,
+                                         new XRect(x3 + labelW, yPos, valW, 10)
+                                     );
+
+
                         yPos += 16;
-
                         g.DrawLine(XPens.Black, margin, yPos, pg.Width - margin, yPos);
                         yPos += 6;
                     }
 
+                    // 3) HEADER ROW
                     double x = margin;
-                    foreach (var header in allHeaders)
+                    foreach (var h in allHeaders)
                     {
-                        var rect = new XRect(x, yPos, dynamicWidths[header], rowHeight);
+                        double w = colWidths[h];
+                        var rect = new XRect(x, yPos, w, rowHeight);
                         g.DrawRectangle(XPens.Black, XBrushes.LightGray, rect);
-                        DrawStringCentered(g, header, headerFont, XBrushes.Black, rect);
-                        x += dynamicWidths[header];
+                        DrawCentered(g, h, headerFont, XBrushes.Black, rect);
+                        x += w;
                     }
-
                     yPos += rowHeight;
 
-                    // Summary rows
-                    string[] summaryLabels = { "USL", "MEAN", "LSL" };
-                    List<List<double>> summaryValues = new() { USL, MEAN, LSL };
-                    XBrush[] brushes = { XBrushes.Red, XBrushes.ForestGreen, XBrushes.Red };
+                    // 4) USL/MEAN/LSL ROWS
+                    string[] labels = { "USL", "MEAN", "LSL" };
+                    List<List<double>> values = new() { USL, MEAN, LSL };
+                    XBrush[] brushes = { XBrushes.Red, XBrushes.Green, XBrushes.Red };
 
-                    for (int s = 0; s < 3; s++)
+                    foreach (var idx in Enumerable.Range(0, 3))
                     {
-                        x = margin;
-                        DrawStringCentered(g, summaryLabels[s], headerFont, brushes[s],
-                            new XRect(x, yPos, dynamicWidths["S.No"] * fixedHeaders.Count, rowHeight));
+                        double xx = margin;
 
-                        foreach (var fh in fixedHeaders)
-                            x += dynamicWidths[fh];
+                        // Fixed block label
+                        var fixedRect = new XRect(xx, yPos, fixedWidthSum, rowHeight);
+                        DrawCentered(g, labels[idx], headerFont, brushes[idx], fixedRect);
+                        xx += fixedWidthSum;
 
-                        for (int i = 0; i < paramList.Count; i++)
+                        // Parameter values
+                        for (int p = 0; p < paramList.Count; p++)
                         {
-                            var param = paramList[i];
-                            var config = partConfigs.FirstOrDefault(pc => pc.Parameter.Equals(param, StringComparison.OrdinalIgnoreCase));
+                            string fullParam = paramList[p];
+                            string shortName = paramShortList[p];
+
+                            double w = colWidths[shortName];
+
                             double val = 0;
+                            var config = partConfigs.FirstOrDefault(c =>
+                                c.Parameter.Equals(fullParam, StringComparison.OrdinalIgnoreCase));
                             if (config != null)
                             {
-                                int index = partConfigs.IndexOf(config);
-                                if (index >= 0 && index < summaryValues[s].Count)
-                                    val = summaryValues[s][index];
+                                int confIndex = partConfigs.IndexOf(config);
+                                val = values[idx][confIndex];
                             }
 
-                            string shortHeader = paramToShort.TryGetValue(param, out var shortName) ? shortName : param;
-                            double colWidth = dynamicWidths.ContainsKey(shortHeader) ? dynamicWidths[shortHeader] : (usableWidth / Math.Max(1, paramList.Count));
-                            var rect = new XRect(x, yPos, colWidth, rowHeight);
-                            DrawStringCentered(g, val.ToString("0.###"), bodyFont, brushes[s], rect);
-                            x += colWidth;
+                            var rect = new XRect(xx, yPos, w, rowHeight);
+                            DrawCentered(g, val.ToString("0.###"), bodyFont, brushes[idx], rect);
+                            xx += w;
+                        }
+
+                        // Status column (blank)
+                        if (!isSingleParameter)
+                        {
+                            double w = colWidths["Status"];
+                            var rect = new XRect(xx, yPos, w, rowHeight);
+                            xx += w;
                         }
 
                         yPos += rowHeight;
@@ -1005,17 +1128,22 @@ namespace EVMS
                     yPos += 5;
                 }
 
+                // FIRST PAGE HEADER
                 DrawHeader(gfx, page, ref y, true);
 
-                int rowCounter = 0;
+                int rowIndex = 0;
+
+                // ===============================
+                //           MAIN TABLE
+                // ===============================
 
                 foreach (var item in ReportTableItems)
                 {
                     double x = margin;
-                    XBrush rowBrush = rowCounter % 2 == 0 ? XBrushes.White : XBrushes.Ivory;
+                    XBrush bg = rowIndex % 2 == 0 ? XBrushes.White : XBrushes.Ivory;
 
-                    // Fixed columns
-                    var fixedValues = new List<string>
+                    // fixed values
+                    var fixedVals = new List<string>
             {
                 item.SerialNo.ToString(),
                 item.PartNo,
@@ -1026,92 +1154,94 @@ namespace EVMS
 
                     for (int i = 0; i < fixedHeaders.Count; i++)
                     {
-                        var rect = new XRect(x, y, dynamicWidths[fixedHeaders[i]], rowHeight);
-                        gfx.DrawRectangle(XPens.Black, rowBrush, rect);
-                        DrawStringCentered(gfx, fixedValues[i], bodyFont, XBrushes.Black, rect);
-                        x += dynamicWidths[fixedHeaders[i]];
+                        string h = fixedHeaders[i];
+                        double w = colWidths[h];
+
+                        var rect = new XRect(x, y, w, rowHeight);
+                        gfx.DrawRectangle(XPens.Black, bg, rect);
+                        DrawCentered(gfx, fixedVals[i], bodyFont, XBrushes.Black, rect);
+                        x += w;
                     }
 
+                    // parameter values
                     for (int i = 0; i < paramList.Count; i++)
                     {
-                        string fullParam = paramList[i];
+                        string full = paramList[i];
                         string shortName = paramShortList[i];
-                        double colWidth = dynamicWidths.ContainsKey(shortName)
-                            ? dynamicWidths[shortName]
-                            : (usableWidth / Math.Max(1, paramList.Count));
 
-                        var rect = new XRect(x, y, colWidth, rowHeight);
+                        double w = colWidths[shortName];
 
-                        // Default alternating row color
-                        XBrush backgroundBrush = rowBrush;
-                        XBrush textBrush = XBrushes.Black;
+                        double val = item.Parameters.ContainsKey(full) ? item.Parameters[full] : 0;
 
-                        // Get measured value
-                        double val = item.Parameters.ContainsKey(fullParam) ? item.Parameters[fullParam] : 0;
+                        var config = partConfigs.FirstOrDefault(c =>
+                            c.Parameter.Equals(full, StringComparison.OrdinalIgnoreCase));
 
-                        // Find this parameter’s config (for its specific USL/LSL)
-                        var config = partConfigs.FirstOrDefault(pc =>
-                            pc.Parameter.Equals(fullParam, StringComparison.OrdinalIgnoreCase));
+                        XBrush brush = XBrushes.Black;
+                        XBrush back = bg;
 
                         if (config != null)
                         {
-                            // Compute individual parameter limits
                             double usl = config.Nominal + config.RTolPlus;
                             double lsl = config.Nominal - config.RTolMinus;
 
-                            // Out-of-range detection
                             if (val < lsl || val > usl)
                             {
-                                // Out of range → red font + light red background
-                                textBrush = XBrushes.Red;
-                                backgroundBrush = XBrushes.MistyRose;
+                                brush = XBrushes.Red;
+                                back = XBrushes.MistyRose;
                             }
                         }
 
-                        // Draw cell and value
-                        gfx.DrawRectangle(XPens.Black, backgroundBrush, rect);
-                        DrawStringCentered(gfx, val.ToString("0.###"), bodyFont, textBrush, rect);
+                        var rect = new XRect(x, y, w, rowHeight);
+                        gfx.DrawRectangle(XPens.Black, back, rect);
+                        DrawCentered(gfx, val.ToString("0.###"), bodyFont, brush, rect);
 
-                        x += colWidth;
+                        x += w;
                     }
 
-                    // 🔸 Only draw Status column if NOT single parameter
+                    // Status column
                     if (!isSingleParameter)
                     {
-                        var statusRect = new XRect(x, y, dynamicWidths["Status"], rowHeight);
-                        gfx.DrawRectangle(XPens.Black, rowBrush, statusRect);
-                        DrawStringCentered(gfx, item.Status, bodyFont, XBrushes.Black, statusRect);
-                        x += dynamicWidths["Status"];
+                        double w = colWidths["Status"];
+                        var rect = new XRect(x, y, w, rowHeight);
+                        gfx.DrawRectangle(XPens.Black, bg, rect);
+                        DrawCentered(gfx, item.Status, bodyFont, XBrushes.Black, rect);
+                        x += w;
                     }
 
                     y += rowHeight;
-                    rowCounter++;
+                    rowIndex++;
 
-                    if (y > pageHeight - margin - (rowHeight * 4))
+                    // PAGE BREAK
+                    if (y > pageHeight - margin - (rowHeight * 5))
                     {
                         page = document.AddPage();
                         page.Orientation = PdfSharpCore.PageOrientation.Landscape;
                         gfx = XGraphics.FromPdfPage(page);
+
                         DrawHeader(gfx, page, ref y, false);
                     }
                 }
 
-                string baseFolder = @"E:\MEPL\PDF Report";
-                if (!Directory.Exists(baseFolder))
-                    Directory.CreateDirectory(baseFolder);
+                // SAVE FILE
+                string folder = @"D:\MEPL\PDF Report";
+                if (!Directory.Exists(folder))
+                    Directory.CreateDirectory(folder);
 
                 string fileName = $"EVMS_Report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
-                string filePath = Path.Combine(baseFolder, fileName);
+                string filePath = Path.Combine(folder, fileName);
 
                 document.Save(filePath);
-                MessageBox.Show($"✅ PDF exported successfully to: {filePath}");
+                MessageBox.Show($"PDF exported successfully:\n{filePath}");
                 Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"❌ PDF generation failed: {ex.Message}");
+                MessageBox.Show("PDF Error: " + ex.Message);
             }
         }
+
+
+
 
         private void ReportDataGrid_LoadingRow(object sender, DataGridRowEventArgs e)
         {

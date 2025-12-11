@@ -1,4 +1,4 @@
-﻿using ActUtlTypeLib;
+﻿using ActUtlType64Lib;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
@@ -22,14 +22,14 @@ namespace EVMS
         private readonly OrbitService _orbitService = new OrbitService();
         public event Action<string>? StatusMessageChanged;
 
-        private readonly ActUtlType plc = new ActUtlType();
+        private IActUtlType64 plc = new ActUtlType64Class();
         private bool isPlcConnected = false;
         private bool plcBitState = false; // Track the toggle state
         private bool motorRunState = false; // Track current run state
 
         private List<IODevice> inputDevices = new();
         private Dictionary<string, Button> inputButtons = new();
-        private ActUtlType plcDevice = new ActUtlType();
+        //private ActUtlType plcDevice = new ActUtlType();
         private readonly DispatcherTimer ioMonitorTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
 
 
