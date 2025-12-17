@@ -1,10 +1,11 @@
-﻿using EVMS.Service;
+﻿using ClosedXML.Excel;
+using EVMS.Service;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -13,7 +14,6 @@ namespace EVMS
 {
     public partial class RnR_Report_Page : UserControl, INotifyPropertyChanged
     {
-        // Use your real DataStorageService (as in Report_GraphPage)
         private readonly DataStorageService _dataService;
 
         // FILTER SOURCES
@@ -22,12 +22,12 @@ namespace EVMS
         public ObservableCollection<string> ParametersOptions { get; } = new();
         public ObservableCollection<string> Operators { get; } = new();
 
-        // GRID DATA (bound to XAML)
+        // GRID DATA
         public ObservableCollection<RnRGridRow> Appraiser1Data { get; } = new();
         public ObservableCollection<RnRGridRow> Appraiser2Data { get; } = new();
         public ObservableCollection<RnRGridRow> Appraiser3Data { get; } = new();
 
-        // SUMMARY PROPERTIES (bound to XAML)
+        // SUMMARY BINDINGS (displayed values)
         private double _repeatability;
         public double Repeatability { get => _repeatability; set { _repeatability = value; OnPropertyChanged(nameof(Repeatability)); } }
 
@@ -49,12 +49,17 @@ namespace EVMS
         private string _grrConclusion;
         public string GRRConclusion { get => _grrConclusion; set { _grrConclusion = value; OnPropertyChanged(nameof(GRRConclusion)); } }
 
-        private int _ndc;
-        public int Ndc { get => _ndc; set { _ndc = value; OnPropertyChanged(nameof(Ndc)); } }
+        // Note: Ndc kept as double for precision. Format in XAML as needed.
+        private double _ndc;
+        public double Ndc { get => _ndc; set { _ndc = value; OnPropertyChanged(nameof(Ndc)); } }
 
-        // FILTER SELECTIONS (bound to XAML)
+        // FILTER SELECTIONS
         private string _selectedPartNo;
-        public string SelectedPartNo { get => _selectedPartNo; set { if (_selectedPartNo != value) { _selectedPartNo = value; OnPropertyChanged(nameof(SelectedPartNo)); _ = OnSelectedPartNoChangedAsync(); } } }
+        public string SelectedPartNo
+        {
+            get => _selectedPartNo;
+            set { _selectedPartNo = value; OnPropertyChanged(nameof(SelectedPartNo)); _ = OnSelectedPartNoChangedAsync(); }
+        }
 
         private string _selectedLotNo;
         public string SelectedLotNo { get => _selectedLotNo; set { _selectedLotNo = value; OnPropertyChanged(nameof(SelectedLotNo)); } }
@@ -66,12 +71,76 @@ namespace EVMS
         public string SelectedOperator { get => _selectedOperator; set { _selectedOperator = value; OnPropertyChanged(nameof(SelectedOperator)); } }
 
         private DateTime? _selectedDateTimeFrom = DateTime.Now.AddDays(-7);
-        public DateTime? SelectedDateTimeFrom { get => _selectedDateTimeFrom; set { if (_selectedDateTimeFrom != value) { _selectedDateTimeFrom = value; OnPropertyChanged(nameof(SelectedDateTimeFrom)); _ = ReloadLotAsync(); } } }
+        public DateTime? SelectedDateTimeFrom
+        {
+            get => _selectedDateTimeFrom;
+            set { _selectedDateTimeFrom = value; OnPropertyChanged(nameof(SelectedDateTimeFrom)); _ = ReloadLotAsync(); }
+        }
 
         private DateTime? _selectedDateTimeTo = DateTime.Now;
-        public DateTime? SelectedDateTimeTo { get => _selectedDateTimeTo; set { if (_selectedDateTimeTo != value) { _selectedDateTimeTo = value; OnPropertyChanged(nameof(SelectedDateTimeTo)); _ = ReloadLotAsync(); } } }
+        public DateTime? SelectedDateTimeTo
+        {
+            get => _selectedDateTimeTo;
+            set { _selectedDateTimeTo = value; OnPropertyChanged(nameof(SelectedDateTimeTo)); _ = ReloadLotAsync(); }
+        }
 
-        // parameter display -> DTO property name
+
+        // R&R method selector
+        public enum RrMethod
+        {
+            PV,
+            Tolerance
+        }
+
+        private RrMethod _selectedMethod;
+        public RrMethod SelectedMethod
+        {
+            get => _selectedMethod;
+            set
+            {
+                _selectedMethod = value;
+                OnPropertyChanged(nameof(SelectedMethod));
+                UpdateDisplayedResults();
+            }
+        }
+
+        // Store both method results so user can toggle
+        public GaugeRrResult PvMethodResult { get; private set; }
+        public GaugeRrResult ToleranceMethodResult { get; private set; }
+
+        private void UpdateDisplayedResults()
+        {
+            var active = SelectedMethod == RrMethod.PV ? PvMethodResult : ToleranceMethodResult;
+
+            if (active == null)
+            {
+                ResetSummary();
+                return;
+            }
+
+            Repeatability = active.Ev;
+            Reproducibility = active.Av;
+            PartVariation = active.Pv;
+            TotalTolerance = active.Tv;
+            Ndc = active.Ndc;
+            TotalPVPercent = active.PercentPv;
+
+            // Map GRR percentage and conclusion based on method
+            if (SelectedMethod == RrMethod.PV)
+            {
+                GRRPercentage = active.PercentGrr_Pv;
+                GRRConclusion = active.ConclusionTolerance; // <-- Use this
+            }
+            else // Tolerance method
+            {
+                TotalPVPercent = active.PercentGrr_Pv;
+                GRRPercentage = active.PercentGrrTolerance;
+                GRRConclusion = active.ConclusionTolerance;
+            }
+        }
+
+
+        // PARAMETER → COLUMN MAP
         private readonly Dictionary<string, string> ParameterToColumn = new()
         {
             ["Overall Length"] = "OL",
@@ -90,61 +159,60 @@ namespace EVMS
             ["Face Runout"] = "Face_Runout",
             ["Seat Height"] = "SH",
             ["Seat Runout"] = "S_RO",
-           ["Datum to Groove"] = "DG"
-
+            ["Datum to Groove"] = "DG"
         };
 
-        // Commands
         public ICommand SubmitCommand { get; }
         public ICommand CloseCommand { get; }
+        public ICommand SelectPVMethodCommand { get; }
+        public ICommand SelectToleranceMethodCommand { get; }
+        public ICommand RecalculateCommand { get; }
 
         public event PropertyChangedEventHandler PropertyChanged;
+
+
 
         public RnR_Report_Page()
         {
             InitializeComponent();
-
             _dataService = new DataStorageService();
 
             SubmitCommand = new RelayCommand(async _ => await LoadRnRDataAsync(), _ => CanSubmit());
             CloseCommand = new RelayCommand(_ => ClosePage());
 
+            SelectPVMethodCommand = new RelayCommand(_ => SelectedMethod = RrMethod.PV);
+            SelectToleranceMethodCommand = new RelayCommand(_ => SelectedMethod = RrMethod.Tolerance);
+
             LoadActiveParts();
             LoadOperators();
+
+            // default selection
+            SelectedMethod = RrMethod.PV;
+            RecalculateCommand = new RelayCommand(_ => RecalculateFromGrids());
 
             DataContext = this;
         }
 
-        protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        protected void OnPropertyChanged(string name) =>
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
-        #region Load Filters
-
+        #region FILTER LOADERS
         private void LoadActiveParts()
         {
-            try
-            {
-                ActiveParts.Clear();
-                ActiveParts.Add("All");
-                var parts = _dataService.GetActiveParts();
-                if (parts != null)
-                {
-                    foreach (var p in parts)
-                    {
-                        if (!string.IsNullOrWhiteSpace(p.Para_No))
-                            ActiveParts.Add(p.Para_No);
-                    }
-                }
-                SelectedPartNo = ActiveParts.FirstOrDefault() ?? "All";
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[LoadActiveParts] {ex.Message}");
-            }
+            ActiveParts.Clear();
+            ActiveParts.Add("All");
+
+            var parts = _dataService.GetActiveParts();
+            if (parts != null)
+                foreach (var p in parts)
+                    if (!string.IsNullOrWhiteSpace(p.Para_No))
+                        ActiveParts.Add(p.Para_No);
+
+            SelectedPartNo = ActiveParts.FirstOrDefault() ?? "All";
         }
 
         private async Task OnSelectedPartNoChangedAsync()
         {
-            if (string.IsNullOrEmpty(SelectedPartNo)) return;
             await LoadLotNumbersAsync(SelectedPartNo);
             LoadParameters(SelectedPartNo);
             await LoadOperatorsAsync(SelectedPartNo);
@@ -152,47 +220,34 @@ namespace EVMS
 
         public async Task LoadLotNumbersAsync(string partNo)
         {
-            try
-            {
-                var lots = await _dataService.GetLotNumbersByPartAndDateRangeAsync(
-                    partNo == "All" ? null : partNo, SelectedDateTimeFrom, SelectedDateTimeTo);
+            var lots = await _dataService.GetLotNumbersByPartAndDateRangeAsync(
+                partNo == "All" ? null : partNo, SelectedDateTimeFrom, SelectedDateTimeTo);
 
-                LotNumbers.Clear();
-                LotNumbers.Add("All");
-                if (lots != null)
-                {
-                    foreach (var lot in lots)
-                    {
-                        if (!string.IsNullOrWhiteSpace(lot) && !LotNumbers.Contains(lot))
-                            LotNumbers.Add(lot);
-                    }
-                }
-                SelectedLotNo = LotNumbers.FirstOrDefault() ?? "All";
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[LoadLotNumbersAsync] {ex.Message}");
-            }
+            LotNumbers.Clear();
+            LotNumbers.Add("All");
+
+            if (lots != null)
+                foreach (var lot in lots)
+                    if (!string.IsNullOrWhiteSpace(lot))
+                        LotNumbers.Add(lot);
+
+            SelectedLotNo = LotNumbers.FirstOrDefault() ?? "All";
         }
 
         private void LoadParameters(string part)
         {
-            try
-            {
-                ParametersOptions.Clear();
-                var config = _dataService.GetPartConfig(part == "All" ? null : part);
-                if (config != null)
-                {
-                    foreach (var c in config)
-                        ParametersOptions.Add(c.Parameter);
-                }
-                SelectedParameter = ParametersOptions.FirstOrDefault();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[LoadParameters] {ex.Message}");
-            }
+            ParametersOptions.Clear();
+
+            var config = _data_service_safe_getpartconfig(part == "All" ? null : part);
+            if (config != null)
+                foreach (var c in config) ParametersOptions.Add(c.Parameter);
+
+            SelectedParameter = ParametersOptions.FirstOrDefault();
         }
+
+        // small safe accessor in case _dataService is null (defensive)
+        private IEnumerable<dynamic> _data_service_safe_getpartconfig(string part) =>
+            _dataService?.GetPartConfig(part) ?? Enumerable.Empty<dynamic>();
 
         private void LoadOperators()
         {
@@ -201,40 +256,31 @@ namespace EVMS
             SelectedOperator = "All";
         }
 
-        private async Task LoadOperatorsAsync(string partNo)
+        private async Task LoadOperatorsAsync(string part)
         {
-            try
-            {
-                var ops = await _dataService.GetOperatorsByPartAndDateRangeAsync(partNo == "All" ? null : partNo, SelectedDateTimeFrom, SelectedDateTimeTo);
-                Operators.Clear();
-                Operators.Add("All");
-                if (ops != null)
-                {
-                    foreach (var op in ops)
-                        if (!string.IsNullOrWhiteSpace(op) && !Operators.Contains(op))
-                            Operators.Add(op);
-                }
-                SelectedOperator = Operators.FirstOrDefault() ?? "All";
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[LoadOperatorsAsync] {ex.Message}");
-            }
+            Operators.Clear();
+            Operators.Add("All");
+
+            var ops = await _dataService.GetOperatorsByPartAndDateRangeAsync(
+                part == "All" ? null : part, SelectedDateTimeFrom, SelectedDateTimeTo);
+
+            if (ops != null)
+                foreach (var op in ops)
+                    if (!string.IsNullOrWhiteSpace(op))
+                        Operators.Add(op);
+
+            SelectedOperator = Operators.FirstOrDefault() ?? "All";
         }
 
-        private async Task ReloadLotAsync()
-        {
-            await LoadLotNumbersAsync(SelectedPartNo);
-        }
 
+
+        private async Task ReloadLotAsync() => await LoadLotNumbersAsync(SelectedPartNo);
         #endregion
 
-        private bool CanSubmit()
-        {
-            return SelectedDateTimeFrom != null &&
-                   SelectedDateTimeTo != null &&
-                   !string.IsNullOrWhiteSpace(SelectedParameter);
-        }
+        private bool CanSubmit() =>
+            SelectedDateTimeFrom != null &&
+            SelectedDateTimeTo != null &&
+            !string.IsNullOrWhiteSpace(SelectedParameter);
 
         private void ClosePage()
         {
@@ -242,7 +288,7 @@ namespace EVMS
             // optional: window?.Close();
         }
 
-        // Main entry: load measurements and compute R&R
+        #region MAIN METHOD
         private async Task LoadRnRDataAsync()
         {
             try
@@ -252,7 +298,7 @@ namespace EVMS
 
                 if (string.IsNullOrWhiteSpace(SelectedParameter))
                 {
-                    MessageBox.Show("Please select a parameter.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Please select a parameter.");
                     return;
                 }
 
@@ -260,256 +306,282 @@ namespace EVMS
                 string lot = SelectedLotNo == "All" ? null : SelectedLotNo;
                 string oper = SelectedOperator == "All" ? null : SelectedOperator;
 
-                //-------------------------------------------------------
-                // 1) GET PART CONFIG (Nominal, RTolPlus, RTolMinus)
-                //-------------------------------------------------------
                 var config = _dataService.GetPartConfig(part)
                                          ?.FirstOrDefault(c => c.Parameter == SelectedParameter);
 
                 if (config == null)
                 {
-                    MessageBox.Show("Part configuration not found for selected parameter.",
-                                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Part configuration not found.");
                     return;
                 }
 
-                //-------------------------------------------------------
-                // 2) GET COLUMN NAME FOR THIS PARAMETER
-                //-------------------------------------------------------
-                string col = null;
-                if (ParameterToColumn.ContainsKey(SelectedParameter))
-                    col = ParameterToColumn[SelectedParameter];
-                else
-                    col = SelectedParameter;    // FINAL fallback
+                string col = ParameterToColumn.ContainsKey(SelectedParameter)
+                    ? ParameterToColumn[SelectedParameter]
+                    : SelectedParameter;
 
-                //-------------------------------------------------------
-                // 3) FETCH MEASUREMENTS
-                //-------------------------------------------------------
-                var list = await _dataService.GetMeasurementReadingsAsync
-                                (part, lot, oper, SelectedDateTimeFrom, SelectedDateTimeTo);
+                var list = await _dataService.GetMeasurementReadingsAsync(
+                    part, lot, oper, SelectedDateTimeFrom, SelectedDateTimeTo);
 
-                if (list == null || !list.Any())
+                if (list == null || list.Count == 0)
                 {
-                    MessageBox.Show("No measurement data found for the selected filters.",
-                                    "Info", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("No measurement data found.");
                     return;
                 }
 
-                //-------------------------------------------------------
-                // 4) EXTRACT VALUES FOR SELECTED PARAMETER
-                //-------------------------------------------------------
-                List<double> allValues = new();
-
+                // Extract numeric values safely (handles numeric types)
+                List<double> values = new();
                 foreach (var m in list)
                 {
                     var prop = m.GetType().GetProperty(col);
-                    if (prop != null && double.TryParse(prop.GetValue(m)?.ToString(), out double v))
-                        allValues.Add(v);
+                    if (prop == null) continue;
+                    var raw = prop.GetValue(m);
+                    if (raw == null) continue;
+
+                    if (raw is double d) values.Add(d);
+                    else if (raw is float f) values.Add(Convert.ToDouble(f));
+                    else if (raw is decimal dec) values.Add(Convert.ToDouble(dec));
+                    else if (raw is int i) values.Add(Convert.ToDouble(i));
+                    else if (double.TryParse(raw.ToString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double parsed))
+                        values.Add(parsed);
                 }
 
-                if (allValues.Count < 90)
+                if (values.Count < 90)
                 {
-                    MessageBox.Show($"Insufficient measurements: {allValues.Count} found. 90 required.",
-                                    "Insufficient Data", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show($"Need at least 90 measurements. Found: {values.Count}");
                     return;
                 }
 
-                // Only use first 90 readings
-                allValues = allValues.Take(90).ToList();
+                values = values.Take(90).ToList();
 
-                //-------------------------------------------------------
-                // 5) SPLIT INTO 3 APPRAISERS (3 trials × 10 parts)
-                //-------------------------------------------------------
-                var a1 = allValues.Skip(0).Take(30).ToList();
-                var a2 = allValues.Skip(30).Take(30).ToList();
-                var a3 = allValues.Skip(60).Take(30).ToList();
+                var a1 = values.Skip(0).Take(30).ToList();
+                var a2 = values.Skip(30).Take(30).ToList();
+                var a3 = values.Skip(60).Take(30).ToList();
 
                 BuildGridForAppraiser(Appraiser1Data, a1);
                 BuildGridForAppraiser(Appraiser2Data, a2);
                 BuildGridForAppraiser(Appraiser3Data, a3);
 
-                //-------------------------------------------------------
-                // 6) TOLERANCE CALCULATION (✔ Correct for your model)
-                //-------------------------------------------------------
-                double nominal = config.Nominal;
-                double rtPlus = config.RTolPlus;
-                double rtMinus = config.RTolMinus;
+                double dataMin = values.Min();
+                double dataMax = values.Max();
+                double toleranceFromData = dataMax - dataMin;   // your “actual” tolerance from readings
 
-                // LSL, USL, and final tolerance
-                double LSL = nominal - rtMinus;
-                double USL = nominal + rtPlus;
+                TotalTolerance = toleranceFromData;
+                //-----------------------------------------------------------
+                // Compute both method results and store them
+                //-----------------------------------------------------------
+                var both = ComputeBothMethods(a1, a2, a3, TotalTolerance);
 
-                // FINAL TOLERANCE USED IN GAUGE R&R
-                double tolerance = USL - LSL;   // = RTolPlus + RTolMinus
+                PvMethodResult = both.Item1;
+                ToleranceMethodResult = both.Item2;
 
-                TotalTolerance = tolerance;
-
-                //-------------------------------------------------------
-                // 7) RUN GAUGE R&R CALCULATION
-                //-------------------------------------------------------
-                ComputeGaugeRrFromAppraisers(a1, a2, a3, tolerance);
+                // By default show PV method (or keep prior selection)
+                if (SelectedMethod == RrMethod.PV)
+                    SelectedMethod = RrMethod.PV; // force update
+                else
+                    UpdateDisplayedResults();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Error loading R&R", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        #endregion
 
-
-        // Build grid for a single appraiser: 3 rows x 10 columns + Average + Range
-        private void BuildGridForAppraiser(ObservableCollection<RnRGridRow> target, List<double> values)
+        #region RESULT DTO
+        // Single DTO used to hold method outputs
+        public class GaugeRrResult
         {
-            target.Clear();
-            if (values == null || values.Count != 30) return;
-
-            for (int r = 0; r < 3; r++)
-            {
-                int offset = r * 10;
-                var row = new RnRGridRow
-                {
-                    TrialNo = (r + 1).ToString(),
-                    Data1 = values[offset + 0],
-                    Data2 = values[offset + 1],
-                    Data3 = values[offset + 2],
-                    Data4 = values[offset + 3],
-                    Data5 = values[offset + 4],
-                    Data6 = values[offset + 5],
-                    Data7 = values[offset + 6],
-                    Data8 = values[offset + 7],
-                    Data9 = values[offset + 8],
-                    Data10 = values[offset + 9]
-                };
-                target.Add(row);
-            }
-
-            // Average row
-            var avgRow = new RnRGridRow { TrialNo = "Average" };
-            var rangeRow = new RnRGridRow { TrialNo = "Range" };
-
-            for (int c = 0; c < 10; c++)
-            {
-                double[] colvals = { target[0].GetColumn(c), target[1].GetColumn(c), target[2].GetColumn(c) };
-                avgRow.SetColumn(c, colvals.Average());
-                rangeRow.SetColumn(c, colvals.Max() - colvals.Min());
-            }
-
-            target.Add(avgRow);
-            target.Add(rangeRow);
+            public double Ev { get; set; }                 // Equipment Variation
+            public double Av { get; set; }                 // Appraiser Variation
+            public double Grr { get; set; }                // Repeatability + Reproducibility
+            public double Pv { get; set; }                 // Part Variation
+            public double Tv { get; set; }                 // Total Variation (PV method) or Tol/6 (Tolerance method)
+            public double PercentGrr_Pv { get; set; }      // %GRR relative to TV
+            public double PercentPv { get; set; }          // %PV relative to TV
+            public double Ndc { get; set; }                // Number of distinct categories
+            public double PercentGrrTolerance { get; set; } // %GRR relative to Tol/6 (tolerance method)
+            public string? ConclusionTolerance { get; set; } // Conclusion based on tolerance method
         }
+        #endregion
 
-        // Core calculation: takes appraisers raw 30-values lists
-        private void ComputeGaugeRrFromAppraisers(List<double> a1, List<double> a2, List<double> a3, double tolerance)
+        #region CALCULATIONS (both methods)
+
+        private (GaugeRrResult pvResult, GaugeRrResult tolResult) ComputeBothMethods(
+     List<double> a1, List<double> a2, List<double> a3, double tolerance)
         {
-            // Create matrices 3 trials x 10 parts for each appraiser (same as before)
-            double[,] m1 = ConvertToMatrix(a1);
-            double[,] m2 = ConvertToMatrix(a2);
-            double[,] m3 = ConvertToMatrix(a3);
+            // 1. Convert lists to 3x10 matrices
+            var m1 = ConvertToMatrix(a1);
+            var m2 = ConvertToMatrix(a2);
+            var m3 = ConvertToMatrix(a3);
 
-            // Calculate per-appraiser averages (X1Bar, X2Bar, X3Bar) and Rbars (R1Bar, R2Bar, R3Bar)
-            double X1Bar = 0, R1Bar = 0, X2Bar = 0, R2Bar = 0, X3Bar = 0, R3Bar = 0;
+            // 2. Xbar and Rbar for each appraiser
+            double X1Bar = 0, X2Bar = 0, X3Bar = 0;
+            double R1Bar = 0, R2Bar = 0, R3Bar = 0;
 
             for (int p = 0; p < 10; p++)
             {
-                // Appraiser 1
-                double[] vals1 = { m1[0, p], m1[1, p], m1[2, p] };
-                X1Bar += vals1.Average();
-                R1Bar += vals1.Max() - vals1.Min();
+                double[] v1 = { m1[0, p], m1[1, p], m1[2, p] };
+                double[] v2 = { m2[0, p], m2[1, p], m2[2, p] };
+                double[] v3 = { m3[0, p], m3[1, p], m3[2, p] };
 
-                // Appraiser 2
-                double[] vals2 = { m2[0, p], m2[1, p], m2[2, p] };
-                X2Bar += vals2.Average();
-                R2Bar += vals2.Max() - vals2.Min();
-
-                // Appraiser 3
-                double[] vals3 = { m3[0, p], m3[1, p], m3[2, p] };
-                X3Bar += vals3.Average();
-                R3Bar += vals3.Max() - vals3.Min();
+                X1Bar += v1.Average(); R1Bar += v1.Max() - v1.Min();
+                X2Bar += v2.Average(); R2Bar += v2.Max() - v2.Min();
+                X3Bar += v3.Average(); R3Bar += v3.Max() - v3.Min();
             }
 
             X1Bar /= 10; X2Bar /= 10; X3Bar /= 10;
             R1Bar /= 10; R2Bar /= 10; R3Bar /= 10;
 
-            // Grand averages
-            double XDoubleBar = (X1Bar + X2Bar + X3Bar) / 3;
-            double RDoubleBar = (R1Bar + R2Bar + R3Bar) / 3;
+            double RDoubleBar = (R1Bar + R2Bar + R3Bar) / 3.0;
 
-            // VB6 AIAG Constants: k1=0.5908 (for 3 trials), k2=0.5231 (for 3 appraisers), k3=0.31 (for 10 parts)
+            double R = Math.Round(RDoubleBar, 4);
+            // 3. Constants (VB same)
             const double k1 = 0.5908;
             const double k2 = 0.5231;
             const double k3 = 0.31;
             const double ndcFactor = 1.41;
 
-            // Equipment Variation (EV) - Repeatability
-            double EV = RDoubleBar * k1;
+            // 4. EV
+            double EV = Math.Round(R * k1, 4);
 
-            // Appraiser Variation (AV) - Reproducibility (VB6 method)
-            double MaxXbar = Math.Max(X1Bar, Math.Max(X2Bar, X3Bar));
-            double MinXbar = Math.Min(X1Bar, Math.Min(X2Bar, X3Bar));
-            double L29 = MaxXbar - MinXbar;
+            // 5. AV
+            double L29 = Math.Max(X1Bar, Math.Max(X2Bar, X3Bar))
+                       - Math.Min(X1Bar, Math.Min(X2Bar, X3Bar));
 
-            double B54 = (EV * EV) / 30.0;  // 30 = 10 parts * 3 trials
-            double B53 = (L29 * k2) * (L29 * k2);
+            double B54 = (EV * EV) / 30.0;
+            double B53 = Math.Pow(L29 * k2, 2);
 
-            double AV = Math.Sqrt(Math.Abs(B53 - B54));
+            double AV = Math.Round(Math.Sqrt(Math.Abs(B53 - B54)), 4);
 
-            // Total GR&R (√(EV² + AV²))
-            double GRR = Math.Sqrt(EV * EV + AV * AV);
+            // 6. GRR
+            double GRR = Math.Round(Math.Sqrt(EV * EV + AV * AV), 6);
 
-            // Part Variation using Range method (Rp * k3)
-            double[] partAverages = new double[10];
+            // 7. PV
+            double[] partAvgs = new double[10];
             for (int p = 0; p < 10; p++)
             {
-                double[] partVals = { m1[0, p], m1[1, p], m1[2, p], m2[0, p], m2[1, p], m2[2, p], m3[0, p], m3[1, p], m3[2, p] };
-                partAverages[p] = partVals.Average();
+                double[] allVals =
+                {
+            m1[0,p], m1[1,p], m1[2,p],
+            m2[0,p], m2[1,p], m2[2,p],
+            m3[0,p], m3[1,p], m3[2,p]
+        };
+                partAvgs[p] = allVals.Average();
             }
-            Array.Sort(partAverages);
-            double Rp = partAverages[9] - partAverages[0];
-            double PV = Rp * k3;
 
-            // Total Variation
-            double TV = Math.Sqrt(GRR * GRR + PV * PV);
+            Array.Sort(partAvgs);
+            double Rp = partAvgs[9] - partAvgs[0];
 
-            // %GRR of PV Method
-            double percentGRR_PV = (TV > 0) ? (GRR / TV) * 100.0 : 0.0;
+            double PV = Math.Round(Rp * k3, 4);
 
-            // %PV Contribution
-            double percentPV = (TV > 0) ? (PV / TV) * 100.0 : 0.0;
+            // 8. PV Method
+            double TV_PV = Math.Round(Math.Sqrt(GRR * GRR + PV * PV), 7);
 
-            // NDC (PV Method)
-            double ndc_PV = (GRR > 0) ? ndcFactor * (PV / GRR) : 0;
+            double percentGrr_PV = Math.Round((GRR / TV_PV) * 100.0, 4);
+            double percentPV = Math.Round((PV / TV_PV) * 100.0, 4);
 
-            // %GRR of Tolerance Method
-            double percentGRR_Tolerance = (tolerance > 0) ? (GRR / tolerance) * 100.0 : 0.0;
+            double NDC = Math.Round((PV / GRR) * ndcFactor, 2);
 
-            // Conclusions (standard AIAG criteria)
-            string conclusion_PV = percentGRR_PV <= 10 ? "Accepted" :
-                                  percentGRR_PV <= 30 ? "Conditionally Accepted" : "Not Accepted";
-            string conclusion_TT = percentGRR_Tolerance <= 10 ? "Accepted" :
-                                  percentGRR_Tolerance <= 30 ? "Conditionally Accepted" : "Not Accepted";
+            //string conclusionPV =
+            //    percentGrr_PV <= 10 ? "Accepted" :
+            //    percentGrr_PV <= 30 ? "Conditionally Accepted" :
+            //    "Not Accepted";
 
-            // Assign to properties (update your existing properties)
-            Repeatability = EV;
-            Reproducibility = AV;
-            PartVariation = PV;
-            TotalPVPercent = percentPV;
-            TotalTolerance = tolerance;
-            GRRPercentage = percentGRR_Tolerance;  // Use tolerance method as primary
-            GRRConclusion = conclusion_TT;
-            Ndc = (int)Math.Round(ndc_PV);
+            var pvResult = new GaugeRrResult
+            {
+                Ev = EV,
+                Av = AV,
+                Grr = GRR,
+                Pv = PV,
+                Tv = TotalTolerance,
+                PercentGrr_Pv = percentGrr_PV,
+                PercentPv = percentPV,
+                Ndc = NDC,
+                PercentGrrTolerance = 0,
+                //ConclusionTolerance = conclusionPV
+            };
 
-            // Debug output (optional - remove in production)
-            System.Diagnostics.Debug.WriteLine($"VB6 Method: EV={EV:F4}, AV={AV:F4}, PV={PV:F4}, GRR={GRR:F4}");
-            System.Diagnostics.Debug.WriteLine($"RDoubleBar={RDoubleBar:F5}, X1Bar={X1Bar:F4}, X2Bar={X2Bar:F4}");
+            // 9. Tolerance Method
+            double TV_Tol = TotalTolerance;
+            double percentGrr_Tol = Math.Round((GRR / TV_Tol) * 100.0, 4);
+            double percentPV_Tol = Math.Round((PV / TV_Tol) * 100.0, 4);
+
+            string conclusionTol =
+                percentGrr_Tol <= 10 ? "Accepted" :
+                percentGrr_Tol <= 30 ? "Conditionally Accepted" :
+                "Not Accepted";
+
+            var tolResult = new GaugeRrResult
+            {
+                Ev = EV,
+                Av = AV,
+                Grr = GRR,
+                Pv = PV,
+                Tv = TotalTolerance,
+                PercentGrr_Pv = percentPV_Tol,
+                PercentPv = percentPV_Tol,
+                Ndc = NDC,
+                PercentGrrTolerance = percentGrr_Tol,
+                ConclusionTolerance = conclusionTol
+            };
+
+            return (pvResult, tolResult);
         }
 
-        // Converts a 30-element list into 3x10 matrix [trialIndex, partIndex]
-        private double[,] ConvertToMatrix(List<double> list30)
+
+        #endregion
+
+        #region HELPERS
+        private double[,] ConvertToMatrix(List<double> values)
         {
             var m = new double[3, 10];
             for (int t = 0; t < 3; t++)
                 for (int p = 0; p < 10; p++)
-                    m[t, p] = list30[t * 10 + p];
+                    m[t, p] = values[t * 10 + p];
             return m;
+        }
+
+        private void BuildGridForAppraiser(ObservableCollection<RnRGridRow> target, List<double> vals)
+        {
+            target.Clear();
+
+            for (int t = 0; t < 3; t++)
+            {
+                var row = new RnRGridRow
+                {
+                    TrialNo = (t + 1).ToString(),
+                    Data1 = vals[t * 10 + 0],
+                    Data2 = vals[t * 10 + 1],
+                    Data3 = vals[t * 10 + 2],
+                    Data4 = vals[t * 10 + 3],
+                    Data5 = vals[t * 10 + 4],
+                    Data6 = vals[t * 10 + 5],
+                    Data7 = vals[t * 10 + 6],
+                    Data8 = vals[t * 10 + 7],
+                    Data9 = vals[t * 10 + 8],
+                    Data10 = vals[t * 10 + 9],
+                };
+                target.Add(row);
+            }
+
+            var avg = new RnRGridRow { TrialNo = "Average" };
+            var rng = new RnRGridRow { TrialNo = "Range" };
+
+            for (int c = 0; c < 10; c++)
+            {
+                double[] column =
+                {
+                    target[0].GetColumn(c),
+                    target[1].GetColumn(c),
+                    target[2].GetColumn(c)
+                };
+
+                avg.SetColumn(c, column.Average());
+                rng.SetColumn(c, column.Max() - column.Min());
+            }
+
+            target.Add(avg);
+            target.Add(rng);
         }
 
         private void ClearAllGrids()
@@ -529,33 +601,29 @@ namespace EVMS
             GRRPercentage = 0;
             GRRConclusion = string.Empty;
             Ndc = 0;
+            PvMethodResult = null;
+            ToleranceMethodResult = null;
         }
 
-        #region Helpers (RelayCommand + Grid Row)
         public class RelayCommand : ICommand
         {
-            private readonly Func<object, Task> _executeAsync;
-            private readonly Action<object> _execute;
+            private readonly Func<object, Task> _async;
+            private readonly Action<object> _sync;
             private readonly Predicate<object> _canExecute;
 
-            public RelayCommand(Func<object, Task> executeAsync, Predicate<object> canExecute = null)
-            {
-                _executeAsync = executeAsync;
-                _canExecute = canExecute;
-            }
-
-            public RelayCommand(Action<object> execute, Predicate<object> canExecute = null)
-            {
-                _execute = execute;
-                _canExecute = canExecute;
-            }
+            public RelayCommand(Func<object, Task> async, Predicate<object> can = null) { _async = async; _canExecute = can; }
+            public RelayCommand(Action<object> sync, Predicate<object> can = null) { _sync = sync; _canExecute = can; }
 
             public bool CanExecute(object parameter) => _canExecute == null || _canExecute(parameter);
 
             public async void Execute(object parameter)
             {
-                if (_executeAsync != null) await _executeAsync(parameter);
-                else _execute?.Invoke(parameter);
+                if (_async != null)
+                {
+                    try { await _async(parameter); }
+                    catch (Exception ex) { MessageBox.Show(ex.Message, "Command error", MessageBoxButton.OK, MessageBoxImage.Error); }
+                }
+                else _sync?.Invoke(parameter);
             }
 
             public event EventHandler CanExecuteChanged
@@ -568,6 +636,11 @@ namespace EVMS
         public class RnRGridRow : INotifyPropertyChanged
         {
             public event PropertyChangedEventHandler PropertyChanged;
+
+
+            public bool IsRangeRow => TrialNo == "Range";
+
+
             private string _trialNo;
             public string TrialNo { get => _trialNo; set { _trialNo = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(TrialNo))); } }
 
@@ -583,38 +656,109 @@ namespace EVMS
             public double Data9 { get => _d9; set { _d9 = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Data9))); } }
             public double Data10 { get => _d10; set { _d10 = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Data10))); } }
 
-            public double GetColumn(int idx) => idx switch
-            {
-                0 => Data1,
-                1 => Data2,
-                2 => Data3,
-                3 => Data4,
-                4 => Data5,
-                5 => Data6,
-                6 => Data7,
-                7 => Data8,
-                8 => Data9,
-                9 => Data10,
-                _ => 0
-            };
-
-            public void SetColumn(int idx, double value)
-            {
-                switch (idx)
+            public double GetColumn(int c) =>
+                c switch
                 {
-                    case 0: Data1 = value; break;
-                    case 1: Data2 = value; break;
-                    case 2: Data3 = value; break;
-                    case 3: Data4 = value; break;
-                    case 4: Data5 = value; break;
-                    case 5: Data6 = value; break;
-                    case 6: Data7 = value; break;
-                    case 7: Data8 = value; break;
-                    case 8: Data9 = value; break;
-                    case 9: Data10 = value; break;
+                    0 => Data1,
+                    1 => Data2,
+                    2 => Data3,
+                    3 => Data4,
+                    4 => Data5,
+                    5 => Data6,
+                    6 => Data7,
+                    7 => Data8,
+                    8 => Data9,
+                    9 => Data10,
+                    _ => 0
+                };
+
+            public double MaxRangeValue =>
+        new[] { Data1, Data2, Data3, Data4, Data5,
+                Data6, Data7, Data8, Data9, Data10 }.Max();
+
+            public bool IsRangeAboveLimit =>
+        IsRangeRow && MaxRangeValue > 0.010;
+            public void SetColumn(int c, double v)
+            {
+                switch (c)
+                {
+                    case 0: Data1 = v; break;
+                    case 1: Data2 = v; break;
+                    case 2: Data3 = v; break;
+                    case 3: Data4 = v; break;
+                    case 4: Data5 = v; break;
+                    case 5: Data6 = v; break;
+                    case 6: Data7 = v; break;
+                    case 7: Data8 = v; break;
+                    case 8: Data9 = v; break;
+                    case 9: Data10 = v; break;
                 }
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs($"Data{c + 1}"));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(MaxRangeValue)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsRangeAboveLimit)));
+
             }
         }
         #endregion
+
+
+        private List<double> GetRowValues(RnRGridRow row) =>
+    new()
+    {
+        row.Data1, row.Data2, row.Data3, row.Data4, row.Data5,
+        row.Data6, row.Data7, row.Data8, row.Data9, row.Data10
+    };
+
+        private void RecalculateFromGrids()
+        {
+            // 1) rebuild averages and ranges from trials
+            RebuildAvgAndRangeRows(Appraiser1Data);
+            RebuildAvgAndRangeRows(Appraiser2Data);
+            RebuildAvgAndRangeRows(Appraiser3Data);
+
+            // 2) read 3 trial rows back into vectors
+            var a1 = Appraiser1Data.Take(3).SelectMany(GetRowValues).ToList();
+            var a2 = Appraiser2Data.Take(3).SelectMany(GetRowValues).ToList();
+            var a3 = Appraiser3Data.Take(3).SelectMany(GetRowValues).ToList();
+
+            if (a1.Count != 30 || a2.Count != 30 || a3.Count != 30)
+                return;
+
+            var all = a1.Concat(a2).Concat(a3).ToList();
+            double dataMin = all.Min();
+            double dataMax = all.Max();
+            TotalTolerance = dataMax - dataMin;
+
+            var both = ComputeBothMethods(a1, a2, a3, TotalTolerance);
+            PvMethodResult = both.pvResult;
+            ToleranceMethodResult = both.tolResult;
+            UpdateDisplayedResults();
+        }
+
+        private void RebuildAvgAndRangeRows(ObservableCollection<RnRGridRow> target)
+        {
+            if (target.Count < 5) return;
+
+            var r1 = target[0];
+            var r2 = target[1];
+            var r3 = target[2];
+            var avg = target[3];
+            var rng = target[4];
+
+            for (int c = 0; c < 10; c++)
+            {
+                double[] col =
+                {
+            r1.GetColumn(c),
+            r2.GetColumn(c),
+            r3.GetColumn(c)
+        };
+
+                avg.SetColumn(c, col.Average());
+                rng.SetColumn(c, col.Max() - col.Min());
+            }
+        }
+
+
     }
 }

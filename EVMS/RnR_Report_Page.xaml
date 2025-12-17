@@ -17,7 +17,7 @@
 
             <!-- Modern DataGrid Cell Style -->
             <Style x:Key="ModernDataGridCell" TargetType="DataGridCell">
-                <Setter Property="Background" Value="White"/>
+                <Setter Property="Background" Value="Transparent"/>
                 <Setter Property="BorderThickness" Value="0"/>
                 <Setter Property="Padding" Value="8,6"/>
                 <Setter Property="FontSize" Value="13"/>
@@ -34,6 +34,7 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+
 
             <!-- Modern Header Style -->
             <Style x:Key="ModernDataGridHeader" TargetType="DataGridColumnHeader">
@@ -64,6 +65,23 @@
                 </Setter>
             </Style>
 
+
+            <Style x:Key="RoundedButtonStyle" TargetType="Button">
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border CornerRadius="12"
+                            Background="{TemplateBinding Background}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          Margin="{TemplateBinding Padding}"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
             <!-- Appraiser Header Style -->
             <Style x:Key="AppraiserHeaderStyle" TargetType="TextBlock">
                 <Setter Property="FontSize" Value="16"/>
@@ -71,13 +89,21 @@
                 <Setter Property="Foreground" Value="#1E293B"/>
                 <Setter Property="Margin" Value="0,0,0,16"/>
             </Style>
+
+            <!-- CenterCellStyle here -->
+            <Style x:Key="CenterCellStyle"
+       TargetType="DataGridCell"
+       BasedOn="{StaticResource ModernDataGridCell}">
+                <Setter Property="TextBlock.TextAlignment" Value="Center"/>
+            </Style>
+
         </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid Margin="20" Background="Transparent">
         <Grid.RowDefinitions>
-            <RowDefinition Height="60"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="40"/>
+            <RowDefinition Height="130" />
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -128,7 +154,7 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- Date Range -->
-                <StackPanel Grid.Column="0" Margin="120,0,24,0">
+                <StackPanel Grid.Column="0" Margin="20,8,34,0">
                     <TextBlock Text="📅 Date Range" FontWeight="Bold" Foreground="#1E293B" FontSize="13" Margin="0,0,0,8"/>
                     <StackPanel Orientation="Horizontal">
                         <xctk:DateTimePicker Width="220" Margin="0,0,8,0" Height="40"
@@ -144,7 +170,7 @@
                 </StackPanel>
 
                 <!-- Part & Lot -->
-                <StackPanel Grid.Column="1" Margin="0,0,24,0">
+                <StackPanel Grid.Column="1" Margin="0,8,34,0">
                     <TextBlock Text="⚙️ Part" FontWeight="Bold" Foreground="#1E293B" FontSize="13" Margin="0,0,0,8"/>
                     <StackPanel>
                         <ComboBox Width="200" Margin="0,0,0,8" Height="42"
@@ -156,7 +182,7 @@
                     </StackPanel>
                 </StackPanel>
                 
-                <StackPanel Grid.Column="2" Margin="0,0,24,0">
+                <StackPanel Grid.Column="2" Margin="0,8,34,0">
                     <TextBlock Text="⚙️ Lot" FontWeight="Bold" Foreground="#1E293B" FontSize="13" Margin="0,0,0,8"/>
                     <StackPanel>
 
@@ -170,7 +196,7 @@
 
                 <!-- Parameter -->
                 <StackPanel Grid.Column="3">
-                    <TextBlock Text="📈 Parameter" FontWeight="Bold" Foreground="#1E293B" FontSize="13" Margin="0,0,0,8"/>
+                    <TextBlock Text="📈 Parameter" FontWeight="Bold" Foreground="#1E293B" FontSize="13" Margin="0,8,0,8"/>
                     <ComboBox Width="200" Height="42"  Margin="0,0,0,8" 
                              ItemsSource="{Binding ParametersOptions}"
                              SelectedItem="{Binding SelectedParameter, Mode=TwoWay}"
@@ -179,18 +205,27 @@
                 </StackPanel>
 
                 <!-- Apply Button -->
-                <Button Grid.Column="4" Width="140" Height="48" Margin="32,0,0,0"
-                        Content="🚀 Generate Report" Command="{Binding SubmitCommand}"
-                        FontSize="14" FontWeight="Bold">
-                    <Button.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                            <GradientStop Color="#3B82F6" Offset="0"/>
-                            <GradientStop Color="#1D4ED8" Offset="1"/>
-                        </LinearGradientBrush>
-                    </Button.Background>
-                    <Button.Foreground>White</Button.Foreground>
-                    <Button.BorderThickness>0</Button.BorderThickness>
+                <Button Grid.Column="4" Width="140" Height="48" Margin="0,16,450,0"
+        Content="🚀 Calculate RNR"
+        Command="{Binding SubmitCommand}"
+        FontSize="14" FontWeight="Bold"
+        BorderThickness="0" Foreground="White">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border CornerRadius="12">
+                                <Border.Background>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#3B82F6" Offset="0"/>
+                                        <GradientStop Color="#1D4ED8" Offset="1"/>
+                                    </LinearGradientBrush>
+                                </Border.Background>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                  VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
                 </Button>
+
             </Grid>
         </Border>
 
@@ -225,25 +260,51 @@
                             <!-- Appraiser 1 -->
                             <TextBlock Text="👤 Appraiser 1" Style="{StaticResource AppraiserHeaderStyle}"/>
                             <Border Background="#F8FAFC" CornerRadius="12" Padding="10" Margin="0,0,0,2">
-                                <DataGrid ItemsSource="{Binding Appraiser1Data}" 
-                                         AutoGenerateColumns="False" CanUserAddRows="False" 
-                                         IsReadOnly="True" HeadersVisibility="Column"
-                                         GridLinesVisibility="None" RowHeight="30">
+                                <DataGrid ItemsSource="{Binding Appraiser1Data}"
+                  AutoGenerateColumns="False" CanUserAddRows="False"
+                  IsReadOnly="False" HeadersVisibility="Column"
+                  GridLinesVisibility="None" RowHeight="30"
+                  CellStyle="{StaticResource CenterCellStyle}">
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow">
+                                            <Style.Triggers>
+
+                                                <!-- Range row normal -->
+                                                <DataTrigger Binding="{Binding IsRangeRow}" Value="True">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                </DataTrigger>
+
+                                                <!-- Range row ABOVE LIMIT -->
+                                                <DataTrigger Binding="{Binding IsRangeAboveLimit}" Value="True">
+                                                    <Setter Property="Background" Value="#FFCDD2"/>
+                                                    <!-- Light Red -->
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+
+
+
                                     <DataGrid.Resources>
-                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ModernDataGridHeader}"/>
-                                        <Style TargetType="DataGridCell" BasedOn="{StaticResource ModernDataGridCell}"/>
+                                        <Style TargetType="DataGridColumnHeader"
+                       BasedOn="{StaticResource ModernDataGridHeader}"/>
+                                        <Style TargetType="DataGridCell"
+                       BasedOn="{StaticResource ModernDataGridCell}"/>
                                     </DataGrid.Resources>
+
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Trial" Binding="{Binding TrialNo}" Width="80"/>
-                                        <DataGridTextColumn Header="1" Binding="{Binding Data1, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="2" Binding="{Binding Data2, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="3" Binding="{Binding Data3, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="4" Binding="{Binding Data4, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="5" Binding="{Binding Data5, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="6" Binding="{Binding Data6, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="7" Binding="{Binding Data7, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="8" Binding="{Binding Data8, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="9" Binding="{Binding Data9, StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="Trial" Binding="{Binding TrialNo}" Width="80" FontWeight="Heavy"/>
+                                        <DataGridTextColumn Header="1"  Binding="{Binding Data1,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="2"  Binding="{Binding Data2,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="3"  Binding="{Binding Data3,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="4"  Binding="{Binding Data4,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="5"  Binding="{Binding Data5,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="6"  Binding="{Binding Data6,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="7"  Binding="{Binding Data7,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="8"  Binding="{Binding Data8,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="9"  Binding="{Binding Data9,  StringFormat={}{0:F4}}" Width="*"/>
                                         <DataGridTextColumn Header="10" Binding="{Binding Data10, StringFormat={}{0:F4}}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
@@ -252,25 +313,52 @@
                             <!-- Appraiser 2 -->
                             <TextBlock Text="👤 Appraiser 2" Style="{StaticResource AppraiserHeaderStyle}"/>
                             <Border Background="#F8FAFC" CornerRadius="12" Padding="10" Margin="0,0,0,2">
-                                <DataGrid ItemsSource="{Binding Appraiser2Data}" 
-                                         AutoGenerateColumns="False" CanUserAddRows="False" 
-                                         IsReadOnly="True" HeadersVisibility="Column"
-                                         GridLinesVisibility="None" RowHeight="30">
+                                <DataGrid ItemsSource="{Binding Appraiser2Data}"
+                  AutoGenerateColumns="False" CanUserAddRows="False"
+                  IsReadOnly="False" HeadersVisibility="Column"
+                  GridLinesVisibility="None" RowHeight="30"
+                  CellStyle="{StaticResource CenterCellStyle}">
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow">
+                                            <Style.Triggers>
+
+                                                <!-- Range row normal -->
+                                                <DataTrigger Binding="{Binding IsRangeRow}" Value="True">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                </DataTrigger>
+
+                                                <!-- Range row ABOVE LIMIT -->
+                                                <DataTrigger Binding="{Binding IsRangeAboveLimit}" Value="True">
+                                                    <Setter Property="Background" Value="#FFCDD2"/>
+                                                    <!-- Light Red -->
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+
+
+
                                     <DataGrid.Resources>
-                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ModernDataGridHeader}"/>
-                                        <Style TargetType="DataGridCell" BasedOn="{StaticResource ModernDataGridCell}"/>
+                                        <Style TargetType="DataGridColumnHeader"
+                       BasedOn="{StaticResource ModernDataGridHeader}"/>
+                                        <Style TargetType="DataGridCell"
+                       BasedOn="{StaticResource ModernDataGridCell}"/>
                                     </DataGrid.Resources>
+
+                                    <!-- same columns as Appraiser 1 -->
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Trial" Binding="{Binding TrialNo}" Width="80"/>
-                                        <DataGridTextColumn Header="1" Binding="{Binding Data1, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="2" Binding="{Binding Data2, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="3" Binding="{Binding Data3, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="4" Binding="{Binding Data4, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="5" Binding="{Binding Data5, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="6" Binding="{Binding Data6, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="7" Binding="{Binding Data7, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="8" Binding="{Binding Data8, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="9" Binding="{Binding Data9, StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="Trial" Binding="{Binding TrialNo}" Width="80" FontWeight="Heavy"/>
+                                        <DataGridTextColumn Header="1"  Binding="{Binding Data1,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="2"  Binding="{Binding Data2,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="3"  Binding="{Binding Data3,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="4"  Binding="{Binding Data4,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="5"  Binding="{Binding Data5,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="6"  Binding="{Binding Data6,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="7"  Binding="{Binding Data7,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="8"  Binding="{Binding Data8,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="9"  Binding="{Binding Data9,  StringFormat={}{0:F4}}" Width="*"/>
                                         <DataGridTextColumn Header="10" Binding="{Binding Data10, StringFormat={}{0:F4}}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
@@ -279,30 +367,55 @@
                             <!-- Appraiser 3 -->
                             <TextBlock Text="👤 Appraiser 3" Style="{StaticResource AppraiserHeaderStyle}"/>
                             <Border Background="#F8FAFC" CornerRadius="12" Padding="10">
-                                <DataGrid ItemsSource="{Binding Appraiser3Data}" 
-                                         AutoGenerateColumns="False" CanUserAddRows="False" 
-                                         IsReadOnly="True" HeadersVisibility="Column"
-                                         GridLinesVisibility="None" RowHeight="30">
+                                <DataGrid ItemsSource="{Binding Appraiser3Data}"
+                  AutoGenerateColumns="False" CanUserAddRows="False"
+                  IsReadOnly="False" HeadersVisibility="Column"
+                  GridLinesVisibility="None" RowHeight="30"
+                  CellStyle="{StaticResource CenterCellStyle}">
+                                    <DataGrid.RowStyle>
+                                        <Style TargetType="DataGridRow">
+                                            <Style.Triggers>
+
+                                                <!-- Normal Range row -->
+                                                <DataTrigger Binding="{Binding IsRangeRow}" Value="True">
+                                                    <Setter Property="Foreground" Value="Black"/>
+                                                </DataTrigger>
+
+                                                <!-- Range row > 0.010 -->
+                                                <DataTrigger Binding="{Binding IsRangeAboveLimit}" Value="True">
+                                                    <Setter Property="Foreground" Value="Red"/>
+                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                </DataTrigger>
+
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGrid.RowStyle>
+
+
                                     <DataGrid.Resources>
-                                        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource ModernDataGridHeader}"/>
-                                        <Style TargetType="DataGridCell" BasedOn="{StaticResource ModernDataGridCell}"/>
+                                        <Style TargetType="DataGridColumnHeader"
+                       BasedOn="{StaticResource ModernDataGridHeader}"/>
+                                        <Style TargetType="DataGridCell"
+                       BasedOn="{StaticResource ModernDataGridCell}"/>
                                     </DataGrid.Resources>
+
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Trial" Binding="{Binding TrialNo}" Width="80"/>
-                                        <DataGridTextColumn Header="1" Binding="{Binding Data1, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="2" Binding="{Binding Data2, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="3" Binding="{Binding Data3, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="4" Binding="{Binding Data4, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="5" Binding="{Binding Data5, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="6" Binding="{Binding Data6, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="7" Binding="{Binding Data7, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="8" Binding="{Binding Data8, StringFormat={}{0:F4}}" Width="*"/>
-                                        <DataGridTextColumn Header="9" Binding="{Binding Data9, StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="Trial" Binding="{Binding TrialNo}" Width="80" FontWeight="UltraBold"/>
+                                        <DataGridTextColumn Header="1"  Binding="{Binding Data1,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="2"  Binding="{Binding Data2,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="3"  Binding="{Binding Data3,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="4"  Binding="{Binding Data4,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="5"  Binding="{Binding Data5,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="6"  Binding="{Binding Data6,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="7"  Binding="{Binding Data7,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="8"  Binding="{Binding Data8,  StringFormat={}{0:F4}}" Width="*"/>
+                                        <DataGridTextColumn Header="9"  Binding="{Binding Data9,  StringFormat={}{0:F4}}" Width="*"/>
                                         <DataGridTextColumn Header="10" Binding="{Binding Data10, StringFormat={}{0:F4}}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Border>
                         </StackPanel>
+
                     </ScrollViewer>
                 </Grid>
             </Border>
@@ -321,8 +434,28 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="📈 MSA Results" FontSize="20" FontWeight="Bold" 
-                   Foreground="#1E293B" HorizontalAlignment="Center" Margin="0,0,0,32"/>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
+                        <Button Content="PV Method"
+                            Width="120" Height="40" Margin="4"
+                            Command="{Binding SelectPVMethodCommand}"
+                            Background="#3B82F6"
+                            Style="{StaticResource RoundedButtonStyle}"/>       
+
+                        <!-- Tolerance Method button -->
+                        <Button Content="Tolerance Method"
+                            Width="140" Height="40" Margin="4"
+                            Command="{Binding SelectToleranceMethodCommand}"
+                            Background="#10B981"
+                            Style="{StaticResource RoundedButtonStyle}"/>
+
+                        <Button Content="🔁 Recalculate"
+        Width="120" Height="40" Margin="4"
+        Command="{Binding RecalculateCommand}"
+        Background="#6366F1"
+        Style="{StaticResource RoundedButtonStyle}"/>
+
+                    </StackPanel>
+
 
                     <!-- Key Metrics Grid -->
                     <Grid Grid.Row="1">
@@ -341,7 +474,7 @@
                             <Border.BorderBrush>#F59E0B</Border.BorderBrush>
                             <Border.BorderThickness>2</Border.BorderThickness>
                             <Border.CornerRadius>
-                                <CornerRadius>12</CornerRadius>
+                                <CornerRadius>20</CornerRadius>
                             </Border.CornerRadius>
                             <Border.Padding>16</Border.Padding>
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -350,9 +483,9 @@
                                 <TextBlock Text="{Binding TotalPVPercent, StringFormat={}{0:F1}}" 
                                FontSize="24" FontWeight="Bold" Foreground="#B45309" 
                                HorizontalAlignment="Center"/>
-                                <TextBlock Text="NDN" FontSize="17" Foreground="#92400E" 
+                                <TextBlock Text="NDC" FontSize="17" Foreground="#92400E" 
                                HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding Ndc, StringFormat={}{0:F0}}" 
+                                <TextBlock Text="{Binding Ndc, StringFormat={}{0:F02}}" 
                                FontSize="20" FontWeight="Bold" Foreground="#B45309" 
                                HorizontalAlignment="Center"/>
                             </StackPanel>
@@ -360,21 +493,85 @@
 
                         <!-- GRR -->
                         <Border Grid.Row="0" Grid.Column="1" Margin="8">
-                            <Border.Background>#FEF3C7</Border.Background>
-                            <Border.BorderBrush>#F59E0B</Border.BorderBrush>
-                            <Border.BorderThickness>2</Border.BorderThickness>
-                            <Border.CornerRadius>
-                                <CornerRadius>12</CornerRadius>
-                            </Border.CornerRadius>
+
+                            <Border.Style>
+                                <Style TargetType="Border">
+
+                                    <!-- DEFAULT = GREEN (≤10%) -->
+                                    <Setter Property="Background" Value="#DCFCE7"/>
+                                    <Setter Property="BorderBrush" Value="#16A34A"/>
+                                    <Setter Property="BorderThickness" Value="2"/>
+
+                                    <Style.Triggers>
+
+                                        <!-- YELLOW (10–30%) -->
+                                        <DataTrigger Binding="{Binding GRRConclusion}" Value="Conditionally Accepted">
+                                            <Setter Property="Background" Value="#FEF3C7"/>
+                                            <Setter Property="BorderBrush" Value="#F59E0B"/>
+                                        </DataTrigger>
+
+                                        <!-- RED (>30%) -->
+                                        <DataTrigger Binding="{Binding GRRConclusion}" Value="Not Accepted">
+                                            <Setter Property="Background" Value="#FEE2E2"/>
+                                            <Setter Property="BorderBrush" Value="#DC2626"/>
+                                        </DataTrigger>
+
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <Border.CornerRadius>12</Border.CornerRadius>
                             <Border.Padding>16</Border.Padding>
+
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <TextBlock Text="%GRR" FontSize="18" Foreground="#92400E" 
-                               FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding GRRPercentage, StringFormat={}{0:F1}}" 
-                               FontSize="32" FontWeight="Bold" Foreground="#B45309" 
-                               HorizontalAlignment="Center"/>
+
+                                <TextBlock Text="%R and R"
+                                       FontSize="18"
+                                       FontWeight="SemiBold"
+                                       HorizontalAlignment="Center">    
+
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#166534"/>
+
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding GRRConclusion}" Value="Conditionally Accepted">
+                                                    <Setter Property="Foreground" Value="#92400E"/>
+                                                </DataTrigger>
+
+                                                <DataTrigger Binding="{Binding GRRConclusion}" Value="Not Accepted">
+                                                    <Setter Property="Foreground" Value="#7F1D1D"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <TextBlock Text="{Binding GRRPercentage, StringFormat={}{0:F2}%}"
+                                           FontSize="32"
+                                           FontWeight="Bold"
+                                           HorizontalAlignment="Center">
+
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#166534"/>
+
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding GRRConclusion}" Value="Conditionally Accepted">
+                                                    <Setter Property="Foreground" Value="#92400E"/>
+                                                </DataTrigger>
+
+                                                <DataTrigger Binding="{Binding GRRConclusion}" Value="Not Accepted">
+                                                    <Setter Property="Foreground" Value="#7F1D1D"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
                             </StackPanel>
                         </Border>
+
 
                         <!-- Tolerance -->
                         <Border Grid.Row="1" Grid.Column="0" Margin="8">
@@ -388,7 +585,7 @@
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <TextBlock Text="Tolerance" FontSize="19" Foreground="#065F46" 
                                FontWeight="SemiBold" HorizontalAlignment="Center"/>
-                                <TextBlock Text="{Binding TotalTolerance, StringFormat={}{0:F4}}" 
+                                <TextBlock Text="{Binding TotalTolerance, StringFormat={}{0:F3}}" 
                                FontSize="32" FontWeight="Bold" Foreground="#047857" 
                                HorizontalAlignment="Center"/>
                             </StackPanel>
@@ -414,7 +611,7 @@
                     </Grid>
 
                     <!-- Acceptance Criteria -->
-                    <Border Grid.Row="2">
+                    <Border Grid.Row="3">
                         <Border.Background>#EFF6FF</Border.Background>
                         <Border.BorderBrush>#3B82F6</Border.BorderBrush>
                         <Border.BorderThickness>2</Border.BorderThickness>
@@ -426,14 +623,14 @@
                         <StackPanel>
                             <TextBlock Text="✅ Acceptance Criteria" FontSize="16" FontWeight="Bold" 
                                        Foreground="#1E293B" HorizontalAlignment="Center" Margin="0,0,0,12"/>
-                            <TextBlock Text="%GRR ≤ 10%: ✅ ACCEPTED | 10-30%: ⚠️ CONDITIONAL | >30%: ❌ NOT ACCEPTED" 
+                            <TextBlock Text="%R and R ≤ 10%: ✅ ACCEPTED | 10-30%: ⚠️ CONDITIONAL | >30%: ❌ NOT ACCEPTED" 
                                        FontSize="14" Foreground="#1E40AF" HorizontalAlignment="Center" 
                                        TextWrapping="Wrap" FontWeight="Medium"/>
                         </StackPanel>
                     </Border>
 
                     <!-- Components -->
-                    <Border Grid.Row="3">
+                    <Border Grid.Row="2">
                         <Border.Background>#F0F9FF</Border.Background>
                         <Border.BorderBrush>#0EA5E9</Border.BorderBrush>
                         <Border.BorderThickness>1</Border.BorderThickness>
